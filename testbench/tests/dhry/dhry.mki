@@ -1,2 +1,6 @@
 OFILES = crt0.o dhry_1.o dhry_2.o printf.o
-TEST_CFLAGS = -g -O3
+#ABI = -mabi=lp64 -march=rv64im
+ABI = -mabi=lp64 -march=rv64imc
+#ABI = -mabi=lp64 -march=rv64imc_zba_zbb
+#TEST_CFLAGS = -g -O3 -funroll-all-loops -nostdlib
+TEST_CFLAGS = -mtune=sifive-7-series -mbranch-cost=1 -Ofast -funroll-all-loops --param=hot-bb-frequency-fraction=1 --param=max-jump-thread-duplication-stmts=2 --param=max-tail-merge-iterations=0 -fno-aggressive-loop-optimizations -fgcse-las --param=max-grow-copy-bb-insns=7 --param=unroll-jam-min-percent=0 --param=large-unit-insns=0 -fno-delete-null-pointer-checks -fno-rename-registers --param=max-partial-antic-length=1 --param=loop-max-datarefs-for-datadeps=0 -funroll-all-loops --param=uninlined-function-insns=16 -fno-tree-vrp -fwrapv -fno-toplevel-reorder --param=max-inline-insns-size=128 -fipa-pta --param=max-cse-path-length=3 --param=inline-min-speedup=1 --param=max-sched-region-insns=7 --param=max-goto-duplication-insns=0 --param=max-gcse-insertion-ratio=0 -fno-tree-ter --param=max-average-unrolled-insns=128 -fno-dce --param=max-loop-header-insns=2 -fno-tree-loop-ivcanon -fno-tree-loop-distribute-patterns -fno-sched-rank-heuristic

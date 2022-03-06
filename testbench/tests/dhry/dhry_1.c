@@ -19,7 +19,19 @@
 #ifdef SWERV
 #include <stdio.h>
 #include <stdint.h>
-extern uint64_t get_mcycle();
+#include "printf.h"
+uint64_t get_mcycle(){
+  // in RV64, mcycle csr is 64bit, and not need read mcycleh
+  uint64_t mcycle;
+  asm volatile ("csrr %0,mcycle"   : "=r" (mcycle)  );
+  return mcycle;
+}
+uint64_t get_minstret(){
+  // in RV64, minstret csr is 64bit, and not need read minstreth
+  uint64_t minstret;
+  asm volatile ("csrr %0,minstret"   : "=r" (minstret)  );
+  return minstret;
+}
 #endif
 
 #include "dhry.h"
@@ -69,6 +81,9 @@ long
                 Begin_Time,
                 End_Time,
                 User_Time;
+long            Begin_Inst,
+                End_Inst,
+                Tortal_Inst;
 
 float           Microseconds,
                 Dhrystones_Per_Second;
@@ -166,6 +181,7 @@ main ()
 
 #ifdef SWERV
     Begin_Time = get_mcycle();
+    Begin_Inst = get_minstret();
 #else
 
 #ifdef TIMES
@@ -238,7 +254,9 @@ main ()
 
 #ifdef SWERV
     End_Time = get_mcycle();
+    End_Inst = get_minstret();
     printf("End_time=%d\n", (int) End_Time);
+    printf("End_inst=%d\n", (int) End_Inst);
 #else
 #ifdef TIMES
   times (&time_info);
@@ -266,7 +284,7 @@ main ()
   printf ("        should be:   %d\n", 7);
   printf ("Arr_2_Glob[8][7]:    %d\n", Arr_2_Glob[8][7]);
   printf ("        should be:   Number_Of_Runs + 10\n");
-  printf ("Ptr_Glob->Ptr_Comp:  %x\n", (int) Ptr_Glob->Ptr_Comp);
+  printf ("Ptr_Glob->Ptr_Comp:  %x\n", (long) Ptr_Glob->Ptr_Comp);
   printf ("        should be:   (implementation-dependent)\n");
   printf ("  Discr:             %d\n", Ptr_Glob->Discr);
   printf ("        should be:   %d\n", 0);
@@ -274,9 +292,9 @@ main ()
   printf ("        should be:   %d\n", 2);
   printf ("  Int_Comp:          %d\n", Ptr_Glob->variant.var_1.Int_Comp);
   printf ("        should be:   %d\n", 17);
-  printf ("  Str_Comp:          %s", Ptr_Glob->variant.var_1.Str_Comp);
+  printf ("  Str_Comp:          %s\n", Ptr_Glob->variant.var_1.Str_Comp);
   printf ("        should be:   DHRYSTONE PROGRAM, SOME STRING\n");
-  printf ("Next_Ptr_Glob->Ptr_Comp:%x\n", (int) Next_Ptr_Glob->Ptr_Comp);
+  printf ("Next_Ptr_Glob->Ptr_Comp:%x\n", (long) Next_Ptr_Glob->Ptr_Comp);
   printf ("        should be:   (implementation-dependent), same as above\n");
   printf ("  Discr:             %d\n", Next_Ptr_Glob->Discr);
   printf ("        should be:   %d\n", 0);
@@ -284,7 +302,7 @@ main ()
   printf ("        should be:   %d\n", 1);
   printf ("  Int_Comp:          %d\n", Next_Ptr_Glob->variant.var_1.Int_Comp);
   printf ("        should be:   %d\n", 18);
-  printf ("  Str_Comp:          %s", Next_Ptr_Glob->variant.var_1.Str_Comp);
+  printf ("  Str_Comp:          %s\n", Next_Ptr_Glob->variant.var_1.Str_Comp);
   printf ("        should be:   DHRYSTONE PROGRAM, SOME STRING\n");
   printf ("Int_1_Loc:           %d\n", Int_1_Loc);
   printf ("        should be:   %d\n", 5);
@@ -294,13 +312,14 @@ main ()
   printf ("        should be:   %d\n", 7);
   printf ("Enum_Loc:            %d\n", Enum_Loc);
   printf ("        should be:   %d\n", 1);
-  printf ("Str_1_Loc:           %s", Str_1_Loc);
+  printf ("Str_1_Loc:           %s\n", Str_1_Loc);
   printf ("        should be:   DHRYSTONE PROGRAM, 1'ST STRING\n");
-  printf ("Str_2_Loc:           %s", Str_2_Loc);
+  printf ("Str_2_Loc:           %s\n", Str_2_Loc);
   printf ("        should be:   DHRYSTONE PROGRAM, 2'ND STRING\n");
   printf ("\n");
 
   User_Time = End_Time - Begin_Time;
+  Tortal_Inst = End_Inst - Begin_Inst;
 
   if (User_Time < Too_Small_Time)
   {
@@ -314,7 +333,10 @@ main ()
 #ifdef SWERV
     printf ("Run time = %d clocks for %d Dhrystones\n", User_Time, Number_Of_Runs );
     printf ("Dhrystones per Second per MHz: ");
-    printf ("%d.%02d", 1000000*Number_Of_Runs/User_Time,(100000000*Number_Of_Runs/User_Time) % 100);
+    printf ("%d.%02d\n", 1000000*Number_Of_Runs/User_Time,(100000000*Number_Of_Runs/User_Time) % 100);
+    printf ("Tortal Insts: %llu\n", Tortal_Inst);
+    printf ("Tortal Ticks: %llu\n", User_Time);
+    printf ("IPC         : %d.%03d\n", Tortal_Inst/User_Time, (1000*Tortal_Inst)/User_Time % 1000);
 #else
 #ifdef TIME
     Microseconds = (float) User_Time * Mic_secs_Per_Second

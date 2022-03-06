@@ -32,10 +32,10 @@ module lsu_addrcheck
    input logic         rst_l,                       // reset
    input logic         clk,
 
-   input logic [31:0]  start_addr_dc1,              // start address for lsu
-   input logic [31:0]  end_addr_dc1,                // end address for lsu
+   input logic [63:0]  start_addr_dc1,              // start address for lsu
+   input logic [63:0]  end_addr_dc1,                // end address for lsu
    input lsu_pkt_t     lsu_pkt_dc1,                 // packet in dc1
-   input logic [31:0]  dec_tlu_mrac_ff,             // CSR read
+   input logic [63:0]  dec_tlu_mrac_ff,             // CSR read
 
 
    output logic        is_sideeffects_dc2,          // is sideffects space
@@ -73,7 +73,8 @@ module lsu_addrcheck
    logic        start_addr_in_dccm_region_dc1, end_addr_in_dccm_region_dc1;
    logic        start_addr_in_pic_dc1, end_addr_in_pic_dc1;
    logic        start_addr_in_pic_region_dc1, end_addr_in_pic_region_dc1;
-   logic [4:0]  csr_idx;
+   // CSR那边改了64位，对应的sideeffects位可能要改，这里采用6b来寻址64b
+   logic [5:0]  csr_idx;
    logic        addr_in_iccm;
    logic        non_dccm_access_ok;
 
@@ -81,7 +82,7 @@ module lsu_addrcheck
       // Start address check
       rvrangecheck #(.CCM_SADR(`RV_DCCM_SADR),
                      .CCM_SIZE(`RV_DCCM_SIZE)) start_addr_dccm_rangecheck (
-         .addr(start_addr_dc1[31:0]),
+         .addr(start_addr_dc1[63:0]),
          .in_range(start_addr_in_dccm_dc1),
          .in_region(start_addr_in_dccm_region_dc1)
       );
@@ -89,7 +90,7 @@ module lsu_addrcheck
       // End address check
       rvrangecheck #(.CCM_SADR(`RV_DCCM_SADR),
                      .CCM_SIZE(`RV_DCCM_SIZE)) end_addr_dccm_rangecheck (
-         .addr(end_addr_dc1[31:0]),
+         .addr(end_addr_dc1[63:0]),
          .in_range(end_addr_in_dccm_dc1),
          .in_region(end_addr_in_dccm_region_dc1)
       );
@@ -100,7 +101,8 @@ module lsu_addrcheck
       assign end_addr_in_dccm_region_dc1 = '0;
    end
     if (ICCM_ENABLE == 1) begin : check_iccm
-     assign addr_in_iccm =  (start_addr_dc1[31:28] == ICCM_REGION);
+     // 还是将存储按高4b划分
+     assign addr_in_iccm =  (start_addr_dc1[63:60] == ICCM_REGION);
   end
   else begin
      assign addr_in_iccm = 1'b0;
@@ -109,7 +111,7 @@ module lsu_addrcheck
    // Start address check
    rvrangecheck #(.CCM_SADR(`RV_PIC_BASE_ADDR),
                   .CCM_SIZE(`RV_PIC_SIZE)) start_addr_pic_rangecheck (
-      .addr(start_addr_dc1[31:0]),
+      .addr(start_addr_dc1[63:0]),
       .in_range(start_addr_in_pic_dc1),
       .in_region(start_addr_in_pic_region_dc1)
    );
@@ -117,7 +119,7 @@ module lsu_addrcheck
    // End address check
    rvrangecheck #(.CCM_SADR(`RV_PIC_BASE_ADDR),
                   .CCM_SIZE(`RV_PIC_SIZE)) end_addr_pic_rangecheck (
-      .addr(end_addr_dc1[31:0]),
+      .addr(end_addr_dc1[63:0]),
       .in_range(end_addr_in_pic_dc1),
       .in_region(end_addr_in_pic_region_dc1)
    );
@@ -126,31 +128,34 @@ module lsu_addrcheck
    assign addr_in_pic_dc1         = (start_addr_in_pic_dc1 & end_addr_in_pic_dc1);
 
    assign addr_external_dc1   = ~(addr_in_dccm_dc1 | addr_in_pic_dc1);  //~addr_in_dccm_region_dc1;
-   assign csr_idx[4:0]       = {start_addr_dc1[31:28], 1'b1};
+   // 还是按32b的情况来排布cacheable和sideeffects，但是只用到了csr的低32b
+   assign csr_idx[5:0]       = {1'b0, start_addr_dc1[63:60], 1'b1};
    assign is_sideeffects_dc1 = dec_tlu_mrac_ff[csr_idx] & ~(start_addr_in_dccm_region_dc1 | start_addr_in_pic_region_dc1 | addr_in_iccm);  //every region has the 2 LSB indicating ( 1: sideeffects/no_side effects, and 0: cacheable ). Ignored in internal regions
-   assign is_aligned_dc1    = (lsu_pkt_dc1.word & (start_addr_dc1[1:0] == 2'b0)) |
+   // 对于64位，增加了访问double word时地址非对齐的情况
+   assign is_aligned_dc1    = (lsu_pkt_dc1.dword & (start_addr_dc1[2:0] == 3'b0)) |
+                              (lsu_pkt_dc1.word & (start_addr_dc1[1:0] == 2'b0)) |
                               (lsu_pkt_dc1.half & (start_addr_dc1[0] == 1'b0)) |
                               lsu_pkt_dc1.by;
 
     assign non_dccm_access_ok = (~(|{`RV_DATA_ACCESS_ENABLE0,`RV_DATA_ACCESS_ENABLE1,`RV_DATA_ACCESS_ENABLE2,`RV_DATA_ACCESS_ENABLE3,`RV_DATA_ACCESS_ENABLE4,`RV_DATA_ACCESS_ENABLE5,`RV_DATA_ACCESS_ENABLE6,`RV_DATA_ACCESS_ENABLE7})) |
 
-                             (((`RV_DATA_ACCESS_ENABLE0 & ((start_addr_dc1[31:0] | `RV_DATA_ACCESS_MASK0)) == (`RV_DATA_ACCESS_ADDR0 | `RV_DATA_ACCESS_MASK0)) |
-                               (`RV_DATA_ACCESS_ENABLE1 & ((start_addr_dc1[31:0] | `RV_DATA_ACCESS_MASK1)) == (`RV_DATA_ACCESS_ADDR1 | `RV_DATA_ACCESS_MASK1)) |
-                               (`RV_DATA_ACCESS_ENABLE2 & ((start_addr_dc1[31:0] | `RV_DATA_ACCESS_MASK2)) == (`RV_DATA_ACCESS_ADDR2 | `RV_DATA_ACCESS_MASK2)) |
-                               (`RV_DATA_ACCESS_ENABLE3 & ((start_addr_dc1[31:0] | `RV_DATA_ACCESS_MASK3)) == (`RV_DATA_ACCESS_ADDR3 | `RV_DATA_ACCESS_MASK3)) |
-                               (`RV_DATA_ACCESS_ENABLE4 & ((start_addr_dc1[31:0] | `RV_DATA_ACCESS_MASK4)) == (`RV_DATA_ACCESS_ADDR4 | `RV_DATA_ACCESS_MASK4)) |
-                               (`RV_DATA_ACCESS_ENABLE5 & ((start_addr_dc1[31:0] | `RV_DATA_ACCESS_MASK5)) == (`RV_DATA_ACCESS_ADDR5 | `RV_DATA_ACCESS_MASK5)) |
-                               (`RV_DATA_ACCESS_ENABLE6 & ((start_addr_dc1[31:0] | `RV_DATA_ACCESS_MASK6)) == (`RV_DATA_ACCESS_ADDR6 | `RV_DATA_ACCESS_MASK6)) |
-                               (`RV_DATA_ACCESS_ENABLE7 & ((start_addr_dc1[31:0] | `RV_DATA_ACCESS_MASK7)) == (`RV_DATA_ACCESS_ADDR7 | `RV_DATA_ACCESS_MASK7)))        &
+                             (((`RV_DATA_ACCESS_ENABLE0 & ((start_addr_dc1[63:0] | `RV_DATA_ACCESS_MASK0)) == (`RV_DATA_ACCESS_ADDR0 | `RV_DATA_ACCESS_MASK0)) |
+                               (`RV_DATA_ACCESS_ENABLE1 & ((start_addr_dc1[63:0] | `RV_DATA_ACCESS_MASK1)) == (`RV_DATA_ACCESS_ADDR1 | `RV_DATA_ACCESS_MASK1)) |
+                               (`RV_DATA_ACCESS_ENABLE2 & ((start_addr_dc1[63:0] | `RV_DATA_ACCESS_MASK2)) == (`RV_DATA_ACCESS_ADDR2 | `RV_DATA_ACCESS_MASK2)) |
+                               (`RV_DATA_ACCESS_ENABLE3 & ((start_addr_dc1[63:0] | `RV_DATA_ACCESS_MASK3)) == (`RV_DATA_ACCESS_ADDR3 | `RV_DATA_ACCESS_MASK3)) |
+                               (`RV_DATA_ACCESS_ENABLE4 & ((start_addr_dc1[63:0] | `RV_DATA_ACCESS_MASK4)) == (`RV_DATA_ACCESS_ADDR4 | `RV_DATA_ACCESS_MASK4)) |
+                               (`RV_DATA_ACCESS_ENABLE5 & ((start_addr_dc1[63:0] | `RV_DATA_ACCESS_MASK5)) == (`RV_DATA_ACCESS_ADDR5 | `RV_DATA_ACCESS_MASK5)) |
+                               (`RV_DATA_ACCESS_ENABLE6 & ((start_addr_dc1[63:0] | `RV_DATA_ACCESS_MASK6)) == (`RV_DATA_ACCESS_ADDR6 | `RV_DATA_ACCESS_MASK6)) |
+                               (`RV_DATA_ACCESS_ENABLE7 & ((start_addr_dc1[63:0] | `RV_DATA_ACCESS_MASK7)) == (`RV_DATA_ACCESS_ADDR7 | `RV_DATA_ACCESS_MASK7)))        &
 
-                              ((`RV_DATA_ACCESS_ENABLE0 & ((end_addr_dc1[31:0]   | `RV_DATA_ACCESS_MASK0)) == (`RV_DATA_ACCESS_ADDR0 | `RV_DATA_ACCESS_MASK0)) |
-                               (`RV_DATA_ACCESS_ENABLE1 & ((end_addr_dc1[31:0]   | `RV_DATA_ACCESS_MASK1)) == (`RV_DATA_ACCESS_ADDR1 | `RV_DATA_ACCESS_MASK1)) |
-                               (`RV_DATA_ACCESS_ENABLE2 & ((end_addr_dc1[31:0]   | `RV_DATA_ACCESS_MASK2)) == (`RV_DATA_ACCESS_ADDR2 | `RV_DATA_ACCESS_MASK2)) |
-                               (`RV_DATA_ACCESS_ENABLE3 & ((end_addr_dc1[31:0]   | `RV_DATA_ACCESS_MASK3)) == (`RV_DATA_ACCESS_ADDR3 | `RV_DATA_ACCESS_MASK3)) |
-                               (`RV_DATA_ACCESS_ENABLE4 & ((end_addr_dc1[31:0]   | `RV_DATA_ACCESS_MASK4)) == (`RV_DATA_ACCESS_ADDR4 | `RV_DATA_ACCESS_MASK4)) |
-                               (`RV_DATA_ACCESS_ENABLE5 & ((end_addr_dc1[31:0]   | `RV_DATA_ACCESS_MASK5)) == (`RV_DATA_ACCESS_ADDR5 | `RV_DATA_ACCESS_MASK5)) |
-                               (`RV_DATA_ACCESS_ENABLE6 & ((end_addr_dc1[31:0]   | `RV_DATA_ACCESS_MASK6)) == (`RV_DATA_ACCESS_ADDR6 | `RV_DATA_ACCESS_MASK6)) |
-                               (`RV_DATA_ACCESS_ENABLE7 & ((end_addr_dc1[31:0]   | `RV_DATA_ACCESS_MASK7)) == (`RV_DATA_ACCESS_ADDR7 | `RV_DATA_ACCESS_MASK7))));
+                              ((`RV_DATA_ACCESS_ENABLE0 & ((end_addr_dc1[63:0]   | `RV_DATA_ACCESS_MASK0)) == (`RV_DATA_ACCESS_ADDR0 | `RV_DATA_ACCESS_MASK0)) |
+                               (`RV_DATA_ACCESS_ENABLE1 & ((end_addr_dc1[63:0]   | `RV_DATA_ACCESS_MASK1)) == (`RV_DATA_ACCESS_ADDR1 | `RV_DATA_ACCESS_MASK1)) |
+                               (`RV_DATA_ACCESS_ENABLE2 & ((end_addr_dc1[63:0]   | `RV_DATA_ACCESS_MASK2)) == (`RV_DATA_ACCESS_ADDR2 | `RV_DATA_ACCESS_MASK2)) |
+                               (`RV_DATA_ACCESS_ENABLE3 & ((end_addr_dc1[63:0]   | `RV_DATA_ACCESS_MASK3)) == (`RV_DATA_ACCESS_ADDR3 | `RV_DATA_ACCESS_MASK3)) |
+                               (`RV_DATA_ACCESS_ENABLE4 & ((end_addr_dc1[63:0]   | `RV_DATA_ACCESS_MASK4)) == (`RV_DATA_ACCESS_ADDR4 | `RV_DATA_ACCESS_MASK4)) |
+                               (`RV_DATA_ACCESS_ENABLE5 & ((end_addr_dc1[63:0]   | `RV_DATA_ACCESS_MASK5)) == (`RV_DATA_ACCESS_ADDR5 | `RV_DATA_ACCESS_MASK5)) |
+                               (`RV_DATA_ACCESS_ENABLE6 & ((end_addr_dc1[63:0]   | `RV_DATA_ACCESS_MASK6)) == (`RV_DATA_ACCESS_ADDR6 | `RV_DATA_ACCESS_MASK6)) |
+                               (`RV_DATA_ACCESS_ENABLE7 & ((end_addr_dc1[63:0]   | `RV_DATA_ACCESS_MASK7)) == (`RV_DATA_ACCESS_ADDR7 | `RV_DATA_ACCESS_MASK7))));
 
    // Access fault logic
    // 1. Addr in dccm region but not in dccm offset
@@ -159,25 +164,28 @@ module lsu_addrcheck
    // 4. Ld/St access to picm are not word aligned
    // 5. Address not in protected space or dccm/pic region
    if (DCCM_ENABLE & (DCCM_REGION == PIC_REGION)) begin
-      assign access_fault_dc1  = ((start_addr_in_dccm_region_dc1 & ~(start_addr_in_dccm_dc1 | start_addr_in_pic_dc1)) |
-                                  (end_addr_in_dccm_region_dc1 & ~(end_addr_in_dccm_dc1 | end_addr_in_pic_dc1))       |
+      assign access_fault_dc1  = (//(start_addr_in_dccm_region_dc1 & ~(start_addr_in_dccm_dc1 | start_addr_in_pic_dc1)) |
+                                  //(end_addr_in_dccm_region_dc1 & ~(end_addr_in_dccm_dc1 | end_addr_in_pic_dc1))       |
                                   (start_addr_in_dccm_dc1 & end_addr_in_pic_dc1)                                      |
                                   (start_addr_in_pic_dc1  & end_addr_in_dccm_dc1)                                     |
-                                  ((addr_in_pic_dc1 & ((start_addr_dc1[1:0] != 2'b0) | ~lsu_pkt_dc1.word))) |
+                                  // 由于PIC也改为64b，因此要求访问PIC由word对齐变为double word对齐
+                                  ((addr_in_pic_dc1 & ((start_addr_dc1[2:0] != 3'b0) | ~lsu_pkt_dc1.dword))) |
                                   (~start_addr_in_dccm_region_dc1 & ~non_dccm_access_ok)) & lsu_pkt_dc1.valid & ~lsu_pkt_dc1.dma;
    end else begin
-      assign access_fault_dc1  = ((start_addr_in_dccm_region_dc1 & ~start_addr_in_dccm_dc1) |
-                                  (end_addr_in_dccm_region_dc1 & ~end_addr_in_dccm_dc1)     |
-                                  (start_addr_in_pic_region_dc1 & ~start_addr_in_pic_dc1)   |
-                                  (end_addr_in_pic_region_dc1 & ~end_addr_in_pic_dc1)       |
-                                  ((addr_in_pic_dc1 & ((start_addr_dc1[1:0] != 2'b0) | ~lsu_pkt_dc1.word))) |
+      assign access_fault_dc1  = (//(start_addr_in_dccm_region_dc1 & ~start_addr_in_dccm_dc1) |
+                                  //(end_addr_in_dccm_region_dc1 & ~end_addr_in_dccm_dc1)     |
+                                  //(start_addr_in_pic_region_dc1 & ~start_addr_in_pic_dc1)   |
+                                  //(end_addr_in_pic_region_dc1 & ~end_addr_in_pic_dc1)       |
+                                  // 由于PIC也改为64b，因此要求访问PIC由word对齐变为double word对齐
+                                  ((addr_in_pic_dc1 & ((start_addr_dc1[2:0] != 3'b0) | ~lsu_pkt_dc1.dword))) |
                                   (~start_addr_in_pic_region_dc1 & ~start_addr_in_dccm_region_dc1 & ~non_dccm_access_ok)) & lsu_pkt_dc1.valid & ~lsu_pkt_dc1.dma;
    end
 
    // Misaligned happens due to 2 reasons
    // 1. Region cross
    // 2. sideeffects access which are not aligned
-   assign misaligned_fault_dc1 = ((start_addr_dc1[31:28] != end_addr_dc1[31:28]) |
+   // 还是将存储按高4b划分
+   assign misaligned_fault_dc1 = ((start_addr_dc1[63:60] != end_addr_dc1[63:60]) |
                                   (is_sideeffects_dc1 & ~is_aligned_dc1)) & addr_external_dc1 & lsu_pkt_dc1.valid & ~lsu_pkt_dc1.dma;
 
    rvdff_fpga #(.WIDTH(1)) is_sideeffects_dc2ff (.din(is_sideeffects_dc1), .dout(is_sideeffects_dc2), .clk(lsu_freeze_c2_dc2_clk), .clken(lsu_freeze_c2_dc2_clken), .rawclk(clk), .*);

@@ -2,7 +2,7 @@
 #use strict;
 #use warnings;
 
-my $RV_ROOT = $ENV{RV_ROOT};
+my $RV64_ROOT = $ENV{RV64_ROOT};
 
 my $TOTAL_INT=$ARGV[0];
 print "// argv=".$ARGV[0]."\n";

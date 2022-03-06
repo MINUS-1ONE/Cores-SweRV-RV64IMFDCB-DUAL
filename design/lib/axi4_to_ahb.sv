@@ -34,7 +34,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
    input  logic            axi_awvalid,
    output logic            axi_awready,
    input  logic [TAG-1:0]  axi_awid,
-   input  logic [31:0]     axi_awaddr,
+   input  logic [63:0]     axi_awaddr,
    input  logic [2:0]      axi_awsize,
    input  logic [2:0]      axi_awprot,
 
@@ -53,7 +53,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
    input  logic            axi_arvalid,
    output logic            axi_arready,
    input  logic [TAG-1:0]  axi_arid,
-   input  logic [31:0]     axi_araddr,
+   input  logic [63:0]     axi_araddr,
    input  logic [2:0]      axi_arsize,
    input  logic [2:0]      axi_arprot,
 
@@ -65,7 +65,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
    output logic            axi_rlast,
 
    // AHB-Lite signals
-   output logic [31:0]     ahb_haddr,       // ahb bus address
+   output logic [63:0]     ahb_haddr,       // ahb bus address
    output logic [2:0]      ahb_hburst,      // tied to 0
    output logic            ahb_hmastlock,   // tied to 0
    output logic [3:0]      ahb_hprot,       // tied to 4'b0011
@@ -97,7 +97,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
    logic             wrbuf_data_vld;
    logic [TAG-1:0]   wrbuf_tag;
    logic [2:0]       wrbuf_size;
-   logic [31:0]      wrbuf_addr;
+   logic [63:0]      wrbuf_addr;
    logic [63:0]      wrbuf_data;
    logic [7:0]       wrbuf_byteen;
 
@@ -107,13 +107,13 @@ module axi4_to_ahb #(parameter TAG  = 1) (
    logic             master_valid;
    logic             master_ready;
    logic [TAG-1:0]   master_tag;
-   logic [31:0]      master_addr;
+   logic [63:0]      master_addr;
    logic [63:0]      master_wdata;
    logic [2:0]       master_size;
    logic [2:0]       master_opc;
 
    // Buffer signals (one entry buffer)
-   logic [31:0]                buf_addr;
+   logic [63:0]                buf_addr;
    logic [1:0]                 buf_size;
    logic                       buf_write;
    logic [7:0]                 buf_byteen;
@@ -124,7 +124,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
    //Miscellaneous signals
    logic                       buf_rst;
    logic [TAG-1:0]             buf_tag_in;
-   logic [31:0]                buf_addr_in;
+   logic [63:0]                buf_addr_in;
    logic [7:0]                 buf_byteen_in;
    logic [63:0]                buf_data_in;
    logic                       buf_write_in;
@@ -161,7 +161,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
    logic                       rd_bypass_idle;
 
    logic                       last_addr_en;
-   logic [31:0]                last_bus_addr;
+   logic [63:0]                last_bus_addr;
 
    // Clocks
    logic                       buf_clken, slvbuf_clken;
@@ -231,7 +231,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
    assign master_valid          = wr_cmd_vld | axi_arvalid;
    assign master_tag[TAG-1:0]   = wr_cmd_vld ? wrbuf_tag[TAG-1:0] : axi_arid[TAG-1:0];
    assign master_opc[2:0]       = wr_cmd_vld ? 3'b011 : 3'b0;
-   assign master_addr[31:0]     = wr_cmd_vld ? wrbuf_addr[31:0] : axi_araddr[31:0];
+   assign master_addr[63:0]     = wr_cmd_vld ? wrbuf_addr[63:0] : axi_araddr[63:0];
    assign master_size[2:0]    = wr_cmd_vld ? wrbuf_size[2:0] : axi_arsize[2:0];
    assign master_wdata[63:0]    = wrbuf_data[63:0];
 
@@ -388,7 +388,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
    assign buf_rst              = 1'b0;
    assign cmd_done_rst         = slave_valid_pre;
    assign buf_addr_in[2:0]     = (buf_aligned_in & (master_opc[2:1] == 2'b01)) ? get_write_addr(wrbuf_byteen[7:0]) : master_addr[2:0];
-   assign buf_addr_in[31:3]    = master_addr[31:3];
+   assign buf_addr_in[63:3]    = master_addr[63:3];
    assign buf_tag_in[TAG-1:0]  = master_tag[TAG-1:0];
    assign buf_byteen_in[7:0]   = wrbuf_byteen[7:0];
    assign buf_data_in[63:0]    = (buf_state == DATA_RD) ? ahb_hrdata_q[63:0] : master_wdata[63:0];
@@ -400,7 +400,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
                                    (wrbuf_byteen[7:0] == 8'hf)  | (wrbuf_byteen[7:0] == 8'hf0)  | (wrbuf_byteen[7:0] == 8'hff)));
 
    // Generate the ahb signals
-   assign ahb_haddr[31:3] = bypass_en ? master_addr[31:3]  : buf_addr[31:3];
+   assign ahb_haddr[63:3] = bypass_en ? master_addr[63:3]  : buf_addr[63:3];
    assign ahb_haddr[2:0]  = {3{(ahb_htrans == 2'b10)}} & buf_cmd_byte_ptr[2:0];    // Trxn should be aligned during IDLE
    assign ahb_hsize[2:0]  = bypass_en ? {1'b0, ({2{buf_aligned_in}} & buf_size_in[1:0])} :
                                         {1'b0, ({2{buf_aligned}} & buf_size[1:0])};   // Send the full size for aligned trxn
@@ -413,7 +413,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
    assign slave_valid          = slave_valid_pre;
    assign slave_opc[3:2]       = slvbuf_write ? 2'b11 : 2'b00;
    assign slave_opc[1:0]       = {2{slvbuf_error}} & 2'b10;
-   assign slave_rdata[63:0]    = slvbuf_error ? {2{last_bus_addr[31:0]}} : ((buf_state == DONE) ? buf_data[63:0] : ahb_hrdata_q[63:0]);
+   assign slave_rdata[63:0]    = slvbuf_error ? {2{last_bus_addr[63:0]}} : ((buf_state == DONE) ? buf_data[63:0] : ahb_hrdata_q[63:0]);
    assign slave_tag[TAG-1:0]   = slvbuf_tag[TAG-1:0];
 
    assign last_addr_en = (ahb_htrans[1:0] != 2'b0) & ahb_hready & ahb_hwrite ;
@@ -443,14 +443,14 @@ module axi4_to_ahb #(parameter TAG  = 1) (
 
    rvdff_fpga #(1)  hresp_ff  (.din(ahb_hresp),  .dout(ahb_hresp_q),  .clk(ahbm_clk),      .clken(bus_clk_en), .rawclk(clk), .*);
 
-   rvdffe #(.WIDTH(32))   last_bus_addrff (.din(ahb_haddr[31:0]),  .dout(last_bus_addr[31:0]), .en(last_addr_en & bus_clk_en), .*);
+   rvdffe #(.WIDTH(64))   last_bus_addrff (.din(ahb_haddr[63:0]),  .dout(last_bus_addr[63:0]), .en(last_addr_en & bus_clk_en), .*);
 
    rvdffe #(.WIDTH(64))    buf_dataff    (.din(buf_data_in[63:0]), .dout(buf_data[63:0]),   .en(buf_data_wr_en & bus_clk_en), .*);
-   rvdffe #(.WIDTH(32))  wrbuf_addrff    (.din(axi_awaddr[31:0]),  .dout(wrbuf_addr[31:0]), .en(wrbuf_en & bus_clk_en), .*);
+   rvdffe #(.WIDTH(64))  wrbuf_addrff    (.din(axi_awaddr[63:0]),  .dout(wrbuf_addr[63:0]), .en(wrbuf_en & bus_clk_en), .*);
    rvdffe #(.WIDTH(64))  wrbuf_dataff    (.din(axi_wdata[63:0]),   .dout(wrbuf_data[63:0]), .en(wrbuf_data_en & bus_clk_en), .*);
 
    rvdffe #(.WIDTH(64)) hrdata_ff     (.din(ahb_hrdata[63:0]),  .dout(ahb_hrdata_q[63:0]),  .en(ahbm_data_clken), .*);
-   rvdffe #(.WIDTH(32)) buf_addrff    (.din(buf_addr_in[31:0]), .dout(buf_addr[31:0]),      .en(buf_wr_en & bus_clk_en), .*);
+   rvdffe #(.WIDTH(64)) buf_addrff    (.din(buf_addr_in[63:0]), .dout(buf_addr[63:0]),      .en(buf_wr_en & bus_clk_en), .*);
 
    // Clock headers
    // clock enables for ahbm addr/data
@@ -467,7 +467,7 @@ module axi4_to_ahb #(parameter TAG  = 1) (
                                         ((ahb_hsize[2:0] == 3'h3) & (ahb_haddr[2:0] == 3'b0)));
    endproperty
    assert_ahb_trxn_aligned: assert property (ahb_trxn_aligned) else
-     $display("Assertion ahb_trxn_aligned failed: ahb_htrans=2'h%h, ahb_hsize=3'h%h, ahb_haddr=32'h%h",ahb_htrans[1:0], ahb_hsize[2:0], ahb_haddr[31:0]);
+     $display("Assertion ahb_trxn_aligned failed: ahb_htrans=2'h%h, ahb_hsize=3'h%h, ahb_haddr=64'h%h",ahb_htrans[1:0], ahb_hsize[2:0], ahb_haddr[63:0]);
 
    property ahb_error_protocol;
       @(posedge ahbm_clk) (ahb_hready & ahb_hresp) |-> (~$past(ahb_hready) & $past(ahb_hresp));

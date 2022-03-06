@@ -1,4 +1,4 @@
-# EH1 RISC-V SweRV Core<sup>TM</sup> 1.9 from Western Digital
+# EH1 RISC-V SweRV Core<sup>TM</sup> 64bit enxtension project fork from 1.9 branch from Western Digital
 
 This repository contains the EH1 SweRV Core<sup>TM</sup>  design RTL
 
@@ -35,7 +35,7 @@ installed so that it can be used to prepare RISCV binaries to run.
 
 ## Quickstart guide
 1. Clone the repository
-1. Setup RV_ROOT to point to the path in your local filesystem
+1. Setup RV64_ROOT to point to the path in your local filesystem
 1. Determine your configuration {optional}
 1. Run make with tools/Makefile
 
@@ -44,13 +44,13 @@ Please see [release notes](release-notes.md) for changes and bug fixes in this v
 
 ### Configurations
 
-SweRV can be configured by running the `$RV_ROOT/configs/swerv.config` script:
+SweRV can be configured by running the `$RV64_ROOT/configs/swerv.config` script:
 
-`% $RV_ROOT/configs/swerv.config -h` for detailed help options
+`% $RV64_ROOT/configs/swerv.config -h` for detailed help options
 
 For example to build with a DCCM of size 64 Kb:  
 
-`% $RV_ROOT/configs/swerv.config -dccm_size=64`  
+`% $RV64_ROOT/configs/swerv.config -dccm_size=64`  
 
 This will update the **default** snapshot in $PWD/snapshots/default/ with parameters for a 64K DCCM. To **unset** a parameter, use `-unset=PARAM` option to swerv.config.
 
@@ -75,11 +75,11 @@ This script derives the following consistent set of include files :
 
 while in a work directory:
 
-1. Set the RV_ROOT environment variable to the root of the SweRV directory structure.
+1. Set the RV64_ROOT environment variable to the root of the SweRV directory structure.
 Example for bash shell:  
-    `export RV_ROOT=/path/to/swerv`  
+    `export RV64_ROOT=/path/to/swerv`  
 Example for csh or its derivatives:  
-    `setenv RV_ROOT /path/to/swerv`
+    `setenv RV64_ROOT /path/to/swerv`
     
 1. Create your specific configuration
 
@@ -88,7 +88,7 @@ Example for csh or its derivatives:
     For example if `mybuild` is the name for the snapshot:
 
      
-    `$RV_ROOT/configs/swerv.config [configuration options..] -snapshot=mybuild`  
+    `$RV64_ROOT/configs/swerv.config [configuration options..] -snapshot=mybuild`  
     
     Snapshots are placed in ./snapshots directory
 
@@ -104,7 +104,7 @@ target``default_pd``.**
 
 1. Running a simple Hello World program (verilator)
 
-    `make -f $RV_ROOT/tools/Makefile`
+    `make -f $RV64_ROOT/tools/Makefile`
 
 This command will build a verilator model of SweRV EH1 with AXI bus, and
 execute a short sequence of instructions that writes out "HELLO WORLD"
@@ -137,14 +137,14 @@ The simulation generates following files:
 You can re-execute simulation using:  
    ` ./obj_dir/Vtb_top `  
 or  
-    `make -f $RV_ROOT/tools/Makefile verilator`
+    `make -f $RV64_ROOT/tools/Makefile verilator`
 
 
   
 The simulation run/build command has following generic form:
 
 ```
-make -f $RV_ROOT/tools/Makefile [<simulator>] [debug=1] [snapshot=<snapshot>] [target=<target>] [TEST=<test>] [TEST_DIR=<path_to_test_dir>] [CONF_PARAMS=<swerv.config option>]
+make -f $RV64_ROOT/tools/Makefile [<simulator>] [debug=1] [snapshot=<snapshot>] [target=<target>] [TEST=<test>] [TEST_DIR=<path_to_test_dir>] [CONF_PARAMS=<swerv.config option>]
 
 where:
 
@@ -161,17 +161,17 @@ CONF_PARAMS -  configuration parameter for swerv.config : ex: 'CONF_PARAMS=-unse
 
 Example:
      
-    make -f $RV_ROOT/tools/Makefile verilator TEST=cmark
+    make -f $RV64_ROOT/tools/Makefile verilator TEST=cmark
 
 will simulate  testbench/asm/cmark.c program with verilator on default target
 
 
 If you want to compile a test only, you can run:
 
-    make -f $RV_ROOT/tools/Makefile program.hex TEST=<test> [TEST_DIR=/path/to/dir]
+    make -f $RV64_ROOT/tools/Makefile program.hex TEST=<test> [TEST_DIR=/path/to/dir]
 
 
-The Makefile uses  `$RV_ROOT/testbench/link.ld` file by default to build test executable.  
+The Makefile uses  `$RV64_ROOT/testbench/link.ld` file by default to build test executable.  
 User can provide test specific linker file in form `<test_name>.ld` to build the test executable,
  in the same directory with the test source.
 
@@ -183,7 +183,7 @@ optionally to DCCM/ICCM at the beginning of simulation)*.
 
 Note: You may need to delete `program.hex` file from work directory, when run a new test.
 
-The  `$RV_ROOT/testbench/asm` directory contains following tests ready to simulate:
+The  `$RV64_ROOT/testbench/asm` directory contains following tests ready to simulate:
 
 ```
 hello_world       - default test to run, prints Hello World message to screen and console.log
@@ -197,7 +197,7 @@ cmark_iccm        - the same as above, but with code preloaded to iccm - runs on
 dhry              - dhrystone benchmark - example of multi source files program
 ```
 
-The `$RV_ROOT/testbench/hex` directory contains precompiled hex files of the tests, ready for simulation in case RISCV SW tools are not installed.
+The `$RV64_ROOT/testbench/hex` directory contains precompiled hex files of the tests, ready for simulation in case RISCV SW tools are not installed.
 
 
 ----

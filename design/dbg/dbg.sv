@@ -19,12 +19,12 @@
 // Comments: Responsible to put the rest of the core in quiesce mode,
 //           Send the commands/address. sends WrData and Recieve read Data.
 //           And then Resume the core to do the normal mode
-// Author  :
+// Author  :将核心的其他部分置于静默模式，发送命令/地址，发送 WrData 并接收读取数据。然后将核心恢复普通模式。
 //********************************************************************************
 module dbg (
    // outputs to the core for command and data interface
-   output logic [31:0]                 dbg_cmd_addr,
-   output logic [31:0]                 dbg_cmd_wrdata,
+   output logic [63:0]                 dbg_cmd_addr,   // 位数更改
+   output logic [63:0]                 dbg_cmd_wrdata,   // 位数更改
    output logic                        dbg_cmd_valid,
    output logic                        dbg_cmd_write, // 1: write command, 0: read_command
    output logic [1:0]                  dbg_cmd_type, // 0:gpr 1:csr 2: memory
@@ -32,21 +32,21 @@ module dbg (
    output logic                        dbg_core_rst_l, // core reset from dm
 
    // inputs back from the core/dec
-   input logic [31:0]                  core_dbg_rddata,
-   input logic                         core_dbg_cmd_done, // This will be treated like a valid signal
-   input logic                         core_dbg_cmd_fail, // Exception during command run
+   input logic [63:0]                  core_dbg_rddata,    // 位数更改
+   input logic                         core_dbg_cmd_done, // 
+   input logic                         core_dbg_cmd_fail, // 
 
    // Signals to dma to get a bubble
-   output logic                        dbg_dma_bubble,   // Debug needs a bubble to send a valid
-   input  logic                        dma_dbg_ready,    // DMA is ready to accept debug request
+   output logic                        dbg_dma_bubble,   //  Debug needs a bubble to send a valid
+   input  logic                        dma_dbg_ready,    //
 
-   // interface with the rest of the core to halt/resume handshaking
-   output logic                        dbg_halt_req, // This is a pulse
-   output logic                        dbg_resume_req, // Debug sends a resume requests. Pulse
-   input  logic                        dec_tlu_debug_mode,        // Core is in debug mode
-   input  logic                        dec_tlu_dbg_halted, // The core has finished the queiscing sequence. Core is halted now
-   input  logic                        dec_tlu_mpc_halted_only,   // Only halted due to MPC
-   input  logic                        dec_tlu_resume_ack, // core sends back an ack for the resume (pulse)
+   // interface with the rest of the core to halt/resume handshaking 
+   output logic                        dbg_halt_req, // This is a pulse  
+   output logic                        dbg_resume_req, // Debug sends a resume requests. Pulse  
+   input  logic                        dec_tlu_debug_mode,        // Core is in debug mode    
+   input  logic                        dec_tlu_dbg_halted, // The core has finished the queiscing sequence. Core is halted now    
+   input  logic                        dec_tlu_mpc_halted_only,   // Only halted due to MPC        
+   input  logic                        dec_tlu_resume_ack, // core sends back an ack for the resume (pulse)   
 
    // inputs from the JTAG
    input logic                         dmi_reg_en, // read or write
@@ -55,14 +55,14 @@ module dbg (
    input logic [31:0]                  dmi_reg_wdata, // write data
    // output
    output logic [31:0]                 dmi_reg_rdata, // read data
-//   output logic                        dmi_reg_ack,
+//   output logic                      dmi_reg_ack,
 
    // AXI signals
    // AXI Write Channels
    output logic                        sb_axi_awvalid,
    input  logic                        sb_axi_awready,
    output logic [`RV_SB_BUS_TAG-1:0]   sb_axi_awid,
-   output logic [31:0]                 sb_axi_awaddr,
+   output logic [63:0]                 sb_axi_awaddr,    // 位数更改
    output logic [3:0]                  sb_axi_awregion,
    output logic [7:0]                  sb_axi_awlen,
    output logic [2:0]                  sb_axi_awsize,
@@ -87,7 +87,7 @@ module dbg (
    output logic                        sb_axi_arvalid,
    input  logic                        sb_axi_arready,
    output logic [`RV_SB_BUS_TAG-1:0]   sb_axi_arid,
-   output logic [31:0]                 sb_axi_araddr,
+   output logic [63:0]                 sb_axi_araddr,   // 位数更改
    output logic [3:0]                  sb_axi_arregion,
    output logic [7:0]                  sb_axi_arlen,
    output logic [2:0]                  sb_axi_arsize,
@@ -116,7 +116,7 @@ module dbg (
 );
 
 `include "global.h"
-
+   //状态机编号
    typedef enum logic [3:0] {IDLE=4'h0, HALTING=4'h1, HALTED=4'h2, CORE_CMD_START=4'h3, CORE_CMD_WAIT=4'h4, SB_CMD_START=4'h5, SB_CMD_SEND=4'h6, SB_CMD_RESP=4'h7, CMD_DONE=4'h8, RESUMING=4'h9} state_t;
    typedef enum logic [3:0] {SBIDLE=4'h0, WAIT_RD=4'h1, WAIT_WR=4'h2, CMD_RD=4'h3, CMD_WR=4'h4, CMD_WR_ADDR=4'h5, CMD_WR_DATA=4'h6, RSP_RD=4'h7, RSP_WR=4'h8, DONE=4'h9} sb_state_t;
 
@@ -143,13 +143,21 @@ module dbg (
    logic [31:0]  haltsum0_reg;
    logic [31:0]  data0_reg;
    logic [31:0]  data1_reg;
+   logic [31:0]  data2_reg;   //增加data2 3的变量
+   logic [31:0]  data3_reg;
 
-   // data 0
+   // data 0   新增data 2 data 3寄存器信号定义
    logic [31:0]  data0_din;
    logic         data0_reg_wren, data0_reg_wren0, data0_reg_wren1, data0_reg_wren2;
    // data 1
    logic [31:0]  data1_din;
-   logic         data1_reg_wren, data1_reg_wren0, data1_reg_wren1;
+   logic         data1_reg_wren, data1_reg_wren0, data1_reg_wren1, data1_reg_wren2;
+   // data 2
+   logic [31:0]  data2_din;
+   logic         data2_reg_wren, data2_reg_wren0, data2_reg_wren1;
+   // data 3
+   logic [31:0]  data3_din;
+   logic         data3_reg_wren, data3_reg_wren0, data3_reg_wren1;
    // abstractcs
    logic         abstractcs_busy_wren;
    logic         abstractcs_busy_din;
@@ -158,7 +166,7 @@ module dbg (
    logic         dbg_sb_bus_error;
    // abstractauto
    logic         abstractauto_reg_wren;
-   logic [1:0]   abstractauto_reg;
+   logic [3:0]   abstractauto_reg;
 
    // dmstatus
    //logic         dmstatus_wren;
@@ -182,8 +190,9 @@ module dbg (
    logic         command_postexec_din;
    logic [31:0]  command_din;
    logic [3:0]   dbg_cmd_addr_incr;
-   logic [31:0]  dbg_cmd_curr_addr;
-   logic [31:0]  dbg_cmd_next_addr;
+
+   logic [63:0]  dbg_cmd_curr_addr; // 位数更改
+   logic [63:0]  dbg_cmd_next_addr; // 位数更改
    // needed to send the read data back for dmi reads
    logic  [31:0] dmi_reg_rdata_din;
 
@@ -215,11 +224,20 @@ module dbg (
    logic              sbdata1_reg_wren;
    logic [31:0]       sbdata1_din;
 
+   //此变量为sbaddress加上访问数据宽度大小后的值
+   logic [63:0]       sbaddress_0_1;
    logic              sbaddress0_reg_wren0;
    logic              sbaddress0_reg_wren1;
    logic              sbaddress0_reg_wren;
    logic [31:0]       sbaddress0_reg_din;
    logic [3:0]        sbaddress0_incr;
+
+    //新增总线地址高32位的sbaddress1寄存器变量定义
+   logic              sbaddress1_reg_wren0;
+   logic              sbaddress1_reg_wren1;
+   logic              sbaddress1_reg_wren;
+   logic [31:0]       sbaddress1_reg_din;
+
    logic              sbreadonaddr_access;
    logic              sbreadondata_access;
    logic              sbdata0wr_access;
@@ -227,7 +245,7 @@ module dbg (
    logic              sb_abmem_cmd_done_in, sb_abmem_data_done_in;
    logic              sb_abmem_cmd_done_en, sb_abmem_data_done_en;
    logic              sb_abmem_cmd_done, sb_abmem_data_done;
-   logic [31:0]       abmem_addr;
+   logic [63:0]       abmem_addr;   // 位数更改
    logic              abmem_addr_in_dccm_region, abmem_addr_in_iccm_region, abmem_addr_in_pic_region;
    logic              abmem_addr_core_local;
    logic              abmem_addr_external;
@@ -237,16 +255,16 @@ module dbg (
    logic              sb_abmem_read_pend;
    logic              sb_abmem_cmd_write;
    logic [2:0]        sb_abmem_cmd_size;
-   logic [31:0]       sb_abmem_cmd_addr;
-   logic [31:0]       sb_abmem_cmd_wdata;
+   logic [63:0]       sb_abmem_cmd_addr;   // 位数更改
+   logic [63:0]       sb_abmem_cmd_wdata;
 
    logic              sb_cmd_awvalid, sb_cmd_wvalid, sb_cmd_arvalid;
    logic              sb_read_pend;
    logic [2:0]        sb_cmd_size;
-   logic [31:0]       sb_cmd_addr;
+   logic [63:0]       sb_cmd_addr;   // 位数更改
    logic [63:0]       sb_cmd_wdata;
 
-   logic [31:0]       sb_axi_addr;
+   logic [63:0]       sb_axi_addr;     // 位数更改
    logic [63:0]       sb_axi_wrdata;
    logic [2:0]        sb_axi_size;
 
@@ -261,7 +279,9 @@ module dbg (
 
    //registers
    logic [31:0]       sbcs_reg;
-   logic [31:0]       sbaddress0_reg;
+   logic [31:0]       sbaddress0_reg; 
+   //增加总线地址高32位 sbaddress1寄存器 变量
+    logic [31:0]       sbaddress1_reg;
    logic [31:0]       sbdata0_reg;
    logic [31:0]       sbdata1_reg;
 
@@ -303,11 +323,13 @@ module dbg (
    assign        sbcs_reg[31:29] = 3'b1;
    assign        sbcs_reg[28:23] = '0;
    assign        sbcs_reg[19:15] = {sbcs_reg_int[19], ~sbcs_reg_int[18], sbcs_reg_int[17:15]};
-   assign        sbcs_reg[11:5]  = 7'h20;
+   // 更新sb地址宽度，7'h40=64位
+   assign        sbcs_reg[11:5]  = 7'h40;
    assign        sbcs_reg[4:0]   = 5'b01111;
    assign        sbcs_wren = (dmi_reg_addr ==  7'h38) & dmi_reg_en & dmi_reg_wr_en & (sb_state == SBIDLE); // & (sbcs_reg[14:12] == 3'b000);
+   //新增写sbaddress1寄存器（7'h3a）的情况
    assign        sbcs_sbbusyerror_wren = (sbcs_wren & dmi_reg_wdata[22]) |
-                                         (sbcs_reg[21] & dmi_reg_en & ((dmi_reg_wr_en & (dmi_reg_addr == 7'h39)) | (dmi_reg_addr == 7'h3c) | (dmi_reg_addr == 7'h3d)));
+                                         (sbcs_reg[21] & dmi_reg_en & ((dmi_reg_wr_en & ((dmi_reg_addr == 7'h39) |(dmi_reg_addr == 7'h3a))) | (dmi_reg_addr == 7'h3c) | (dmi_reg_addr == 7'h3d)));
    assign        sbcs_sbbusyerror_din = ~(sbcs_wren & dmi_reg_wdata[22]);   // Clear when writing one
 
    rvdffs #(1) sbcs_sbbusyerror_reg  (.din(sbcs_sbbusyerror_din),  .dout(sbcs_reg[22]),    .en(sbcs_sbbusyerror_wren), .rst_l(dbg_dm_rst_l), .clk(sb_free_clk));
@@ -347,11 +369,23 @@ module dbg (
    rvdffe #(32)    dbg_sbdata1_reg    (.*, .din(sbdata1_din[31:0]), .dout(sbdata1_reg[31:0]), .en(sbdata1_reg_wren), .rst_l(dbg_dm_rst_l));
 
     // sbaddress
+    //增加sbaddress加上访问数据宽度大小后的值  这里使用合并后再相加不用判断溢出。
+   assign        sbaddress_0_1[63:0] ={sbaddress1_reg[31:0],sbaddress0_reg[31:0]} + {60'b0,sbaddress0_incr[3:0]};
+
    assign        sbaddress0_reg_wren0   = dmi_reg_en & dmi_reg_wr_en & (dmi_reg_addr == 7'h39);
    assign        sbaddress0_reg_wren    = sbaddress0_reg_wren0 | sbaddress0_reg_wren1;
    assign        sbaddress0_reg_din[31:0]= ({32{sbaddress0_reg_wren0}} & dmi_reg_wdata[31:0]) |
-                                           ({32{sbaddress0_reg_wren1}} & (sbaddress0_reg[31:0] + {28'b0,sbaddress0_incr[3:0]}));
+                                           ({32{sbaddress0_reg_wren1}} & sbaddress_0_1[31:0]);
    rvdffe #(32)    dbg_sbaddress0_reg    (.*, .din(sbaddress0_reg_din[31:0]), .dout(sbaddress0_reg[31:0]), .en(sbaddress0_reg_wren), .rst_l(dbg_dm_rst_l));
+   
+   //新增sbaddress1寄存器定义
+   assign        sbaddress1_reg_wren0   = dmi_reg_en & dmi_reg_wr_en & (dmi_reg_addr == 7'h3a);
+   assign        sbaddress1_reg_wren    = sbaddress1_reg_wren0 | sbaddress1_reg_wren1;
+   assign        sbaddress1_reg_din[31:0]= ({32{sbaddress1_reg_wren0}} & dmi_reg_wdata[31:0]) |
+                                           ({32{sbaddress1_reg_wren1}} & sbaddress_0_1[63:32]);
+   rvdffe #(32)    dbg_sbaddress1_reg    (.*, .din(sbaddress1_reg_din[31:0]), .dout(sbaddress1_reg[31:0]), .en(sbaddress1_reg_wren), .rst_l(dbg_dm_rst_l)); 
+
+
 
    assign sbreadonaddr_access = dmi_reg_en & dmi_reg_wr_en & (dmi_reg_addr == 7'h39) & sbcs_reg[20];   // if readonaddr is set the next command will start upon writing of addr0
    assign sbreadondata_access = dmi_reg_en & ~dmi_reg_wr_en & (dmi_reg_addr == 7'h3c) & sbcs_reg[15];  // if readondata is set the next command will start upon reading of data0
@@ -405,21 +439,25 @@ module dbg (
    assign        abstractcs_reg[31:13] = '0;
    assign        abstractcs_reg[11]    = '0;
    assign        abstractcs_reg[7:4]   = '0;
-   assign        abstractcs_reg[3:0]   = 4'h2;    // One data register
+   //表示所实现的data寄存器的个数，改为4
+   assign        abstractcs_reg[3:0]   = 4'h4;    // One data register
+   //  添加了读写寄存器data 2/3的情况
    assign        abstractcs_error_sel0 = abstractcs_reg[12] & ~(|abstractcs_reg[10:8]) & dmi_reg_en & ((dmi_reg_wr_en & ((dmi_reg_addr == 7'h16) | (dmi_reg_addr == 7'h17)) | (dmi_reg_addr == 7'h18)) |
-                                                                                                       (dmi_reg_addr == 7'h4) | (dmi_reg_addr == 7'h5));
+                                                                                                       (dmi_reg_addr == 7'h4) | (dmi_reg_addr == 7'h5)| (dmi_reg_addr == 7'h6)| (dmi_reg_addr == 7'h7));
    assign        abstractcs_error_sel1 = execute_command & ~(|abstractcs_reg[10:8]) &
                                          ((~((command_reg[31:24] == 8'b0) | (command_reg[31:24] == 8'h2)))                      |   // Illegal command
-                                          (((command_reg[22:20] == 3'b011) | (command_reg[22])) & (command_reg[31:24] == 8'h2)) |   // Illegal abstract memory size (can't be DW or higher)
-                                          ((command_reg[22:20] != 3'b010) & ((command_reg[31:24] == 8'h0) & command_reg[17]))   |   // Illegal abstract reg size
+                                          // 访存错误要判断大于64位
+                                          ((command_reg[22]) & (command_reg[31:24] == 8'h2))                                    |   // Illegal abstract memory size (can't be DW or higher)
+                                          ((command_reg[22:20] != 3'b011) & ((command_reg[31:24] == 8'h0) & command_reg[17]))   |   // Illegal abstract reg size
                                           ((command_reg[31:24] == 8'h0) & command_reg[18]));                                          //postexec for abstract register access
    assign        abstractcs_error_sel2 = ((core_dbg_cmd_done & core_dbg_cmd_fail) |                   // exception from core
                                           (execute_command & (command_reg[31:24] == 8'h0) &  // unimplemented regs
                                                 (((command_reg[15:12] == 4'h1) & (command_reg[11:5] != 0)) | (command_reg[15:13] != 0)))) & ~(|abstractcs_reg[10:8]);
    assign        abstractcs_error_sel3 = execute_command & (dbg_state != HALTED) & ~(|abstractcs_reg[10:8]);
    assign        abstractcs_error_sel4 = dbg_sb_bus_error & dbg_bus_clk_en & ~(|abstractcs_reg[10:8]);// sb bus error for abstract memory command
+   // 地址写在data2/3中  判断对齐要去存放地址低32位的data2寄存器
    assign        abstractcs_error_sel5 = execute_command & (command_reg[31:24] == 8'h2) & ~(|abstractcs_reg[10:8]) &
-                                         (((command_reg[22:20] == 3'b001) & data1_reg[0]) | ((command_reg[22:20] == 3'b010) & (|data1_reg[1:0])));  //Unaligned address for abstract memory
+                                         (((command_reg[22:20] == 3'b001) & data2_reg[0]) | ((command_reg[22:20] == 3'b010) & (|data2_reg[1:0])) | ((command_reg[22:20] == 3'b011) & (|data2_reg[2:0])));  //Unaligned address for abstract memory
 
    assign        abstractcs_error_sel6 = (dmi_reg_addr ==  7'h16) & dmi_reg_en & dmi_reg_wr_en;
 
@@ -437,12 +475,14 @@ module dbg (
 
     // abstract auto reg
    assign abstractauto_reg_wren  = dmi_reg_en & dmi_reg_wr_en & (dmi_reg_addr == 7'h18) & ~abstractcs_reg[12];
-   rvdffs #(2) dbg_abstractauto_reg (.*, .din(dmi_reg_wdata[1:0]), .dout(abstractauto_reg[1:0]), .en(abstractauto_reg_wren), .rst_l(dbg_dm_rst_l), .clk(dbg_free_clk));
+   // 第x位表示读取或写入datax寄存器会导致系统再次执行abstract命令
+   rvdffs #(4) dbg_abstractauto_reg (.*, .din(dmi_reg_wdata[3:0]), .dout(abstractauto_reg[3:0]), .en(abstractauto_reg_wren), .rst_l(dbg_dm_rst_l), .clk(dbg_free_clk));
 
    // command register - implemented all the bits in this register
    // command[16] = 1: write, 0: read
+   // 增加了data2/data3寄存器自动执行的部分
    assign execute_command_ns = command_wren |
-                               (dmi_reg_en & ~abstractcs_reg[12] & (((dmi_reg_addr == 7'h4) & abstractauto_reg[0]) | ((dmi_reg_addr == 7'h5) & abstractauto_reg[1])));
+                               (dmi_reg_en & ~abstractcs_reg[12] & (((dmi_reg_addr == 7'h4) & abstractauto_reg[0]) | ((dmi_reg_addr == 7'h5) & abstractauto_reg[1]) | ((dmi_reg_addr == 7'h6) & abstractauto_reg[2]) | ((dmi_reg_addr == 7'h7) & abstractauto_reg[3])));
    assign command_wren = (dmi_reg_addr ==  7'h17) & dmi_reg_en & dmi_reg_wr_en;
    //assign command_wren = (dmi_reg_addr ==  7'h17) & dmi_reg_en & dmi_reg_wr_en & (dbg_state == HALTED) & ~abstractcs_reg[12];
    assign command_regno_wren = command_wren | ((command_reg[31:24] == 8'h0) & command_reg[19] & (dbg_state == CMD_DONE) & ~(|abstractcs_reg[10:8]));  // aarpostincrement
@@ -454,10 +494,10 @@ module dbg (
    rvdffe #(16) dmcommand_reg       (.*, .din(command_din[31:16]), .dout(command_reg[31:16]), .en(command_wren), .rst_l(dbg_dm_rst_l));
    rvdffe #(16) dmcommand_regno_reg (.*, .din(command_din[15:0]),  .dout(command_reg[15:0]),  .en(command_regno_wren), .rst_l(dbg_dm_rst_l));
 
-   // data0 reg
+   // data0 reg  数据低32位  调试器必须在写入命令之前将参数写入数据寄存器。
    assign data0_reg_wren0   = (dmi_reg_en & dmi_reg_wr_en & (dmi_reg_addr == 7'h4) & (dbg_state == HALTED) & ~abstractcs_reg[12]);
    assign data0_reg_wren1   = core_dbg_cmd_done & (dbg_state == CORE_CMD_WAIT) & ~command_reg[16];
-   assign data0_reg_wren    = data0_reg_wren0 | data0_reg_wren1 | data0_reg_wren2;
+   assign data0_reg_wren    = data0_reg_wren0 | data0_reg_wren1 |data0_reg_wren2;
 
    assign data0_din[31:0]   = ({32{data0_reg_wren0}} & dmi_reg_wdata[31:0])   |
                               ({32{data0_reg_wren1}} & core_dbg_rddata[31:0]) |
@@ -465,15 +505,36 @@ module dbg (
 
    rvdffe #(32) dbg_data0_reg (.*, .din(data0_din[31:0]), .dout(data0_reg[31:0]), .en(data0_reg_wren), .rst_l(dbg_dm_rst_l));
 
-   // data 1
+   // data1 reg 数据高32位
    assign data1_reg_wren0   = (dmi_reg_en & dmi_reg_wr_en & (dmi_reg_addr == 7'h5) & (dbg_state == HALTED) & ~abstractcs_reg[12]);
-   assign data1_reg_wren1   = (dbg_state == CMD_DONE) & (command_reg[31:24] == 8'h2) & command_reg[19] & ~(|abstractcs_reg[10:8]);   // aampostincrement
-   assign data1_reg_wren    = data1_reg_wren0 | data1_reg_wren1;
+   assign data1_reg_wren1   = core_dbg_cmd_done & (dbg_state == CORE_CMD_WAIT) & ~command_reg[16];
+   assign data1_reg_wren    = data1_reg_wren0 | data1_reg_wren1 | data1_reg_wren2;
 
-   assign data1_din[31:0]   = ({32{data1_reg_wren0}} & dmi_reg_wdata[31:0]) |
-                              ({32{data1_reg_wren1}} & dbg_cmd_next_addr[31:0]);
+   assign data1_din[31:0]   = ({32{data1_reg_wren0}} & dmi_reg_wdata[31:0])   |
+                              ({32{data1_reg_wren1}} & core_dbg_rddata[63:32]) |
+                              ({32{data1_reg_wren2}} & sb_bus_rdata[63:32]);
 
-   rvdffe #(32)    dbg_data1_reg    (.*, .din(data1_din[31:0]), .dout(data1_reg[31:0]), .en(data1_reg_wren), .rst_l(dbg_dm_rst_l));
+   rvdffe #(32) dbg_data1_reg (.*, .din(data1_din[31:0]), .dout(data1_reg[31:0]), .en(data1_reg_wren), .rst_l(dbg_dm_rst_l));
+
+   // data 2 reg 地址低32位
+   assign data2_reg_wren0   = (dmi_reg_en & dmi_reg_wr_en & (dmi_reg_addr == 7'h6) & (dbg_state == HALTED) & ~abstractcs_reg[12]);
+   assign data2_reg_wren1   = (dbg_state == CMD_DONE) & (command_reg[31:24] == 8'h2) & command_reg[19] & ~(|abstractcs_reg[10:8]);   // aampostincrement
+   assign data2_reg_wren    = data2_reg_wren0 | data2_reg_wren1;
+
+   assign data2_din[31:0]   = ({32{data2_reg_wren0}} & dmi_reg_wdata[31:0]) |
+                              ({32{data2_reg_wren1}} & dbg_cmd_next_addr[31:0]);
+
+   rvdffe #(32)    dbg_data2_reg    (.*, .din(data2_din[31:0]), .dout(data2_reg[31:0]), .en(data2_reg_wren), .rst_l(dbg_dm_rst_l));
+
+   // data 3 reg 地址高32位
+   assign data3_reg_wren0   = (dmi_reg_en & dmi_reg_wr_en & (dmi_reg_addr == 7'h7) & (dbg_state == HALTED) & ~abstractcs_reg[12]);
+   assign data3_reg_wren1   = (dbg_state == CMD_DONE) & (command_reg[31:24] == 8'h2) & command_reg[19] & ~(|abstractcs_reg[10:8]);   // aampostincrement
+   assign data3_reg_wren    = data3_reg_wren0 | data3_reg_wren1;
+
+   assign data3_din[31:0]   = ({32{data3_reg_wren0}} & dmi_reg_wdata[31:0]) |
+                              ({32{data3_reg_wren1}} & dbg_cmd_next_addr[63:32]);
+
+   rvdffe #(32)    dbg_data3_reg    (.*, .din(data3_din[31:0]), .dout(data3_reg[31:0]), .en(data3_reg_wren), .rst_l(dbg_dm_rst_l));
 
    rvdffs #(1) sb_abmem_cmd_doneff  (.din(sb_abmem_cmd_done_in),  .dout(sb_abmem_cmd_done),  .en(sb_abmem_cmd_done_en),  .clk(dbg_free_clk), .rst_l(dbg_dm_rst_l), .*);
    rvdffs #(1) sb_abmem_data_doneff (.din(sb_abmem_data_done_in), .dout(sb_abmem_data_done), .en(sb_abmem_data_done_en), .clk(dbg_free_clk), .rst_l(dbg_dm_rst_l), .*);
@@ -488,6 +549,8 @@ module dbg (
       dbg_resume_req          = 1'b0;         // single pulse output to the core
       dbg_sb_bus_error        = 1'b0;
       data0_reg_wren2         = 1'b0;
+      // 增加data1_reg_wren2的默认值
+      data1_reg_wren2         = 1'b0;
       sb_abmem_cmd_done_in    = 1'b0;
       sb_abmem_data_done_in   = 1'b0;
       sb_abmem_cmd_done_en    = 1'b0;
@@ -538,6 +601,8 @@ module dbg (
                      dbg_state_en         = ((sb_axi_rvalid & sb_axi_rready) | (sb_axi_bvalid & sb_axi_bready)) & dbg_bus_clk_en;
                      dbg_sb_bus_error     = ((sb_axi_rvalid & sb_axi_rready & sb_axi_rresp[1]) | (sb_axi_bvalid & sb_axi_bready & sb_axi_bresp[1])) & dbg_bus_clk_en;
                      data0_reg_wren2      = dbg_state_en & ~sb_abmem_cmd_write & ~dbg_sb_bus_error;
+                     //增加data1寄存器写使能2
+                     data1_reg_wren2      = dbg_state_en & ~sb_abmem_cmd_write & ~dbg_sb_bus_error;
             end
             CMD_DONE: begin
                      dbg_nxtstate         = dmcontrol_reg[1] ? IDLE : HALTED;
@@ -564,8 +629,11 @@ module dbg (
          endcase
    end // always_comb begin
 
+  // 增加读取data 2和3  sbaddress1 的情况
    assign dmi_reg_rdata_din[31:0] = ({32{dmi_reg_addr == 7'h4}}  & data0_reg[31:0])      |
                                     ({32{dmi_reg_addr == 7'h5}}  & data1_reg[31:0])      |
+                                    ({32{dmi_reg_addr == 7'h6}}  & data2_reg[31:0])      |
+                                    ({32{dmi_reg_addr == 7'h7}}  & data3_reg[31:0])      |
                                     ({32{dmi_reg_addr == 7'h10}} & {2'b0,dmcontrol_reg[29],1'b0,dmcontrol_reg[27:0]})  |  // Read0 to Write only bits
                                     ({32{dmi_reg_addr == 7'h11}} & dmstatus_reg[31:0])   |
                                     ({32{dmi_reg_addr == 7'h16}} & abstractcs_reg[31:0]) |
@@ -574,6 +642,7 @@ module dbg (
                                     ({32{dmi_reg_addr == 7'h40}} & haltsum0_reg[31:0])   |
                                     ({32{dmi_reg_addr == 7'h38}} & sbcs_reg[31:0])       |
                                     ({32{dmi_reg_addr == 7'h39}} & sbaddress0_reg[31:0]) |
+                                    ({32{dmi_reg_addr == 7'h3a}} & sbaddress1_reg[31:0]) |
                                     ({32{dmi_reg_addr == 7'h3c}} & sbdata0_reg[31:0])    |
                                     ({32{dmi_reg_addr == 7'h3d}} & sbdata1_reg[31:0]);
 
@@ -583,25 +652,31 @@ module dbg (
 //   rvdff  #(1)              dmi_ack_reg      (.din(dmi_reg_en), .dout(dmi_reg_ack), .rst_l(rst_l), .clk(free_clk));
    rvdffs  #(32) dmi_rddata_reg(.din(dmi_reg_rdata_din), .dout(dmi_reg_rdata), .en(dmi_reg_en), .rst_l(dbg_dm_rst_l), .clk(dbg_free_clk));
 
-   assign abmem_addr[31:0] = data1_reg[31:0];
+//内存地址改为64位，用两个寄存器拼接
+   assign abmem_addr[63:0] = {data3_reg[31:0],data2_reg[31:0]};
    assign abmem_addr_core_local = (abmem_addr_in_dccm_region | abmem_addr_in_iccm_region | abmem_addr_in_pic_region);
    assign abmem_addr_external   = ~abmem_addr_core_local;
+// 判断地址范围改为在[63:60]
+   assign abmem_addr_in_dccm_region = (abmem_addr[63:60] == `RV_DCCM_REGION) & DCCM_ENABLE;
+   assign abmem_addr_in_iccm_region = (abmem_addr[63:60] == `RV_ICCM_REGION) & ICCM_ENABLE;
+   assign abmem_addr_in_pic_region  = (abmem_addr[63:60] == `RV_PIC_REGION);
 
-   assign abmem_addr_in_dccm_region = (abmem_addr[31:28] == `RV_DCCM_REGION) & DCCM_ENABLE;
-   assign abmem_addr_in_iccm_region = (abmem_addr[31:28] == `RV_ICCM_REGION) & ICCM_ENABLE;
-   assign abmem_addr_in_pic_region  = (abmem_addr[31:28] == `RV_PIC_REGION);
+   // interface for the core 输出的指令地址和数据拼接
+   assign dbg_cmd_addr[63:0]    = (command_reg[31:24] == 8'h2) ? {data3_reg[31:0],data2_reg[31:0]}  : {52'b0, command_reg[11:0]};
+   assign dbg_cmd_wrdata[63:0]  = {data1_reg[31:0],data0_reg[31:0]};
 
-   // interface for the core
-   assign dbg_cmd_addr[31:0]    = (command_reg[31:24] == 8'h2) ? data1_reg[31:0]  : {20'b0, command_reg[11:0]};
-   assign dbg_cmd_wrdata[31:0]  = data0_reg[31:0];
    assign dbg_cmd_valid         = (dbg_state == CORE_CMD_START) & ~((|abstractcs_reg[10:8]) | ((command_reg[31:24] == 8'h0) & ~command_reg[17]) | ((command_reg[31:24] == 8'h2) & abmem_addr_external)) & dma_dbg_ready;
    assign dbg_cmd_write         = command_reg[16];
    assign dbg_cmd_type[1:0]     = (command_reg[31:24] == 8'h2) ? 2'b10 : {1'b0, (command_reg[15:12] == 4'b0)};
    assign dbg_cmd_size[1:0]     = command_reg[21:20];
 
    assign dbg_cmd_addr_incr[3:0]  = (command_reg[31:24] == 8'h2) ? (4'h1 << sb_abmem_cmd_size[1:0]) : 4'h1;
-   assign dbg_cmd_curr_addr[31:0] = (command_reg[31:24] == 8'h2) ? data1_reg[31:0]  : {16'b0, command_reg[15:0]};
-   assign dbg_cmd_next_addr[31:0] = dbg_cmd_curr_addr[31:0] + {28'h0,dbg_cmd_addr_incr[3:0]};
+
+   // 地址改为64位
+   assign dbg_cmd_curr_addr[63:0] = (command_reg[31:24] == 8'h2) ? {data3_reg[31:0] , data2_reg[31:0] } : {48'b0, command_reg[15:0]};
+
+   // 下一个执行的地址改为64位
+   assign dbg_cmd_next_addr[63:0] = dbg_cmd_curr_addr[63:0] + {60'h0,dbg_cmd_addr_incr[3:0]};
 
    assign sb_abmem_cmd_awvalid    = (dbg_state == SB_CMD_SEND) & sb_abmem_cmd_write & ~sb_abmem_cmd_done;
    assign sb_abmem_cmd_wvalid     = (dbg_state == SB_CMD_SEND) & sb_abmem_cmd_write & ~sb_abmem_data_done;
@@ -609,8 +684,9 @@ module dbg (
    assign sb_abmem_read_pend      = (dbg_state == SB_CMD_RESP) & ~sb_abmem_cmd_write;
    assign sb_abmem_cmd_write      = command_reg[16];
    assign sb_abmem_cmd_size[2:0]  = {1'b0, command_reg[21:20]};
-   assign sb_abmem_cmd_addr[31:0] = abmem_addr[31:0];
-   assign sb_abmem_cmd_wdata[31:0] = data0_reg[31:0];
+    // 更改位数
+   assign sb_abmem_cmd_addr[63:0] = abmem_addr[63:0];
+   assign sb_abmem_cmd_wdata[63:0] = {data1_reg[31:0],data0_reg[31:0]};
 
    // Ask DMA to stop taking bus trxns since debug request is done
    assign dbg_dma_bubble = ((dbg_state == CORE_CMD_START) & ~(|abstractcs_reg[10:8])) | (dbg_state == CORE_CMD_WAIT);
@@ -618,7 +694,7 @@ module dbg (
    assign sb_cmd_pending       = (sb_state == CMD_RD) | (sb_state == CMD_WR) | (sb_state == CMD_WR_ADDR) | (sb_state == CMD_WR_DATA) | (sb_state == RSP_RD) | (sb_state == RSP_WR);
    assign sb_abmem_cmd_pending = (dbg_state == SB_CMD_START) | (dbg_state == SB_CMD_SEND) | (dbg_state== SB_CMD_RESP);
 
-  // system bus FSM
+  // system bus FSM  增加 sbaddress1_reg_wren1 信号描述
   always_comb begin
       sb_nxtstate            = SBIDLE;
       sb_state_en            = 1'b0;
@@ -627,6 +703,7 @@ module dbg (
       sbcs_sberror_wren      = 1'b0;
       sbcs_sberror_din[2:0]  = 3'b0;
       sbaddress0_reg_wren1   = 1'b0;
+      sbaddress1_reg_wren1   = 1'b0;
       case (sb_state)
             SBIDLE: begin
                      sb_nxtstate            = sbdata0wr_access ? WAIT_WR : WAIT_RD;
@@ -681,7 +758,8 @@ module dbg (
                      sb_state_en            = 1'b1;
                      sbcs_sbbusy_wren       = 1'b1;                           // reset the single read
                      sbcs_sbbusy_din        = 1'b0;
-                     sbaddress0_reg_wren1   = sbcs_reg[16] & (sbcs_reg[14:12] == 3'b0);    // auto increment was set and no error. Update to new address after completing the current command
+                     sbaddress0_reg_wren1   = sbcs_reg[16] & (sbcs_reg[14:12] == 3'b0); 
+                     sbaddress1_reg_wren1   = sbcs_reg[16] & (sbcs_reg[14:12] == 3'b0);    // auto increment was set and no error. Update to new address after completing the current command
             end
             default : begin
                      sb_nxtstate            = SBIDLE;
@@ -691,6 +769,7 @@ module dbg (
                      sbcs_sberror_wren      = 1'b0;
                      sbcs_sberror_din[2:0]  = 3'b0;
                      sbaddress0_reg_wren1   = 1'b0;
+                     sbaddress1_reg_wren1   = 1'b0;
            end
          endcase
    end // always_comb begin
@@ -718,20 +797,24 @@ module dbg (
    assign sb_read_pend       = (sb_state == RSP_RD);
    assign sb_cmd_size[2:0]   = sbcs_reg[19:17];
    assign sb_cmd_wdata[63:0] = {sbdata1_reg[31:0], sbdata0_reg[31:0]};
-   assign sb_cmd_addr[31:0]  = sbaddress0_reg[31:0];
+    // 更改位数
+   assign sb_cmd_addr[63:0]  = {sbaddress1_reg[31:0],sbaddress0_reg[31:0]};
 
    assign sb_axi_size[2:0]    = (sb_abmem_cmd_awvalid | sb_abmem_cmd_wvalid | sb_abmem_cmd_arvalid | sb_abmem_read_pend) ? sb_abmem_cmd_size[2:0] : sb_cmd_size[2:0];
-   assign sb_axi_addr[31:0]   = (sb_abmem_cmd_awvalid | sb_abmem_cmd_wvalid | sb_abmem_cmd_arvalid | sb_abmem_read_pend) ? sb_abmem_cmd_addr[31:0] : sb_cmd_addr[31:0];
-   assign sb_axi_wrdata[63:0] = (sb_abmem_cmd_awvalid | sb_abmem_cmd_wvalid) ? {2{sb_abmem_cmd_wdata[31:0]}} : sb_cmd_wdata[63:0];
+    // 更改位数
+   assign sb_axi_addr[63:0]   = (sb_abmem_cmd_awvalid | sb_abmem_cmd_wvalid | sb_abmem_cmd_arvalid | sb_abmem_read_pend) ? sb_abmem_cmd_addr[63:0] : sb_cmd_addr[63:0];
+   assign sb_axi_wrdata[63:0] = (sb_abmem_cmd_awvalid | sb_abmem_cmd_wvalid) ? sb_abmem_cmd_wdata[63:0] : sb_cmd_wdata[63:0];
 
    // AXI Request signals
    assign sb_axi_awvalid              = sb_abmem_cmd_awvalid | sb_cmd_awvalid;
-   assign sb_axi_awaddr[31:0]         = sb_axi_addr[31:0];
+    // 更改位数
+   assign sb_axi_awaddr[63:0]         = sb_axi_addr[63:0];
    assign sb_axi_awid[SB_BUS_TAG-1:0] = '0;
    assign sb_axi_awsize[2:0]          = sb_axi_size[2:0];
    assign sb_axi_awprot[2:0]          = '0;
    assign sb_axi_awcache[3:0]         = 4'b1111;
-   assign sb_axi_awregion[3:0]        = sb_axi_addr[31:28];
+    // 更改位数
+   assign sb_axi_awregion[3:0]        = sb_axi_addr[63:60];
    assign sb_axi_awlen[7:0]           = '0;
    assign sb_axi_awburst[1:0]         = 2'b01;
    assign sb_axi_awqos[3:0]           = '0;
@@ -749,12 +832,13 @@ module dbg (
    assign sb_axi_wlast        = '1;
 
    assign sb_axi_arvalid              = sb_abmem_cmd_arvalid | sb_cmd_arvalid;
-   assign sb_axi_araddr[31:0]         = sb_axi_addr[31:0];
+    // 更改位数
+   assign sb_axi_araddr[63:0]         = sb_axi_addr[63:0];
    assign sb_axi_arid[SB_BUS_TAG-1:0] = '0;
    assign sb_axi_arsize[2:0]          = sb_axi_size[2:0];
    assign sb_axi_arprot[2:0]          = '0;
    assign sb_axi_arcache[3:0]         = 4'b0;
-   assign sb_axi_arregion[3:0]        = sb_axi_addr[31:28];
+   assign sb_axi_arregion[3:0]        = sb_axi_addr[63:60];
    assign sb_axi_arlen[7:0]           = '0;
    assign sb_axi_arburst[1:0]         = 2'b01;
    assign sb_axi_arqos[3:0]           = '0;

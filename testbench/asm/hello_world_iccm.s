@@ -20,7 +20,7 @@
 
 #include "defines.h"
 
-#define STDOUT 0xd0580000
+#define STDOUT 0xd000000050580000
 
     .set    mfdc, 0x7f9
 .extern printf_start, printf_end
@@ -50,6 +50,7 @@ load:
 
     fence.i
     call printf
+    
 
 // Write 0xff to STDOUT for TB to termiate test.
 _finish:
@@ -63,15 +64,20 @@ _finish:
 
 .data
 hw_data:
-.ascii "----------------------------------------\n"
-.ascii "Hello World from SweRV EL2 ICCM  @WDC !!\n"
-.ascii "----------------------------------------\n"
+.ascii "-------------------------------------------\n"
+.ascii "Hello World from SweRV EH1 64-bit @XMU !!  \n"
+.ascii "Func printf was stored in extern-ram and   \n"
+.ascii "will be load into ICCM by start-code.      \n"
+.ascii "Then cpu will jump into ICCM to call printf\n"
+.ascii "when it finish preload printf code work.   \n"
+.ascii "This can be used to test ICCM, LSU and DMA.\n"
+.ascii "-------------------------------------------\n"
 .byte 0
 
 .section .data_text, "ax"
     // Load string from hw_data
     // and write to stdout address
-
+.global printf
 printf:
     li x3, STDOUT
     la x4, hw_data

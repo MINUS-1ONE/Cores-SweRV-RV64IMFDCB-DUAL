@@ -1,1 +1,22 @@
 OFILES = crt0.o printf.o cmark.o
+#ABI = -mabi=lp64 -march=rv64im
+#ABI = -mabi=lp64 -march=rv64imc
+#ABI = -mabi=lp64 -march=rv64imc_zba_zbb_zbc_zbs
+ABI = -mabi=lp64 -march=rv64imc_zba_zbb
+#TEST_CFLAGS = -g -O3 -funroll-all-loops -nostdlib -fno-builtin
+#TEST_CFLAGS = -g -O3 -funroll-all-loops -nostdlib
+
+# C910 compile param
+#TEST_CFLAGS = -g -O3 -static -funroll-all-loops -finline-limit=500 -fgcse-sm -fno-schedule-insns --param max-rtl-if-conversion-unpredictable-cost=100 -fno-code-hoisting -fno-thread-jumps 
+
+# freedom 7-series compile param
+#TEST_CFLAGS = -O3 -fno-common -funroll-loops -finline-functions -funroll-all-loops -falign-functions=8 -falign-jumps=8 -falign-loops=8 -finline-limit=1000 -mtune=sifive-7-series -ffast-math
+
+# freedom 32bit compile param
+#TEST_CFLAGS = -O3 -fno-common -funroll-loops -finline-functions -falign-functions=16 -falign-jumps=4 -falign-loops=4 -finline-limit=1000 -fno-if-conversion2 -fselective-scheduling -fno-tree-dominator-opts -fno-reg-struct-return -fno-rename-registers --param case-values-threshold=8 -fno-crossjumping -freorder-blocks-and-partition -fno-tree-loop-if-convert -fno-tree-sink -fgcse-sm -fno-strict-overflow
+
+# freedom 64bit compile param
+#TEST_CFLAGS = -Ofast -fno-common -funroll-loops -finline-functions -falign-functions=16 -falign-jumps=4 -falign-loops=4 -finline-limit=1000 -fno-if-conversion2 -fselective-scheduling -fno-tree-dominator-opts
+
+# WD official support param
+TEST_CFLAGS = -mtune=sifive-7-series -mbranch-cost=1 -Ofast -funroll-all-loops --param=hot-bb-frequency-fraction=1 --param=max-jump-thread-duplication-stmts=2 --param=max-tail-merge-iterations=0 -fno-aggressive-loop-optimizations -fgcse-las --param=max-grow-copy-bb-insns=7 --param=unroll-jam-min-percent=0 --param=large-unit-insns=0 -fno-delete-null-pointer-checks -fno-rename-registers --param=max-partial-antic-length=1 --param=loop-max-datarefs-for-datadeps=0 -funroll-all-loops --param=uninlined-function-insns=16 -fno-tree-vrp -fwrapv -fno-toplevel-reorder --param=max-inline-insns-size=128 -fipa-pta --param=max-cse-path-length=3 --param=inline-min-speedup=1 --param=max-sched-region-insns=7 --param=max-goto-duplication-insns=0 --param=max-gcse-insertion-ratio=0 -fno-tree-ter --param=max-average-unrolled-insns=128 -fno-dce -fno-builtin --param=max-loop-header-insns=2 -fno-tree-loop-ivcanon -fno-tree-loop-distribute-patterns -fno-sched-rank-heuristic

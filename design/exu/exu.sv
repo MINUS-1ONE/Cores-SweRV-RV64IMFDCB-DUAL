@@ -34,9 +34,9 @@ module exu
 
    input logic dec_debug_wdata_rs1_d,                                  // Debug select to primary I0 RS1
 
-   input logic [31:0] dbg_cmd_wrdata,                                  // Debug data   to primary I0 RS1
+   input logic [63:0] dbg_cmd_wrdata,                                  // Debug data   to primary I0 RS1
 
-   input logic [31:0] lsu_result_dc3,                                  // Load result
+   input logic [63:0] lsu_result_dc3,                                  // Load result
 
    input predict_pkt_t  i0_predict_p_d,                                // DEC branch predict packet
    input predict_pkt_t  i1_predict_p_d,                                // DEC branch predict packet
@@ -45,26 +45,26 @@ module exu
    input logic        dec_i0_rs2_bypass_en_e2,                         // DEC bypass bus select for E2 stage
    input logic        dec_i1_rs1_bypass_en_e2,                         // DEC bypass bus select for E2 stage
    input logic        dec_i1_rs2_bypass_en_e2,                         // DEC bypass bus select for E2 stage
-   input logic [31:0] i0_rs1_bypass_data_e2,                           // DEC bypass bus
-   input logic [31:0] i0_rs2_bypass_data_e2,                           // DEC bypass bus
-   input logic [31:0] i1_rs1_bypass_data_e2,                           // DEC bypass bus
-   input logic [31:0] i1_rs2_bypass_data_e2,                           // DEC bypass bus
+   input logic [63:0] i0_rs1_bypass_data_e2,                           // DEC bypass bus
+   input logic [63:0] i0_rs2_bypass_data_e2,                           // DEC bypass bus
+   input logic [63:0] i1_rs1_bypass_data_e2,                           // DEC bypass bus
+   input logic [63:0] i1_rs2_bypass_data_e2,                           // DEC bypass bus
 
    input logic        dec_i0_rs1_bypass_en_e3,                         // DEC bypass bus select for E3 stage
    input logic        dec_i0_rs2_bypass_en_e3,                         // DEC bypass bus select for E3 stage
    input logic        dec_i1_rs1_bypass_en_e3,                         // DEC bypass bus select for E3 stage
    input logic        dec_i1_rs2_bypass_en_e3,                         // DEC bypass bus select for E3 stage
-   input logic [31:0] i0_rs1_bypass_data_e3,                           // DEC bypass bus
-   input logic [31:0] i0_rs2_bypass_data_e3,                           // DEC bypass bus
-   input logic [31:0] i1_rs1_bypass_data_e3,                           // DEC bypass bus
-   input logic [31:0] i1_rs2_bypass_data_e3,                           // DEC bypass bus
+   input logic [63:0] i0_rs1_bypass_data_e3,                           // DEC bypass bus
+   input logic [63:0] i0_rs2_bypass_data_e3,                           // DEC bypass bus
+   input logic [63:0] i1_rs1_bypass_data_e3,                           // DEC bypass bus
+   input logic [63:0] i1_rs2_bypass_data_e3,                           // DEC bypass bus
 
    input logic        dec_i0_sec_decode_e3,                            // Secondary ALU valid
    input logic        dec_i1_sec_decode_e3,                            // Secondary ALU valid
-   input logic [31:1] dec_i0_pc_e3,                                    // Secondary ALU PC
-   input logic [31:1] dec_i1_pc_e3,                                    // Secondary ALU PC
+   input logic [63:1] dec_i0_pc_e3,                                    // Secondary ALU PC
+   input logic [63:1] dec_i1_pc_e3,                                    // Secondary ALU PC
 
-   input logic [31:1] pred_correct_npc_e2,                             // DEC NPC for correctly predicted branch
+   input logic [63:1] pred_correct_npc_e2,                             // DEC NPC for correctly predicted branch
 
    input logic        dec_i1_valid_e1,                                 // I1 valid E1
 
@@ -74,18 +74,18 @@ module exu
    input logic        dec_i0_div_d,                                    // Select for Divide GPR value
    input logic        dec_i1_div_d,                                    // Select for Divide GPR value
 
-   input logic [31:0] gpr_i0_rs1_d,                                    // DEC data gpr
-   input logic [31:0] gpr_i0_rs2_d,                                    // DEC data gpr
-   input logic [31:0] dec_i0_immed_d,                                  // DEC data immediate
+   input logic [63:0] gpr_i0_rs1_d,                                    // DEC data gpr
+   input logic [63:0] gpr_i0_rs2_d,                                    // DEC data gpr
+   input logic [63:0] dec_i0_immed_d,                                  // DEC data immediate
 
-   input logic [31:0] gpr_i1_rs1_d,                                    // DEC data gpr
-   input logic [31:0] gpr_i1_rs2_d,                                    // DEC data gpr
-   input logic [31:0] dec_i1_immed_d,                                  // DEC data immediate
+   input logic [63:0] gpr_i1_rs1_d,                                    // DEC data gpr
+   input logic [63:0] gpr_i1_rs2_d,                                    // DEC data gpr
+   input logic [63:0] dec_i1_immed_d,                                  // DEC data immediate
 
-   input logic [31:0] i0_rs1_bypass_data_d,                            // DEC bypass data
-   input logic [31:0] i0_rs2_bypass_data_d,                            // DEC bypass data
-   input logic [31:0] i1_rs1_bypass_data_d,                            // DEC bypass data
-   input logic [31:0] i1_rs2_bypass_data_d,                            // DEC bypass data
+   input logic [63:0] i0_rs1_bypass_data_d,                            // DEC bypass data
+   input logic [63:0] i0_rs2_bypass_data_d,                            // DEC bypass data
+   input logic [63:0] i1_rs1_bypass_data_d,                            // DEC bypass data
+   input logic [63:0] i1_rs2_bypass_data_d,                            // DEC bypass data
 
    input logic [12:1] dec_i0_br_immed_d,                               // Branch immediate
    input logic [12:1] dec_i1_br_immed_d,                               // Branch immediate
@@ -99,7 +99,7 @@ module exu
    input logic   dec_i0_select_pc_d,                                   // PC select to RS1
    input logic   dec_i1_select_pc_d,                                   // PC select to RS1
 
-   input logic [31:1] dec_i0_pc_d, dec_i1_pc_d,                        // Instruction PC
+   input logic [63:1] dec_i0_pc_d, dec_i1_pc_d,                        // Instruction PC
 
    input logic  dec_i0_rs1_bypass_en_d,                                // DEC bypass select
    input logic  dec_i0_rs2_bypass_en_d,                                // DEC bypass select
@@ -107,19 +107,19 @@ module exu
    input logic  dec_i1_rs2_bypass_en_d,                                // DEC bypass select
 
    input logic        dec_tlu_flush_lower_wb,                          // Flush divide and secondary ALUs
-   input logic [31:1] dec_tlu_flush_path_wb,                           // Redirect target
+   input logic [63:1] dec_tlu_flush_path_wb,                           // Redirect target
 
    input logic dec_tlu_i0_valid_e4,                                    // Valid for GHR
    input logic dec_tlu_i1_valid_e4,                                    // Valid for GHR
 
-   output logic [31:0] exu_i0_result_e1,                               // Primary ALU result to DEC
-   output logic [31:0] exu_i1_result_e1,                               // Primary ALU result to DEC
-   output logic [31:1] exu_i0_pc_e1,                                   // Primary PC  result to DEC
-   output logic [31:1] exu_i1_pc_e1,                                   // Primary PC  result to DEC
+   output logic [63:0] exu_i0_result_e1,                               // Primary ALU result to DEC
+   output logic [63:0] exu_i1_result_e1,                               // Primary ALU result to DEC
+   output logic [63:1] exu_i0_pc_e1,                                   // Primary PC  result to DEC
+   output logic [63:1] exu_i1_pc_e1,                                   // Primary PC  result to DEC
 
 
-   output logic [31:0] exu_i0_result_e4,                               // Secondary ALU result
-   output logic [31:0] exu_i1_result_e4,                               // Secondary ALU result
+   output logic [63:0] exu_i0_result_e4,                               // Secondary ALU result
+   output logic [63:0] exu_i1_result_e4,                               // Secondary ALU result
 
 
    output logic        exu_i0_flush_final,                             // I0 flush to DEC
@@ -136,25 +136,25 @@ module exu
 
    input logic   dec_csr_ren_d,                                        // Clear I0 RS1 primary
 
-   output logic [31:0] exu_lsu_rs1_d,                                  // LSU operand
-   output logic [31:0] exu_lsu_rs2_d,                                  // LSU operand
+   output logic [63:0] exu_lsu_rs1_d,                                  // LSU operand
+   output logic [63:0] exu_lsu_rs2_d,                                  // LSU operand
 
-   output logic [31:0] exu_csr_rs1_e1,                                 // RS1 source for a CSR instruction
+   output logic [63:0] exu_csr_rs1_e1,                                 // RS1 source for a CSR instruction
 
    output logic         exu_flush_final,                               // Pipe is being flushed this cycle
-   output logic [31:1]  exu_flush_path_final,                          // Target for the oldest flush source
+   output logic [63:1]  exu_flush_path_final,                          // Target for the oldest flush source
 
-   output logic [31:0] exu_mul_result_e3,                              // Multiply result
+   output logic [63:0] exu_mul_result_e3,                              // Multiply result
 
-   output logic [31:0]  exu_div_result,                                // Divide result
+   output logic [63:0]  exu_div_result,                                // Divide result
    output logic exu_div_finish,                                        // Divide is finished
    output logic exu_div_stall,                                         // Divide is running
-   output logic [31:1] exu_npc_e4,                                     // Divide NPC
+   output logic [63:1] exu_npc_e4,                                     // Divide NPC
 
    output logic exu_i0_flush_lower_e4,                                 // to TLU - lower branch flush
    output logic exu_i1_flush_lower_e4,                                 // to TLU - lower branch flush
-   output logic [31:1] exu_i0_flush_path_e4,                           // to TLU - lower branch flush path
-   output logic [31:1] exu_i1_flush_path_e4,                           // to TLU - lower branch flush path
+   output logic [63:1] exu_i0_flush_path_e4,                           // to TLU - lower branch flush path
+   output logic [63:1] exu_i1_flush_path_e4,                           // to TLU - lower branch flush path
 
    output predict_pkt_t exu_mp_pkt,                                    // Mispredict branch packet
 
@@ -208,47 +208,47 @@ module exu
    );
 
 
-   logic [31:0] i0_rs1_d,i0_rs2_d,i1_rs1_d,i1_rs2_d;
+   logic [63:0] i0_rs1_d,i0_rs2_d,i1_rs1_d,i1_rs2_d;
 
 
 
    logic        exu_i0_flush_upper_e1;
-   logic [31:1] exu_i0_flush_path_e1;
+   logic [63:1] exu_i0_flush_path_e1;
 
    logic        exu_i1_flush_upper_e1;
-   logic [31:1] exu_i1_flush_path_e1;
+   logic [63:1] exu_i1_flush_path_e1;
 
-   logic [31:0] i0_rs1_final_d;
+   logic [63:0] i0_rs1_final_d;
 
-   logic [31:1]  exu_flush_path_e2;
-   logic [31:0]  mul_rs1_d, mul_rs2_d;
+   logic [63:1]  exu_flush_path_e2;
+   logic [63:0]  mul_rs1_d, mul_rs2_d;
 
-   logic [31:0]  div_rs1_d, div_rs2_d;
+   logic [63:0]  div_rs1_d, div_rs2_d;
 
    logic        i1_valid_e2;
-   logic [31:1] npc_e4;
-   logic [31:1] div_npc;
+   logic [63:1] npc_e4;
+   logic [63:1] div_npc;
 
-   logic [31:0] i0_rs1_e1, i0_rs2_e1;
-   logic [31:0] i0_rs1_e2, i0_rs2_e2;
-   logic [31:0] i0_rs1_e3, i0_rs2_e3;
+   logic [63:0] i0_rs1_e1, i0_rs2_e1;
+   logic [63:0] i0_rs1_e2, i0_rs2_e2;
+   logic [63:0] i0_rs1_e3, i0_rs2_e3;
    logic [12:1] i0_br_immed_e1, i0_br_immed_e2, i0_br_immed_e3;
 
-   logic [31:0] i1_rs1_e1, i1_rs2_e1;
-   logic [31:0] i1_rs1_e2, i1_rs2_e2;
-   logic [31:0] i1_rs1_e3, i1_rs2_e3;
+   logic [63:0] i1_rs1_e1, i1_rs2_e1;
+   logic [63:0] i1_rs1_e2, i1_rs2_e2;
+   logic [63:0] i1_rs1_e3, i1_rs2_e3;
 
    logic [12:1] i1_br_immed_e1, i1_br_immed_e2, i1_br_immed_e3;
 
-   logic [31:0] i0_rs1_e2_final, i0_rs2_e2_final;
-   logic [31:0] i1_rs1_e2_final, i1_rs2_e2_final;
-   logic [31:0] i0_rs1_e3_final, i0_rs2_e3_final;
-   logic [31:0] i1_rs1_e3_final, i1_rs2_e3_final;
-   logic [31:1] i0_alu_pc_nc, i1_alu_pc_nc;
-   logic [31:1] exu_flush_path_e1;
+   logic [63:0] i0_rs1_e2_final, i0_rs2_e2_final;
+   logic [63:0] i1_rs1_e2_final, i1_rs2_e2_final;
+   logic [63:0] i0_rs1_e3_final, i0_rs2_e3_final;
+   logic [63:0] i1_rs1_e3_final, i1_rs2_e3_final;
+   logic [63:1] i0_alu_pc_nc, i1_alu_pc_nc;
+   logic [63:1] exu_flush_path_e1;
    logic        exu_i0_flush_upper_e2, exu_i1_flush_upper_e2;
    logic        i1_valid_e3, i1_valid_e4;
-   logic [31:1] pred_correct_npc_e3, pred_correct_npc_e4;
+   logic [63:1] pred_correct_npc_e3, pred_correct_npc_e4;
    logic                                  exu_i0_flush_upper_e3;
    logic                                  exu_i0_flush_upper_e4;
    logic        i1_pred_correct_upper_e1, i0_pred_correct_upper_e1;
@@ -261,11 +261,11 @@ module exu
    logic        i1_valid_e4_eff;
    logic        i1_sec_decode_e4, i0_sec_decode_e4;
    logic        i1_pred_correct_e4_eff, i0_pred_correct_e4_eff;
-   logic [31:1] i1_flush_path_e4_eff, i0_flush_path_e4_eff;
-   logic [31:0] csr_rs1_in_d;
-   logic [31:1] i1_flush_path_upper_e2, i0_flush_path_upper_e2;
-   logic [31:1] i1_flush_path_upper_e3, i0_flush_path_upper_e3;
-   logic [31:1] i1_flush_path_upper_e4, i0_flush_path_upper_e4;
+   logic [63:1] i1_flush_path_e4_eff, i0_flush_path_e4_eff;
+   logic [63:0] csr_rs1_in_d;
+   logic [63:1] i1_flush_path_upper_e2, i0_flush_path_upper_e2;
+   logic [63:1] i1_flush_path_upper_e3, i0_flush_path_upper_e3;
+   logic [63:1] i1_flush_path_upper_e4, i0_flush_path_upper_e4;
 
    logic        div_valid_e1;
    logic        div_finish_early;
@@ -276,59 +276,59 @@ module exu
    alu_pkt_t i1_ap_e1, i1_ap_e2, i1_ap_e3, i1_ap_e4;
    assign freeze = lsu_freeze_dc3;
 
-   assign i0_rs1_d[31:0] = ({32{~dec_i0_rs1_bypass_en_d}} & ((dec_debug_wdata_rs1_d) ? dbg_cmd_wrdata[31:0] : gpr_i0_rs1_d[31:0])) |
-                           ({32{~dec_i0_rs1_bypass_en_d   & dec_i0_select_pc_d}} & { dec_i0_pc_d[31:1], 1'b0}) |    // for jal's
-                           ({32{ dec_i0_rs1_bypass_en_d}} & i0_rs1_bypass_data_d[31:0]);
+   assign i0_rs1_d[63:0] = ({64{~dec_i0_rs1_bypass_en_d}} & ((dec_debug_wdata_rs1_d) ? dbg_cmd_wrdata[63:0] : gpr_i0_rs1_d[63:0])) |
+                           ({64{~dec_i0_rs1_bypass_en_d   & dec_i0_select_pc_d}} & { dec_i0_pc_d[63:1], 1'b0}) |    // for jal's
+                           ({64{ dec_i0_rs1_bypass_en_d}} & i0_rs1_bypass_data_d[63:0]);
 
 
-   assign i0_rs1_final_d[31:0] = ({32{~dec_csr_ren_d}} & i0_rs1_d[31:0]);
+   assign i0_rs1_final_d[63:0] = ({64{~dec_csr_ren_d}} & i0_rs1_d[63:0]);
 
-   assign i0_rs2_d[31:0]       = ({32{~dec_i0_rs2_bypass_en_d}} & gpr_i0_rs2_d[31:0]) |
-                                 ({32{~dec_i0_rs2_bypass_en_d}} & dec_i0_immed_d[31:0]) |
-                                 ({32{ dec_i0_rs2_bypass_en_d}} & i0_rs2_bypass_data_d[31:0]);
+   assign i0_rs2_d[63:0]       = ({64{~dec_i0_rs2_bypass_en_d}} & gpr_i0_rs2_d[63:0]) |
+                                 ({64{~dec_i0_rs2_bypass_en_d}} & dec_i0_immed_d[63:0]) |
+                                 ({64{ dec_i0_rs2_bypass_en_d}} & i0_rs2_bypass_data_d[63:0]);
 
-   assign i1_rs1_d[31:0]       = ({32{~dec_i1_rs1_bypass_en_d}} & gpr_i1_rs1_d[31:0]) |
-                                 ({32{~dec_i1_rs1_bypass_en_d   & dec_i1_select_pc_d}} & { dec_i1_pc_d[31:1], 1'b0}) |  // pc orthogonal with rs1
-                                 ({32{ dec_i1_rs1_bypass_en_d}} & i1_rs1_bypass_data_d[31:0]);
+   assign i1_rs1_d[63:0]       = ({64{~dec_i1_rs1_bypass_en_d}} & gpr_i1_rs1_d[63:0]) |
+                                 ({64{~dec_i1_rs1_bypass_en_d   & dec_i1_select_pc_d}} & { dec_i1_pc_d[63:1], 1'b0}) |  // pc orthogonal with rs1
+                                 ({64{ dec_i1_rs1_bypass_en_d}} & i1_rs1_bypass_data_d[63:0]);
 
-   assign i1_rs2_d[31:0]       = ({32{~dec_i1_rs2_bypass_en_d}} & gpr_i1_rs2_d[31:0]) |
-                                 ({32{~dec_i1_rs2_bypass_en_d}} & dec_i1_immed_d[31:0]) |
-                                 ({32{ dec_i1_rs2_bypass_en_d}} & i1_rs2_bypass_data_d[31:0]);
+   assign i1_rs2_d[63:0]       = ({64{~dec_i1_rs2_bypass_en_d}} & gpr_i1_rs2_d[63:0]) |
+                                 ({64{~dec_i1_rs2_bypass_en_d}} & dec_i1_immed_d[63:0]) |
+                                 ({64{ dec_i1_rs2_bypass_en_d}} & i1_rs2_bypass_data_d[63:0]);
 
-   assign exu_lsu_rs1_d[31:0]  = ({32{ ~dec_i0_rs1_bypass_en_d &  dec_i0_lsu_d               }} & gpr_i0_rs1_d[31:0]        ) |
-                                 ({32{ ~dec_i1_rs1_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & gpr_i1_rs1_d[31:0]        ) |
-                                 ({32{  dec_i0_rs1_bypass_en_d &  dec_i0_lsu_d               }} & i0_rs1_bypass_data_d[31:0]) |
-                                 ({32{  dec_i1_rs1_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & i1_rs1_bypass_data_d[31:0]);
+   assign exu_lsu_rs1_d[63:0]  = ({64{ ~dec_i0_rs1_bypass_en_d &  dec_i0_lsu_d               }} & gpr_i0_rs1_d[63:0]        ) |
+                                 ({64{ ~dec_i1_rs1_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & gpr_i1_rs1_d[63:0]        ) |
+                                 ({64{  dec_i0_rs1_bypass_en_d &  dec_i0_lsu_d               }} & i0_rs1_bypass_data_d[63:0]) |
+                                 ({64{  dec_i1_rs1_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & i1_rs1_bypass_data_d[63:0]);
 
-   assign exu_lsu_rs2_d[31:0]  = ({32{ ~dec_i0_rs2_bypass_en_d &  dec_i0_lsu_d               }} & gpr_i0_rs2_d[31:0]        ) |
-                                 ({32{ ~dec_i1_rs2_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & gpr_i1_rs2_d[31:0]        ) |
-                                 ({32{  dec_i0_rs2_bypass_en_d &  dec_i0_lsu_d               }} & i0_rs2_bypass_data_d[31:0]) |
-                                 ({32{  dec_i1_rs2_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & i1_rs2_bypass_data_d[31:0]);
+   assign exu_lsu_rs2_d[63:0]  = ({64{ ~dec_i0_rs2_bypass_en_d &  dec_i0_lsu_d               }} & gpr_i0_rs2_d[63:0]        ) |
+                                 ({64{ ~dec_i1_rs2_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & gpr_i1_rs2_d[63:0]        ) |
+                                 ({64{  dec_i0_rs2_bypass_en_d &  dec_i0_lsu_d               }} & i0_rs2_bypass_data_d[63:0]) |
+                                 ({64{  dec_i1_rs2_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & i1_rs2_bypass_data_d[63:0]);
 
-   assign mul_rs1_d[31:0]      = ({32{ ~dec_i0_rs1_bypass_en_d &  dec_i0_mul_d               }} & gpr_i0_rs1_d[31:0]        ) |
-                                 ({32{ ~dec_i1_rs1_bypass_en_d & ~dec_i0_mul_d & dec_i1_mul_d}} & gpr_i1_rs1_d[31:0]        ) |
-                                 ({32{  dec_i0_rs1_bypass_en_d &  dec_i0_mul_d               }} & i0_rs1_bypass_data_d[31:0]) |
-                                 ({32{  dec_i1_rs1_bypass_en_d & ~dec_i0_mul_d & dec_i1_mul_d}} & i1_rs1_bypass_data_d[31:0]);
+   assign mul_rs1_d[63:0]      = ({64{ ~dec_i0_rs1_bypass_en_d &  dec_i0_mul_d               }} & gpr_i0_rs1_d[63:0]        ) |
+                                 ({64{ ~dec_i1_rs1_bypass_en_d & ~dec_i0_mul_d & dec_i1_mul_d}} & gpr_i1_rs1_d[63:0]        ) |
+                                 ({64{  dec_i0_rs1_bypass_en_d &  dec_i0_mul_d               }} & i0_rs1_bypass_data_d[63:0]) |
+                                 ({64{  dec_i1_rs1_bypass_en_d & ~dec_i0_mul_d & dec_i1_mul_d}} & i1_rs1_bypass_data_d[63:0]);
 
-   assign mul_rs2_d[31:0]      = ({32{ ~dec_i0_rs2_bypass_en_d &  dec_i0_mul_d               }} & gpr_i0_rs2_d[31:0]        ) |
-                                 ({32{ ~dec_i1_rs2_bypass_en_d & ~dec_i0_mul_d & dec_i1_mul_d}} & gpr_i1_rs2_d[31:0]        ) |
-                                 ({32{  dec_i0_rs2_bypass_en_d &  dec_i0_mul_d               }} & i0_rs2_bypass_data_d[31:0]) |
-                                 ({32{  dec_i1_rs2_bypass_en_d & ~dec_i0_mul_d & dec_i1_mul_d}} & i1_rs2_bypass_data_d[31:0]);
-
-
-
-   assign div_rs1_d[31:0]      = ({32{ ~dec_i0_rs1_bypass_en_d &  dec_i0_div_d               }} & gpr_i0_rs1_d[31:0]) |
-                                 ({32{ ~dec_i1_rs1_bypass_en_d & ~dec_i0_div_d & dec_i1_div_d}} & gpr_i1_rs1_d[31:0]) |
-                                 ({32{  dec_i0_rs1_bypass_en_d &  dec_i0_div_d               }} & i0_rs1_bypass_data_d[31:0]) |
-                                 ({32{  dec_i1_rs1_bypass_en_d & ~dec_i0_div_d & dec_i1_div_d}} & i1_rs1_bypass_data_d[31:0]);
-
-   assign div_rs2_d[31:0]      = ({32{ ~dec_i0_rs2_bypass_en_d &  dec_i0_div_d               }} & gpr_i0_rs2_d[31:0]) |
-                                 ({32{ ~dec_i1_rs2_bypass_en_d & ~dec_i0_div_d & dec_i1_div_d}} & gpr_i1_rs2_d[31:0]) |
-                                 ({32{  dec_i0_rs2_bypass_en_d &  dec_i0_div_d               }} & i0_rs2_bypass_data_d[31:0]) |
-                                 ({32{  dec_i1_rs2_bypass_en_d & ~dec_i0_div_d & dec_i1_div_d}} & i1_rs2_bypass_data_d[31:0]);
+   assign mul_rs2_d[63:0]      = ({64{ ~dec_i0_rs2_bypass_en_d &  dec_i0_mul_d               }} & gpr_i0_rs2_d[63:0]        ) |
+                                 ({64{ ~dec_i1_rs2_bypass_en_d & ~dec_i0_mul_d & dec_i1_mul_d}} & gpr_i1_rs2_d[63:0]        ) |
+                                 ({64{  dec_i0_rs2_bypass_en_d &  dec_i0_mul_d               }} & i0_rs2_bypass_data_d[63:0]) |
+                                 ({64{  dec_i1_rs2_bypass_en_d & ~dec_i0_mul_d & dec_i1_mul_d}} & i1_rs2_bypass_data_d[63:0]);
 
 
-   assign csr_rs1_in_d[31:0] = (dec_csr_ren_d) ? i0_rs1_d[31:0] : exu_csr_rs1_e1[31:0];
+
+   assign div_rs1_d[63:0]      = ({64{ ~dec_i0_rs1_bypass_en_d &  dec_i0_div_d               }} & gpr_i0_rs1_d[63:0]) |
+                                 ({64{ ~dec_i1_rs1_bypass_en_d & ~dec_i0_div_d & dec_i1_div_d}} & gpr_i1_rs1_d[63:0]) |
+                                 ({64{  dec_i0_rs1_bypass_en_d &  dec_i0_div_d               }} & i0_rs1_bypass_data_d[63:0]) |
+                                 ({64{  dec_i1_rs1_bypass_en_d & ~dec_i0_div_d & dec_i1_div_d}} & i1_rs1_bypass_data_d[63:0]);
+
+   assign div_rs2_d[63:0]      = ({64{ ~dec_i0_rs2_bypass_en_d &  dec_i0_div_d               }} & gpr_i0_rs2_d[63:0]) |
+                                 ({64{ ~dec_i1_rs2_bypass_en_d & ~dec_i0_div_d & dec_i1_div_d}} & gpr_i1_rs2_d[63:0]) |
+                                 ({64{  dec_i0_rs2_bypass_en_d &  dec_i0_div_d               }} & i0_rs2_bypass_data_d[63:0]) |
+                                 ({64{  dec_i1_rs2_bypass_en_d & ~dec_i0_div_d & dec_i1_div_d}} & i1_rs2_bypass_data_d[63:0]);
+
+
+   assign csr_rs1_in_d[63:0] = (dec_csr_ren_d) ? i0_rs1_d[63:0] : exu_csr_rs1_e1[63:0];
 
    logic       i0_e1_data_en, i0_e2_data_en, i0_e3_data_en;
    logic       i0_e1_ctl_en,  i0_e2_ctl_en,  i0_e3_ctl_en,  i0_e4_ctl_en;
@@ -345,28 +345,28 @@ module exu
 
 
 
-   rvdffe #(32) csr_rs1_ff (.*, .en(i0_e1_data_en), .din(csr_rs1_in_d[31:0]), .dout(exu_csr_rs1_e1[31:0]));
+   rvdffe #(64) csr_rs1_ff (.*, .en(i0_e1_data_en), .din(csr_rs1_in_d[63:0]), .dout(exu_csr_rs1_e1[63:0]));
 
 
    exu_mul_ctl mul_e1    (.*,
                           .clk_override  ( clk_override                ),   // I
                           .freeze        ( freeze                      ),   // I
                           .mp            ( mul_p                       ),   // I
-                          .a             ( mul_rs1_d[31:0]             ),   // I
-                          .b             ( mul_rs2_d[31:0]             ),   // I
-                          .out           ( exu_mul_result_e3[31:0]     ));  // O
+                          .a             ( mul_rs1_d[63:0]             ),   // I
+                          .b             ( mul_rs2_d[63:0]             ),   // I
+                          .out           ( exu_mul_result_e3[63:0]     ));  // O
 
 
    exu_div_ctl div_e1    (.*,
                           .flush_lower   ( dec_tlu_flush_lower_wb      ),   // I
                           .dp            ( div_p                       ),   // I
-                          .dividend      ( div_rs1_d[31:0]             ),   // I
-                          .divisor       ( div_rs2_d[31:0]             ),   // I
+                          .dividend      ( div_rs1_d[63:0]             ),   // I
+                          .divisor       ( div_rs2_d[63:0]             ),   // I
                           .valid_ff_e1   ( div_valid_e1                ),   // O
                           .div_stall     ( exu_div_stall               ),   // O
                           .finish_early  ( div_finish_early            ),   // O
                           .finish        ( exu_div_finish              ),   // O
-                          .out           ( exu_div_result[31:0]        ));  // O
+                          .out           ( exu_div_result[63:0]        ));  // O
 
 
    predict_pkt_t i0_predict_newp_d, i1_predict_newp_d;
@@ -404,16 +404,16 @@ module exu
                           .predict_p     ( i0_predict_newp_d           ),   // I
                           .valid         ( dec_i0_alu_decode_d         ),   // I
                           .flush         ( exu_flush_final             ),   // I
-                          .a             ( i0_rs1_final_d[31:0]        ),   // I
-                          .b             ( i0_rs2_d[31:0]              ),   // I
-                          .pc            ( dec_i0_pc_d[31:1]           ),   // I
+                          .a             ( i0_rs1_final_d[63:0]        ),   // I
+                          .b             ( i0_rs2_d[63:0]              ),   // I
+                          .pc            ( dec_i0_pc_d[63:1]           ),   // I
                           .brimm         ( dec_i0_br_immed_d[12:1]     ),   // I
                           .ap            ( i0_ap_e1                    ),   // I
-                          .out           ( exu_i0_result_e1[31:0]      ),   // O
+                          .out           ( exu_i0_result_e1[63:0]      ),   // O
                           .flush_upper   ( exu_i0_flush_upper_e1       ),   // O : will be 0 if freeze this cycle
-                          .flush_path    ( exu_i0_flush_path_e1[31:1]  ),   // O
+                          .flush_path    ( exu_i0_flush_path_e1[63:1]  ),   // O
                           .predict_p_ff  ( i0_predict_p_e1             ),   // O
-                          .pc_ff         ( exu_i0_pc_e1[31:1]          ),   // O
+                          .pc_ff         ( exu_i0_pc_e1[63:1]          ),   // O
                           .pred_correct  ( i0_pred_correct_upper_e1    )    // O
                           );
 
@@ -424,16 +424,16 @@ module exu
                           .predict_p     ( i1_predict_newp_d           ),   // I
                           .valid         ( dec_i1_alu_decode_d         ),   // I
                           .flush         ( exu_flush_final             ),   // I
-                          .a             ( i1_rs1_d[31:0]              ),   // I
-                          .b             ( i1_rs2_d[31:0]              ),   // I
-                          .pc            ( dec_i1_pc_d[31:1]           ),   // I
+                          .a             ( i1_rs1_d[63:0]              ),   // I
+                          .b             ( i1_rs2_d[63:0]              ),   // I
+                          .pc            ( dec_i1_pc_d[63:1]           ),   // I
                           .brimm         ( dec_i1_br_immed_d[12:1]     ),   // I
                           .ap            ( i1_ap_e1                    ),   // I
-                          .out           ( exu_i1_result_e1[31:0]      ),   // O
+                          .out           ( exu_i1_result_e1[63:0]      ),   // O
                           .flush_upper   ( exu_i1_flush_upper_e1       ),   // O : will be 0 if freeze this cycle
-                          .flush_path    ( exu_i1_flush_path_e1[31:1]  ),   // O
+                          .flush_path    ( exu_i1_flush_path_e1[63:1]  ),   // O
                           .predict_p_ff  ( i1_predict_p_e1             ),   // O
-                          .pc_ff         ( exu_i1_pc_e1[31:1]          ),   // O
+                          .pc_ff         ( exu_i1_pc_e1[63:1]          ),   // O
                           .pred_correct  ( i1_pred_correct_upper_e1    )    // O
                           );
 
@@ -471,57 +471,57 @@ module exu
 
 
 
-   rvdffe #(76) i0_src_e1_ff (.*,
+   rvdffe #(140) i0_src_e1_ff (.*,
                             .en(i0_e1_data_en),
-                            .din( {i0_rs1_d[31:0], i0_rs2_d[31:0], dec_i0_br_immed_d[12:1]}),
-                            .dout({i0_rs1_e1[31:0], i0_rs2_e1[31:0], i0_br_immed_e1[12:1]})
+                            .din( {i0_rs1_d[63:0], i0_rs2_d[63:0], dec_i0_br_immed_d[12:1]}),
+                            .dout({i0_rs1_e1[63:0], i0_rs2_e1[63:0], i0_br_immed_e1[12:1]})
                             );
 
-   rvdffe #(76) i0_src_e2_ff (.*,
+   rvdffe #(140) i0_src_e2_ff (.*,
                             .en(i0_e2_data_en),
-                            .din( {i0_rs1_e1[31:0], i0_rs2_e1[31:0], i0_br_immed_e1[12:1]}),
-                            .dout({i0_rs1_e2[31:0], i0_rs2_e2[31:0], i0_br_immed_e2[12:1]})
+                            .din( {i0_rs1_e1[63:0], i0_rs2_e1[63:0], i0_br_immed_e1[12:1]}),
+                            .dout({i0_rs1_e2[63:0], i0_rs2_e2[63:0], i0_br_immed_e2[12:1]})
                             );
 
-   rvdffe #(76) i0_src_e3_ff (.*,
+   rvdffe #(140) i0_src_e3_ff (.*,
                             .en(i0_e3_data_en),
-                            .din( {i0_rs1_e2_final[31:0], i0_rs2_e2_final[31:0], i0_br_immed_e2[12:1]}),
-                            .dout({i0_rs1_e3[31:0], i0_rs2_e3[31:0], i0_br_immed_e3[12:1]})
+                            .din( {i0_rs1_e2_final[63:0], i0_rs2_e2_final[63:0], i0_br_immed_e2[12:1]}),
+                            .dout({i0_rs1_e3[63:0], i0_rs2_e3[63:0], i0_br_immed_e3[12:1]})
                             );
 
 
 
-   rvdffe #(76) i1_src_e1_ff (.*,
+   rvdffe #(140) i1_src_e1_ff (.*,
                             .en(i1_e1_data_en),
-                            .din( {i1_rs1_d[31:0], i1_rs2_d[31:0], dec_i1_br_immed_d[12:1]}),
-                            .dout({i1_rs1_e1[31:0], i1_rs2_e1[31:0], i1_br_immed_e1[12:1]})
+                            .din( {i1_rs1_d[63:0], i1_rs2_d[63:0], dec_i1_br_immed_d[12:1]}),
+                            .dout({i1_rs1_e1[63:0], i1_rs2_e1[63:0], i1_br_immed_e1[12:1]})
                             );
 
-   rvdffe #(76) i1_src_e2_ff (.*,
+   rvdffe #(140) i1_src_e2_ff (.*,
                             .en(i1_e2_data_en),
-                            .din( {i1_rs1_e1[31:0], i1_rs2_e1[31:0], i1_br_immed_e1[12:1]}),
-                            .dout({i1_rs1_e2[31:0], i1_rs2_e2[31:0], i1_br_immed_e2[12:1]})
+                            .din( {i1_rs1_e1[63:0], i1_rs2_e1[63:0], i1_br_immed_e1[12:1]}),
+                            .dout({i1_rs1_e2[63:0], i1_rs2_e2[63:0], i1_br_immed_e2[12:1]})
                             );
 
-   rvdffe #(76) i1_src_e3_ff (.*,
+   rvdffe #(140) i1_src_e3_ff (.*,
                             .en(i1_e3_data_en),
-                            .din( {i1_rs1_e2_final[31:0], i1_rs2_e2_final[31:0], i1_br_immed_e2[12:1]}),
-                            .dout({i1_rs1_e3[31:0], i1_rs2_e3[31:0], i1_br_immed_e3[12:1]})
+                            .din( {i1_rs1_e2_final[63:0], i1_rs2_e2_final[63:0], i1_br_immed_e2[12:1]}),
+                            .dout({i1_rs1_e3[63:0], i1_rs2_e3[63:0], i1_br_immed_e3[12:1]})
                             );
 
 
 
 
-   assign i0_rs1_e2_final[31:0] = (dec_i0_rs1_bypass_en_e2) ? i0_rs1_bypass_data_e2[31:0] : i0_rs1_e2[31:0];
-   assign i0_rs2_e2_final[31:0] = (dec_i0_rs2_bypass_en_e2) ? i0_rs2_bypass_data_e2[31:0] : i0_rs2_e2[31:0];
-   assign i1_rs1_e2_final[31:0] = (dec_i1_rs1_bypass_en_e2) ? i1_rs1_bypass_data_e2[31:0] : i1_rs1_e2[31:0];
-   assign i1_rs2_e2_final[31:0] = (dec_i1_rs2_bypass_en_e2) ? i1_rs2_bypass_data_e2[31:0] : i1_rs2_e2[31:0];
+   assign i0_rs1_e2_final[63:0] = (dec_i0_rs1_bypass_en_e2) ? i0_rs1_bypass_data_e2[63:0] : i0_rs1_e2[63:0];
+   assign i0_rs2_e2_final[63:0] = (dec_i0_rs2_bypass_en_e2) ? i0_rs2_bypass_data_e2[63:0] : i0_rs2_e2[63:0];
+   assign i1_rs1_e2_final[63:0] = (dec_i1_rs1_bypass_en_e2) ? i1_rs1_bypass_data_e2[63:0] : i1_rs1_e2[63:0];
+   assign i1_rs2_e2_final[63:0] = (dec_i1_rs2_bypass_en_e2) ? i1_rs2_bypass_data_e2[63:0] : i1_rs2_e2[63:0];
 
 
-   assign i0_rs1_e3_final[31:0] = (dec_i0_rs1_bypass_en_e3) ? i0_rs1_bypass_data_e3[31:0] : i0_rs1_e3[31:0];
-   assign i0_rs2_e3_final[31:0] = (dec_i0_rs2_bypass_en_e3) ? i0_rs2_bypass_data_e3[31:0] : i0_rs2_e3[31:0];
-   assign i1_rs1_e3_final[31:0] = (dec_i1_rs1_bypass_en_e3) ? i1_rs1_bypass_data_e3[31:0] : i1_rs1_e3[31:0];
-   assign i1_rs2_e3_final[31:0] = (dec_i1_rs2_bypass_en_e3) ? i1_rs2_bypass_data_e3[31:0] : i1_rs2_e3[31:0];
+   assign i0_rs1_e3_final[63:0] = (dec_i0_rs1_bypass_en_e3) ? i0_rs1_bypass_data_e3[63:0] : i0_rs1_e3[63:0];
+   assign i0_rs2_e3_final[63:0] = (dec_i0_rs2_bypass_en_e3) ? i0_rs2_bypass_data_e3[63:0] : i0_rs2_e3[63:0];
+   assign i1_rs1_e3_final[63:0] = (dec_i1_rs1_bypass_en_e3) ? i1_rs1_bypass_data_e3[63:0] : i1_rs1_e3[63:0];
+   assign i1_rs2_e3_final[63:0] = (dec_i1_rs2_bypass_en_e3) ? i1_rs2_bypass_data_e3[63:0] : i1_rs2_e3[63:0];
 
    // E1 GHR
    // fill in the ptaken for secondary branches.
@@ -575,16 +575,16 @@ module exu
    rvdffe #($bits(predict_pkt_t)) i0_pp_e4_ff (.*, .en(i0_e4_ctl_en), .din(i0_pp_e4_in),.dout(i0_predict_p_e4) );
    rvdffe #($bits(predict_pkt_t)) i1_pp_e4_ff (.*, .en(i1_e4_ctl_en), .din(i1_pp_e4_in),.dout(i1_predict_p_e4) );
 
-   assign exu_i0_result_e4[31:0]     = '0;
+   assign exu_i0_result_e4[63:0]     = '0;
    assign exu_i0_flush_lower_e4      = '0;
-   assign exu_i0_flush_path_e4[31:1] = '0;
-   assign i0_alu_pc_nc[31:1]         = '0;
+   assign exu_i0_flush_path_e4[63:1] = '0;
+   assign i0_alu_pc_nc[63:1]         = '0;
    assign i0_pred_correct_lower_e4   = '0;
 
-   assign exu_i1_result_e4[31:0]     = '0;
+   assign exu_i1_result_e4[63:0]     = '0;
    assign exu_i1_flush_lower_e4      = '0;
-   assign exu_i1_flush_path_e4[31:1] = '0;
-   assign i1_alu_pc_nc[31:1]         = '0;
+   assign exu_i1_flush_path_e4[63:1] = '0;
+   assign i1_alu_pc_nc[63:1]         = '0;
    assign i1_pred_correct_lower_e4   = '0;
 
 `else
@@ -595,16 +595,16 @@ module exu
                           .predict_p     ( i0_pp_e4_in                 ),   // I
                           .valid         ( dec_i0_sec_decode_e3        ),   // I
                           .flush         ( dec_tlu_flush_lower_wb      ),   // I
-                          .a             ( i0_rs1_e3_final[31:0]       ),   // I
-                          .b             ( i0_rs2_e3_final[31:0]       ),   // I
-                          .pc            ( dec_i0_pc_e3[31:1]          ),   // I
+                          .a             ( i0_rs1_e3_final[63:0]       ),   // I
+                          .b             ( i0_rs2_e3_final[63:0]       ),   // I
+                          .pc            ( dec_i0_pc_e3[63:1]          ),   // I
                           .brimm         ( i0_br_immed_e3[12:1]        ),   // I
                           .ap            ( i0_ap_e4                    ),   // I
-                          .out           ( exu_i0_result_e4[31:0]      ),   // O
+                          .out           ( exu_i0_result_e4[63:0]      ),   // O
                           .flush_upper   ( exu_i0_flush_lower_e4       ),   // O
-                          .flush_path    ( exu_i0_flush_path_e4[31:1]  ),   // O
+                          .flush_path    ( exu_i0_flush_path_e4[63:1]  ),   // O
                           .predict_p_ff  ( i0_predict_p_e4             ),   // O
-                          .pc_ff         ( i0_alu_pc_nc[31:1]          ),   // O
+                          .pc_ff         ( i0_alu_pc_nc[63:1]          ),   // O
                           .pred_correct  ( i0_pred_correct_lower_e4    )    // O
                           );
 
@@ -615,16 +615,16 @@ module exu
                           .predict_p     ( i1_pp_e4_in                 ),   // I
                           .valid         ( dec_i1_sec_decode_e3        ),   // I
                           .flush         ( dec_tlu_flush_lower_wb      ),   // I
-                          .a             ( i1_rs1_e3_final[31:0]       ),   // I
-                          .b             ( i1_rs2_e3_final[31:0]       ),   // I
-                          .pc            ( dec_i1_pc_e3[31:1]          ),   // I
+                          .a             ( i1_rs1_e3_final[63:0]       ),   // I
+                          .b             ( i1_rs2_e3_final[63:0]       ),   // I
+                          .pc            ( dec_i1_pc_e3[63:1]          ),   // I
                           .brimm         ( i1_br_immed_e3[12:1]        ),   // I
                           .ap            ( i1_ap_e4                    ),   // I
-                          .out           ( exu_i1_result_e4[31:0]      ),   // O
+                          .out           ( exu_i1_result_e4[63:0]      ),   // O
                           .flush_upper   ( exu_i1_flush_lower_e4       ),   // O
-                          .flush_path    ( exu_i1_flush_path_e4[31:1]  ),   // O
+                          .flush_path    ( exu_i1_flush_path_e4[63:1]  ),   // O
                           .predict_p_ff  ( i1_predict_p_e4             ),   // O
-                          .pc_ff         ( i1_alu_pc_nc[31:1]          ),   // O
+                          .pc_ff         ( i1_alu_pc_nc[63:1]          ),   // O
                           .pred_correct  ( i1_pred_correct_lower_e4    )    // O
                           );
 
@@ -710,28 +710,28 @@ module exu
 
 
 
-   rvdffe #(32) i0_upper_flush_e2_ff (.*,
+   rvdffe #(64) i0_upper_flush_e2_ff (.*,
                                     .en(i0_e2_ctl_en),
                                     .din({
-                                          exu_i0_flush_path_e1[31:1],
+                                          exu_i0_flush_path_e1[63:1],
                                           exu_i0_flush_upper_e1}),
 
                                     .dout({
-                                           i0_flush_path_upper_e2[31:1],
+                                           i0_flush_path_upper_e2[63:1],
                                            exu_i0_flush_upper_e2})
                                     );
 
-   rvdffe #(33) i1_upper_flush_e2_ff (.*,
+   rvdffe #(65) i1_upper_flush_e2_ff (.*,
                                     .en(i1_e2_ctl_en),
                                     .din({dec_i1_valid_e1,
-                                          exu_i1_flush_path_e1[31:1],
+                                          exu_i1_flush_path_e1[63:1],
                                           exu_i1_flush_upper_e1}),
                                     .dout({i1_valid_e2,
-                                           i1_flush_path_upper_e2[31:1],
+                                           i1_flush_path_upper_e2[63:1],
                                            exu_i1_flush_upper_e2})
                                     );
 
-   assign exu_flush_path_e2[31:1] = (exu_i0_flush_upper_e2) ? i0_flush_path_upper_e2[31:1] : i1_flush_path_upper_e2[31:1];
+   assign exu_flush_path_e2[63:1] = (exu_i0_flush_upper_e2) ? i0_flush_path_upper_e2[63:1] : i1_flush_path_upper_e2[63:1];
 
    assign exu_i0_flush_final = dec_tlu_flush_lower_wb | (exu_i0_flush_upper_e2 & ~freeze);
 
@@ -741,47 +741,47 @@ module exu
 
    assign exu_flush_final = dec_tlu_flush_lower_wb | exu_flush_upper_e2;
 
-   assign exu_flush_path_final[31:1] = (dec_tlu_flush_lower_wb) ? dec_tlu_flush_path_wb[31:1] : exu_flush_path_e2[31:1];
+   assign exu_flush_path_final[63:1] = (dec_tlu_flush_lower_wb) ? dec_tlu_flush_path_wb[63:1] : exu_flush_path_e2[63:1];
 
 
-   rvdffe #(63) i0_upper_flush_e3_ff (.*,
+   rvdffe #(127) i0_upper_flush_e3_ff (.*,
                                     .en(i0_e3_ctl_en),
-                                    .din({i0_flush_path_upper_e2[31:1],
-                                          pred_correct_npc_e2[31:1],
+                                    .din({i0_flush_path_upper_e2[63:1],
+                                          pred_correct_npc_e2[63:1],
                                           exu_i0_flush_upper_e2}),
                                     .dout({
-                                           i0_flush_path_upper_e3[31:1],
-                                           pred_correct_npc_e3[31:1],
+                                           i0_flush_path_upper_e3[63:1],
+                                           pred_correct_npc_e3[63:1],
                                            exu_i0_flush_upper_e3})
                                     );
 
-   rvdffe #(32) i1_upper_flush_e3_ff (.*,
+   rvdffe #(64) i1_upper_flush_e3_ff (.*,
                                     .en(i1_e3_ctl_en),
                                     .din({i1_valid_e2,
-                                          i1_flush_path_upper_e2[31:1]
+                                          i1_flush_path_upper_e2[63:1]
                                           }),
                                     .dout({i1_valid_e3,
-                                           i1_flush_path_upper_e3[31:1]})
+                                           i1_flush_path_upper_e3[63:1]})
                                     );
 
-   rvdffe #(63) i0_upper_flush_e4_ff (.*,
+   rvdffe #(127) i0_upper_flush_e4_ff (.*,
                                     .en(i0_e4_ctl_en),
                                     .din({
-                                          i0_flush_path_upper_e3[31:1],
-                                          pred_correct_npc_e3[31:1],
+                                          i0_flush_path_upper_e3[63:1],
+                                          pred_correct_npc_e3[63:1],
                                           exu_i0_flush_upper_e3 & ~freeze}),
                                     .dout({
-                                           i0_flush_path_upper_e4[31:1],
-                                           pred_correct_npc_e4[31:1],
+                                           i0_flush_path_upper_e4[63:1],
+                                           pred_correct_npc_e4[63:1],
                                            exu_i0_flush_upper_e4})
                                     );
 
-   rvdffe #(32) i1_upper_flush_e4_ff (.*,
+   rvdffe #(64) i1_upper_flush_e4_ff (.*,
                                     .en(i1_e4_ctl_en),
                                     .din({i1_valid_e3 & ~freeze,
-                                          i1_flush_path_upper_e3[31:1]}),
+                                          i1_flush_path_upper_e3[63:1]}),
                                     .dout({i1_valid_e4,
-                                           i1_flush_path_upper_e4[31:1]})
+                                           i1_flush_path_upper_e4[63:1]})
                                     );
 
 
@@ -820,20 +820,20 @@ module exu
    assign i1_pred_correct_e4_eff = (i1_sec_decode_e4) ? i1_pred_correct_lower_e4 : i1_pred_correct_upper_e4;
    assign i0_pred_correct_e4_eff = (i0_sec_decode_e4) ? i0_pred_correct_lower_e4 : i0_pred_correct_upper_e4;
 
-   assign i1_flush_path_e4_eff[31:1] = (i1_sec_decode_e4) ? exu_i1_flush_path_e4[31:1] : i1_flush_path_upper_e4[31:1];
-   assign i0_flush_path_e4_eff[31:1] = (i0_sec_decode_e4) ? exu_i0_flush_path_e4[31:1] : i0_flush_path_upper_e4[31:1];
+   assign i1_flush_path_e4_eff[63:1] = (i1_sec_decode_e4) ? exu_i1_flush_path_e4[63:1] : i1_flush_path_upper_e4[63:1];
+   assign i0_flush_path_e4_eff[63:1] = (i0_sec_decode_e4) ? exu_i0_flush_path_e4[63:1] : i0_flush_path_upper_e4[63:1];
 
 
-   assign npc_e4[31:1] = (i1_valid_e4_eff) ? ((i1_pred_correct_e4_eff) ? pred_correct_npc_e4[31:1] : i1_flush_path_e4_eff[31:1]) :
-                                             ((i0_pred_correct_e4_eff) ? pred_correct_npc_e4[31:1] : i0_flush_path_e4_eff[31:1]);
+   assign npc_e4[63:1] = (i1_valid_e4_eff) ? ((i1_pred_correct_e4_eff) ? pred_correct_npc_e4[63:1] : i1_flush_path_e4_eff[63:1]) :
+                                             ((i0_pred_correct_e4_eff) ? pred_correct_npc_e4[63:1] : i0_flush_path_e4_eff[63:1]);
 
 
-   assign exu_npc_e4[31:1] = (div_finish_early) ? exu_i0_flush_path_e1[31:1] :
-                             (exu_div_finish)   ? div_npc[31:1]              :
-                                                  npc_e4[31:1];
+   assign exu_npc_e4[63:1] = (div_finish_early) ? exu_i0_flush_path_e1[63:1] :
+                             (exu_div_finish)   ? div_npc[63:1]              :
+                                                  npc_e4[63:1];
 
    // remember the npc of the divide
-   rvdffe #(31) npc_any_ff (.*, .en(div_valid_e1), .din(exu_i0_flush_path_e1[31:1]),    .dout(div_npc[31:1]));
+   rvdffe #(63) npc_any_ff (.*, .en(div_valid_e1), .din(exu_i0_flush_path_e1[63:1]),    .dout(div_npc[63:1]));
 
 
 endmodule // exu

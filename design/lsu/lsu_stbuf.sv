@@ -137,7 +137,8 @@ module lsu_stbuf
    logic [DEPTH-1:0][BYTE_WIDTH-1:0]  stbuf_byteenin;
 
    logic [7:0]             ldst_byteen_dc3;
-   logic [7:0]             store_byteen_ext_dc3;
+   // 对于64位，考虑访问double word时地址非对齐的情况，扩展的字节使能需要16 bit
+   logic [15:0]             store_byteen_ext_dc3;
    logic [BYTE_WIDTH-1:0]  store_byteen_hi_dc3;
    logic [BYTE_WIDTH-1:0]  store_byteen_lo_dc3;
 
@@ -185,9 +186,9 @@ module lsu_stbuf
                                  ({8{lsu_pkt_dc3.half}} & 8'b0000_0011) |
                                  ({8{lsu_pkt_dc3.word}} & 8'b0000_1111) |
                                  ({8{lsu_pkt_dc3.dword}} & 8'b1111_1111);
-   assign store_byteen_ext_dc3[7:0] = ldst_byteen_dc3[7:0] << lsu_addr_dc3[1:0];
-   assign store_byteen_hi_dc3[BYTE_WIDTH-1:0] = store_byteen_ext_dc3[7:4];
-   assign store_byteen_lo_dc3[BYTE_WIDTH-1:0] = store_byteen_ext_dc3[3:0];
+   assign store_byteen_ext_dc3[15:0] = {8'b0, ldst_byteen_dc3[7:0]} << lsu_addr_dc3[2:0];
+   assign store_byteen_hi_dc3[BYTE_WIDTH-1:0] = store_byteen_ext_dc3[15:8];
+   assign store_byteen_lo_dc3[BYTE_WIDTH-1:0] = store_byteen_ext_dc3[7:0];
 
    assign RdPtrPlus1[DEPTH_LOG2-1:0] = RdPtr[DEPTH_LOG2-1:0] + 1'b1;
    assign WrPtrPlus1[DEPTH_LOG2-1:0] = WrPtr[DEPTH_LOG2-1:0] + 1'b1;
@@ -195,7 +196,8 @@ module lsu_stbuf
    assign WrPtrPlus1_dc5[DEPTH_LOG2-1:0] = WrPtr_dc5[DEPTH_LOG2-1:0] + 1'b1;
 
    // ecc error on both hi/lo
-   assign ldst_dual_dc1      = (lsu_addr_dc1[2] != end_addr_dc1[2]);
+   // 改为64位访问double word时地址非对齐的情况
+   assign ldst_dual_dc1      = (lsu_addr_dc1[3] != end_addr_dc1[3]);
    assign dual_ecc_error_dc3 = (single_ecc_error_hi_dc3 & single_ecc_error_lo_dc3);
    assign dual_stbuf_write_dc3   = ldst_dual_dc3 & (store_stbuf_reqvld_dc3 | dual_ecc_error_dc3);
    assign ldst_stbuf_reqvld_dc3  = store_stbuf_reqvld_dc3 |
@@ -373,6 +375,38 @@ module lsu_stbuf
          end
          if (stbuf_fwdbyteenvec_lo[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][3]) begin
             stbuf_fwddata_lo_dc2[31:24] = stbuf_fwddatavec_lo[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][31:24];
+         end
+
+         // Byte4
+         if (stbuf_fwdbyteenvec_hi[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][4]) begin
+            stbuf_fwddata_hi_dc2[39:32] = stbuf_fwddatavec_hi[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][39:32];
+         end
+         if (stbuf_fwdbyteenvec_lo[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][4]) begin
+            stbuf_fwddata_lo_dc2[39:32] = stbuf_fwddatavec_lo[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][39:32];
+         end
+
+         // Byte5
+         if (stbuf_fwdbyteenvec_hi[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][5]) begin
+            stbuf_fwddata_hi_dc2[47:40] = stbuf_fwddatavec_hi[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][47:40];
+         end
+         if (stbuf_fwdbyteenvec_lo[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][5]) begin
+            stbuf_fwddata_lo_dc2[47:40] = stbuf_fwddatavec_lo[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][47:40];
+         end
+
+         // Byte6
+         if (stbuf_fwdbyteenvec_hi[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][6]) begin
+            stbuf_fwddata_hi_dc2[55:48] = stbuf_fwddatavec_hi[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][55:48];
+         end
+         if (stbuf_fwdbyteenvec_lo[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][6]) begin
+            stbuf_fwddata_lo_dc2[55:48] = stbuf_fwddatavec_lo[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][55:48];
+         end
+
+         // Byte7
+         if (stbuf_fwdbyteenvec_hi[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][7]) begin
+            stbuf_fwddata_hi_dc2[63:56] = stbuf_fwddatavec_hi[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][63:56];
+         end
+         if (stbuf_fwdbyteenvec_lo[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][7]) begin
+            stbuf_fwddata_lo_dc2[63:56] = stbuf_fwddatavec_lo[DEPTH_LOG2'(WrPtr[DEPTH_LOG2-1:0] + DEPTH_LOG2'(i))][63:56];
          end
       end
    end

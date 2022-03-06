@@ -23,11 +23,11 @@ module tb_top;
     logic                       porst_l;
     logic                       nmi_int;
 
-    logic        [31:0]         reset_vector;
-    logic        [31:0]         nmi_vector;
+    logic        [63:0]         reset_vector;
+    logic        [63:0]         nmi_vector;
     logic        [31:1]         jtag_id;
 
-    logic        [31:0]         ic_haddr;
+    logic        [63:0]         ic_haddr;
     logic        [2:0]          ic_hburst;
     logic                       ic_hmastlock;
     logic        [3:0]          ic_hprot;
@@ -38,7 +38,7 @@ module tb_top;
     logic                       ic_hready;
     logic                       ic_hresp;
 
-    logic        [31:0]         lsu_haddr;
+    logic        [63:0]         lsu_haddr;
     logic        [2:0]          lsu_hburst;
     logic                       lsu_hmastlock;
     logic        [3:0]          lsu_hprot;
@@ -50,7 +50,7 @@ module tb_top;
     logic                       lsu_hready;
     logic                       lsu_hresp;
 
-    logic        [31:0]         sb_haddr;
+    logic        [63:0]         sb_haddr;
     logic        [2:0]          sb_hburst;
     logic                       sb_hmastlock;
     logic        [3:0]          sb_hprot;
@@ -64,12 +64,12 @@ module tb_top;
     logic                       sb_hresp;
 
     logic        [63:0]         trace_rv_i_insn_ip;
-    logic        [63:0]         trace_rv_i_address_ip;
+    logic        [127:0]         trace_rv_i_address_ip;
     logic        [2:0]          trace_rv_i_valid_ip;
     logic        [2:0]          trace_rv_i_exception_ip;
     logic        [4:0]          trace_rv_i_ecause_ip;
     logic        [2:0]          trace_rv_i_interrupt_ip;
-    logic        [31:0]         trace_rv_i_tval_ip;
+    logic        [63:0]         trace_rv_i_tval_ip;
 
     logic                       o_debug_mode_status;
     logic        [1:0]          dec_tlu_perfcnt0;
@@ -96,7 +96,7 @@ module tb_top;
     logic                       mpc_debug_run_ack;
     logic                       debug_brkpt_status;
 
-    bit        [31:0]           cycleCnt;
+    bit        [63:0]           cycleCnt;
     logic                       mailbox_data_val;
 
     wire                        dma_hready_out;
@@ -104,7 +104,7 @@ module tb_top;
 
     logic                       wb_valid[1:0];
     logic [4:0]                 wb_dest[1:0];
-    logic [31:0]                wb_data[1:0];
+    logic [63:0]                wb_data[1:0];
 
 `ifdef RV_BUILD_AXI4
    //-------------------------- LSU AXI signals--------------------------
@@ -112,7 +112,7 @@ module tb_top;
     wire                        lsu_axi_awvalid;
     wire                        lsu_axi_awready;
     wire [`RV_LSU_BUS_TAG-1:0]  lsu_axi_awid;
-    wire [31:0]                 lsu_axi_awaddr;
+    wire [63:0]                 lsu_axi_awaddr;
     wire [3:0]                  lsu_axi_awregion;
     wire [7:0]                  lsu_axi_awlen;
     wire [2:0]                  lsu_axi_awsize;
@@ -137,7 +137,7 @@ module tb_top;
     wire                        lsu_axi_arvalid;
     wire                        lsu_axi_arready;
     wire [`RV_LSU_BUS_TAG-1:0]  lsu_axi_arid;
-    wire [31:0]                 lsu_axi_araddr;
+    wire [63:0]                 lsu_axi_araddr;
     wire [3:0]                  lsu_axi_arregion;
     wire [7:0]                  lsu_axi_arlen;
     wire [2:0]                  lsu_axi_arsize;
@@ -159,7 +159,7 @@ module tb_top;
     wire                        ifu_axi_awvalid;
     wire                        ifu_axi_awready;
     wire [`RV_IFU_BUS_TAG-1:0]  ifu_axi_awid;
-    wire [31:0]                 ifu_axi_awaddr;
+    wire [63:0]                 ifu_axi_awaddr;
     wire [3:0]                  ifu_axi_awregion;
     wire [7:0]                  ifu_axi_awlen;
     wire [2:0]                  ifu_axi_awsize;
@@ -184,7 +184,7 @@ module tb_top;
     wire                        ifu_axi_arvalid;
     wire                        ifu_axi_arready;
     wire [`RV_IFU_BUS_TAG-1:0]  ifu_axi_arid;
-    wire [31:0]                 ifu_axi_araddr;
+    wire [63:0]                 ifu_axi_araddr;
     wire [3:0]                  ifu_axi_arregion;
     wire [7:0]                  ifu_axi_arlen;
     wire [2:0]                  ifu_axi_arsize;
@@ -206,7 +206,7 @@ module tb_top;
     wire                        sb_axi_awvalid;
     wire                        sb_axi_awready;
     wire [`RV_SB_BUS_TAG-1:0]   sb_axi_awid;
-    wire [31:0]                 sb_axi_awaddr;
+    wire [63:0]                 sb_axi_awaddr;
     wire [3:0]                  sb_axi_awregion;
     wire [7:0]                  sb_axi_awlen;
     wire [2:0]                  sb_axi_awsize;
@@ -231,7 +231,7 @@ module tb_top;
     wire                        sb_axi_arvalid;
     wire                        sb_axi_arready;
     wire [`RV_SB_BUS_TAG-1:0]   sb_axi_arid;
-    wire [31:0]                 sb_axi_araddr;
+    wire [63:0]                 sb_axi_araddr;
     wire [3:0]                  sb_axi_arregion;
     wire [7:0]                  sb_axi_arlen;
     wire [2:0]                  sb_axi_arsize;
@@ -253,7 +253,7 @@ module tb_top;
     wire                        dma_axi_awvalid;
     wire                        dma_axi_awready;
     wire [`RV_DMA_BUS_TAG-1:0]  dma_axi_awid;
-    wire [31:0]                 dma_axi_awaddr;
+    wire [63:0]                 dma_axi_awaddr;
     wire [2:0]                  dma_axi_awsize;
     wire [2:0]                  dma_axi_awprot;
     wire [7:0]                  dma_axi_awlen;
@@ -275,7 +275,7 @@ module tb_top;
     wire                        dma_axi_arvalid;
     wire                        dma_axi_arready;
     wire [`RV_DMA_BUS_TAG-1:0]  dma_axi_arid;
-    wire [31:0]                 dma_axi_araddr;
+    wire [63:0]                 dma_axi_araddr;
     wire [2:0]                  dma_axi_arsize;
     wire [2:0]                  dma_axi_arprot;
     wire [7:0]                  dma_axi_arlen;
@@ -314,15 +314,17 @@ module tb_top;
     wire[63:0]                  WriteData;
     string                      abi_reg[32]; // ABI register names
 
-`define DEC rvtop.swerv.dec
+`define DEC         rvtop.swerv.dec
+`define TLU         `DEC.tlu
+`define DECODE      `DEC.decode
 
     assign mailbox_write = lmem.mailbox_write;
     assign WriteData = lmem.WriteData;
     assign mailbox_data_val = WriteData[7:0] > 8'h5 && WriteData[7:0] < 8'h7f;
 
-    parameter MAX_CYCLES = 10_000_000;
+    parameter MAX_CYCLES = 500_000_000;
 
-    integer fd, tp, el;
+    integer fd, tp, el, mt;
 
     always @(negedge core_clk) begin
         cycleCnt <= cycleCnt+1;
@@ -338,44 +340,74 @@ module tb_top;
         end
         // End Of test monitor
         if(mailbox_write && WriteData[7:0] == 8'hff) begin
-            $display("\nFinished : minstret = %0d, mcycle = %0d", `DEC.tlu.minstretl[31:0],`DEC.tlu.mcyclel[31:0]);
-            $display("See \"exec.log\" for execution trace with register updates..\n");
+            $display("\nFinished : minstret = %0d, mcycle = %0d", `DEC.tlu.minstretl[63:0],`DEC.tlu.mcyclel[63:0]);
+            if($test$plusargs("TRACE_ON") == 1)
+                $display("See \"exec.log\" for execution trace with register updates..\n");
+            if($test$plusargs("MONITOR") == 1)
+            begin
+                $display("See \"monitor.log\" for performance counter info..\n");
+                printf_monitor_info();
+            end
             $display("TEST_PASSED");
             $finish;
         end
         else if(mailbox_write && WriteData[7:0] == 8'h1) begin
+            if($test$plusargs("MONITOR") == 1)
+                printf_monitor_info();
             $display("TEST_FAILED");
             $finish;
         end
     end
 
-
     // trace monitor
     always @(posedge core_clk) begin
-        wb_valid[1:0]  <= '{`DEC.dec_i1_wen_wb, `DEC.dec_i0_wen_wb};
-        wb_dest[1:0]   <= '{`DEC.dec_i1_waddr_wb, `DEC.dec_i0_waddr_wb};
-        wb_data[1:0]   <= '{`DEC.dec_i1_wdata_wb, `DEC.dec_i0_wdata_wb};
-        if (trace_rv_i_valid_ip !== 0) begin
-           $fwrite(tp,"%b,%h,%h,%0h,%0h,3,%b,%h,%h,%b\n", trace_rv_i_valid_ip, trace_rv_i_address_ip[63:32], trace_rv_i_address_ip[31:0],
-                  trace_rv_i_insn_ip[63:32], trace_rv_i_insn_ip[31:0],trace_rv_i_exception_ip,trace_rv_i_ecause_ip,
-                  trace_rv_i_tval_ip,trace_rv_i_interrupt_ip);
-           // Basic trace - no exception register updates
-           // #1 0 ee000000 b0201073 c 0b02       00000000
-           for (int i=0; i<2; i++)
-               if (trace_rv_i_valid_ip[i]==1) begin
-                   commit_count++;
-                   $fwrite (el, "%10d : %8s %0d %h %h%13s ; %s\n",cycleCnt, $sformatf("#%0d",commit_count), 0,
-                           trace_rv_i_address_ip[31+i*32 -:32], trace_rv_i_insn_ip[31+i*32-:32],
-                           (wb_dest[i] !=0 && wb_valid[i]) ?  $sformatf("%s=%h", abi_reg[wb_dest[i]], wb_data[i]) : "             ",
-                           dasm(trace_rv_i_insn_ip[31+i*32 -:32], trace_rv_i_address_ip[31+i*32-:32], wb_dest[i] & {5{wb_valid[i]}}, wb_data[i])
-                           );
-               end
-        end
-        if(`DEC.dec_nonblock_load_wen) begin
-            $fwrite (el, "%10d : %10d%22s=%h ; nbL\n", cycleCnt, 0, abi_reg[`DEC.dec_nonblock_load_waddr], `DEC.lsu_nonblock_load_data);
-            tb_top.gpr[0][`DEC.dec_nonblock_load_waddr] = `DEC.lsu_nonblock_load_data;
+        if($test$plusargs("TRACE_ON") == 1) begin
+            wb_valid[1:0]  <= '{`DEC.dec_i1_wen_wb, `DEC.dec_i0_wen_wb};
+            wb_dest[1:0]   <= '{`DEC.dec_i1_waddr_wb, `DEC.dec_i0_waddr_wb};
+            wb_data[1:0]   <= '{`DEC.dec_i1_wdata_wb, `DEC.dec_i0_wdata_wb};
+            if (trace_rv_i_valid_ip != 0) begin
+               $fwrite(tp,"%b,%h,%h,%0h,%0h,3,%b,%h,%h,%b\n", trace_rv_i_valid_ip, trace_rv_i_address_ip[127:64], trace_rv_i_address_ip[63:0],
+                      trace_rv_i_insn_ip[63:32], trace_rv_i_insn_ip[31:0],trace_rv_i_exception_ip,trace_rv_i_ecause_ip,
+                      trace_rv_i_tval_ip,trace_rv_i_interrupt_ip);
+               // Basic trace - no exception register updates
+               // #1 0 ee000000 b0201073 c 0b02       00000000
+               for (int i=0; i<2; i++)
+                   if (trace_rv_i_valid_ip[i]==1) begin
+                       commit_count++;
+                       $fwrite (el, "%10d : %8s %0d %h %h %20s ; %s\n",cycleCnt, $sformatf("#%0d",commit_count), 0,
+                               trace_rv_i_address_ip[63+i*64 -:64], trace_rv_i_insn_ip[31+i*32-:32],
+                               (wb_dest[i] !=0 && wb_valid[i]) ?  $sformatf("%s=%h", abi_reg[wb_dest[i]], wb_data[i]) : "                    ",
+                               dasm(trace_rv_i_insn_ip[31+i*32 -:32], trace_rv_i_address_ip[63+i*64-:64], wb_dest[i] & {5{wb_valid[i]}}, wb_data[i])
+                               );
+                   end
+            end
+            if(`DEC.dec_nonblock_load_wen) begin
+                $fwrite (el, "%10d : %10d %22s=%h ; nbL\n", cycleCnt, 0, abi_reg[`DEC.dec_nonblock_load_waddr], `DEC.lsu_nonblock_load_data);
+                tb_top.gpr[0][`DEC.dec_nonblock_load_waddr] = `DEC.lsu_nonblock_load_data;
+            end
         end
     end
+
+    //----------------------------------------------------
+    // added for trace illegal inst
+    always @(posedge core_clk) begin
+        if($test$plusargs("ILLRGAL_INST_NOT_STOP") == 0) begin
+            if (`DEC.tlu.mtval_capture_inst_wb == 1'b1) begin
+                $display("illegal inst exec and retired!!! \nins: %h  pc: %h  dasm: %s\n", 
+                         `DEC.tlu.dec_illegal_inst[31:0], {`DEC.tlu.pc_wb[63:1], 1'b0}, 
+                         ((`DEC.tlu.dec_illegal_inst[1:0] == 2'b11) ? 
+                          dasm32(`DEC.tlu.dec_illegal_inst[31:0], {`DEC.tlu.pc_wb[63:1], 1'b0}) : 
+                          dasm16(`DEC.tlu.dec_illegal_inst[31:0], {`DEC.tlu.pc_wb[63:1], 1'b0})));
+                $display("..stopping..\n");
+
+`ifndef VERILATOR
+                #100; // delay a numble of clock to trace illegal inst to trace.log file in vcs
+`endif
+                $finish;
+            end
+        end
+    end
+    //----------------------------------------------------
 
 
     initial begin
@@ -415,30 +447,497 @@ module tb_top;
         jtag_id[31:28] = 4'b1;
         jtag_id[27:12] = '0;
         jtag_id[11:1]  = 11'h45;
-        reset_vector = 32'h0;
-        nmi_vector   = 32'hee000000;
+        reset_vector = 64'h0;
+        nmi_vector   = 64'h1111111100000000;
         nmi_int   = 0;
 
         $readmemh("program.hex",  lmem.mem);
         $readmemh("program.hex",  imem.mem);
-        tp = $fopen("trace_port.csv","w");
-        el = $fopen("exec.log","w");
-        $fwrite (el, "//   Cycle : #inst  hart   pc    opcode    reg=value   ; mnemonic\n");
-        $fwrite (el, "//---------------------------------------------------------------\n");
-        fd = $fopen("console.log","w");
-        commit_count = 0;
+
+        if($test$plusargs("TRACE_ON") == 1) begin
+            tp = $fopen("trace_port.csv","w");
+            el = $fopen("exec.log","w");
+            $fwrite (el, "//   Cycle : #inst  hart   pc    opcode    reg=value   ; mnemonic\n");
+            $fwrite (el, "//---------------------------------------------------------------\n");
+            fd = $fopen("console.log","w");
+            commit_count = 0;
+
+        end
+        if($test$plusargs("MONITOR") == 1) begin
+            mt = $fopen("monitor.log","w");
+        end
         preload_dccm();
         preload_iccm();
 
 `ifndef VERILATOR
-        if($test$plusargs("dumpon")) $dumpvars;
+        if($test$plusargs("dumpon") == 1) $dumpvars;
         forever  core_clk = #5 ~core_clk;
 `endif
     end
 
+`ifdef DUMP_FSDB
+    //dumping fsdb file switch
+    initial
+    begin: dump_fsdb
+        if($test$plusargs("DUMP_ON") == 1) 
+        begin
+            $display("###################################################################");
+            $display("fsdb file will be dump.");
+            $display("fsdb file name: simv.fsdb, start dumping module is: tb_top, duming level is: all.");
+            $display("###################################################################");
+            $fsdbDumpfile("simv.fsdb");
+            //$fsdbDumpvars("level=", 0, "instance=", "tb_top");
+            $fsdbDumpvars("+all");
+            $fsdbDumpMDA();
+        end
+    end
+`endif
+
 
     assign rst_l = cycleCnt > 5;
     assign porst_l = cycleCnt >2;
+
+   //----------------------------------------------------------------------
+   // Performance Monitor Counters section starts
+   //----------------------------------------------------------------------
+   `define MHPME_NOEVENT         6'd0
+   `define MHPME_CLK_ACTIVE      6'd1 // OOP - out of pipe
+   `define MHPME_ICACHE_HIT      6'd2 // OOP
+   `define MHPME_ICACHE_MISS     6'd3 // OOP
+   `define MHPME_INST_COMMIT     6'd4
+   `define MHPME_INST_COMMIT_16B 6'd5
+   `define MHPME_INST_COMMIT_32B 6'd6
+   `define MHPME_INST_ALIGNED    6'd7 // OOP
+   `define MHPME_INST_DECODED    6'd8 // OOP
+   `define MHPME_INST_MUL        6'd9
+   `define MHPME_INST_DIV        6'd10
+   `define MHPME_INST_LOAD       6'd11
+   `define MHPME_INST_STORE      6'd12
+   `define MHPME_INST_MALOAD     6'd13
+   `define MHPME_INST_MASTORE    6'd14
+   `define MHPME_INST_ALU        6'd15
+   `define MHPME_INST_CSRREAD    6'd16
+   `define MHPME_INST_CSRRW      6'd17
+   `define MHPME_INST_CSRWRITE   6'd18
+   `define MHPME_INST_EBREAK     6'd19
+   `define MHPME_INST_ECALL      6'd20
+   `define MHPME_INST_FENCE      6'd21
+   `define MHPME_INST_FENCEI     6'd22
+   `define MHPME_INST_MRET       6'd23
+   `define MHPME_INST_BRANCH     6'd24
+   `define MHPME_BRANCH_MP       6'd25
+   `define MHPME_BRANCH_TAKEN    6'd26
+   `define MHPME_BRANCH_NOTP     6'd27
+   `define MHPME_FETCH_STALL     6'd28 // OOP
+   `define MHPME_ALGNR_STALL     6'd29 // OOP
+   `define MHPME_DECODE_STALL    6'd30 // OOP
+   `define MHPME_POSTSYNC_STALL  6'd31 // OOP
+   `define MHPME_PRESYNC_STALL   6'd32 // OOP
+   `define MHPME_LSU_FREEZE      6'd33 // OOP
+   `define MHPME_LSU_SB_WB_STALL 6'd34 // OOP
+   `define MHPME_DMA_DCCM_STALL  6'd35 // OOP
+   `define MHPME_DMA_ICCM_STALL  6'd36 // OOP
+   `define MHPME_EXC_TAKEN       6'd37
+   `define MHPME_TIMER_INT_TAKEN 6'd38
+   `define MHPME_EXT_INT_TAKEN   6'd39
+   `define MHPME_FLUSH_LOWER     6'd40
+   `define MHPME_BR_ERROR        6'd41
+   `define MHPME_IBUS_TRANS      6'd42 // OOP
+   `define MHPME_DBUS_TRANS      6'd43 // OOP
+   `define MHPME_DBUS_MA_TRANS   6'd44 // OOP
+   `define MHPME_IBUS_ERROR      6'd45 // OOP
+   `define MHPME_DBUS_ERROR      6'd46 // OOP
+   `define MHPME_IBUS_STALL      6'd47 // OOP
+   `define MHPME_DBUS_STALL      6'd48 // OOP
+   `define MHPME_INT_DISABLED    6'd49 // OOP
+   `define MHPME_INT_STALLED     6'd50 // OOP
+
+   `define MHPME_INST_BMP        6'd51
+
+   `define MSTATUS_MIE      0
+   `define PERF_CNT_DEPTH   51
+
+   import swerv_types::*;
+
+    bit [63:0] perf_cnt [0:`PERF_CNT_DEPTH];
+
+    always @(negedge core_clk) 
+    begin : perf_counter
+        if($test$plusargs("MONITOR") == 1)
+        begin
+             perf_cnt[ `MHPME_CLK_ACTIVE      ]   +=   64'b01;
+             perf_cnt[ `MHPME_ICACHE_HIT      ]   +=  {63'b0, `TLU.ifu_pmu_ic_hit};
+             perf_cnt[ `MHPME_ICACHE_MISS     ]   +=  {63'b0, `TLU.ifu_pmu_ic_miss};
+             perf_cnt[ `MHPME_INST_COMMIT     ]   +=  {63'b0, `TLU.tlu_i1_commit_cmt} + {63'b0, `TLU.tlu_i0_commit_cmt & ~`TLU.illegal_e4};
+             perf_cnt[ `MHPME_INST_COMMIT_16B ]   +=  {63'b0, `TLU.tlu_i1_commit_cmt & ~`TLU.exu_pmu_i1_pc4} + {63'b0, `TLU.tlu_i0_commit_cmt & ~`TLU.exu_pmu_i0_pc4 & ~`TLU.illegal_e4};
+             perf_cnt[ `MHPME_INST_COMMIT_32B ]   +=  {63'b0, `TLU.tlu_i1_commit_cmt &  `TLU.exu_pmu_i1_pc4} + {63'b0, `TLU.tlu_i0_commit_cmt &  `TLU.exu_pmu_i0_pc4 & ~`TLU.illegal_e4};
+             perf_cnt[ `MHPME_INST_ALIGNED    ]   +=  {63'b0, `TLU.ifu_pmu_instr_aligned[1]} + {63'b0, `TLU.ifu_pmu_instr_aligned[0]};
+             perf_cnt[ `MHPME_INST_DECODED    ]   +=  {63'b0, `TLU.dec_pmu_instr_decoded[1]} + {63'b0, `TLU.dec_pmu_instr_decoded[0]};
+             perf_cnt[ `MHPME_INST_MUL        ]   +=  {63'b0, (`TLU.pmu_i1_itype_qual[3:0] == MUL)} + {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == MUL)};
+             perf_cnt[ `MHPME_INST_DIV        ]   +=  {63'b0, `TLU.dec_tlu_packet_e4.pmu_divide & `TLU.tlu_i0_commit_cmt};
+             perf_cnt[ `MHPME_INST_LOAD       ]   +=  {63'b0, (`TLU.pmu_i1_itype_qual[3:0] == LOAD)} + {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == LOAD)};
+             perf_cnt[ `MHPME_INST_STORE      ]   +=  {63'b0, (`TLU.pmu_i1_itype_qual[3:0] == STORE)} + {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == STORE)};
+             perf_cnt[ `MHPME_INST_MALOAD     ]   +=  {63'b0, (`TLU.pmu_i1_itype_qual[3:0] == LOAD) & `TLU.dec_tlu_packet_e4.pmu_lsu_misaligned} + {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == LOAD) &
+                                                                      `TLU.dec_tlu_packet_e4.pmu_lsu_misaligned};
+             perf_cnt[ `MHPME_INST_MASTORE    ]   +=  {63'b0, (`TLU.pmu_i1_itype_qual[3:0] == STORE) & `TLU.dec_tlu_packet_e4.pmu_lsu_misaligned} + {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == STORE) &
+                                                                      `TLU.dec_tlu_packet_e4.pmu_lsu_misaligned};
+             perf_cnt[ `MHPME_INST_ALU        ]   +=  {63'b0, (`TLU.pmu_i1_itype_qual[3:0] == ALU)} + {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == ALU)};
+             perf_cnt[ `MHPME_INST_BMP        ]   +=  {63'b0, (`TLU.pmu_i1_itype_qual[3:0] == BITMANIPU)} + {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == BITMANIPU)};
+             perf_cnt[ `MHPME_INST_CSRREAD    ]   +=  {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == CSRREAD)};
+             perf_cnt[ `MHPME_INST_CSRWRITE   ]   +=  {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == CSRWRITE)};
+             perf_cnt[ `MHPME_INST_CSRRW      ]   +=  {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == CSRRW)};
+             perf_cnt[ `MHPME_INST_EBREAK     ]   +=  {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == EBREAK)};
+             perf_cnt[ `MHPME_INST_ECALL      ]   +=  {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == ECALL)};
+             perf_cnt[ `MHPME_INST_FENCE      ]   +=  {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == FENCE)};
+             perf_cnt[ `MHPME_INST_FENCEI     ]   +=  {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == FENCEI)};
+             perf_cnt[ `MHPME_INST_MRET       ]   +=  {63'b0, (`TLU.pmu_i0_itype_qual[3:0] == MRET)};
+             perf_cnt[ `MHPME_INST_BRANCH     ]   +=  {63'b0, ((`TLU.pmu_i1_itype_qual[3:0] == CONDBR) | (`TLU.pmu_i1_itype_qual[3:0] == JAL))} +
+                                                                     {63'b0, ((`TLU.pmu_i0_itype_qual[3:0] == CONDBR) | (`TLU.pmu_i0_itype_qual[3:0] == JAL))};
+             perf_cnt[ `MHPME_BRANCH_MP       ]   +=  {63'b0, `TLU.exu_pmu_i1_br_misp & `TLU.tlu_i1_commit_cmt} + {63'b0, `TLU.exu_pmu_i0_br_misp & `TLU.tlu_i0_commit_cmt};
+             perf_cnt[ `MHPME_BRANCH_TAKEN    ]   +=  {63'b0, `TLU.exu_pmu_i1_br_ataken & `TLU.tlu_i1_commit_cmt} + {63'b0, `TLU.exu_pmu_i0_br_ataken & `TLU.tlu_i0_commit_cmt};
+             perf_cnt[ `MHPME_BRANCH_NOTP     ]   +=  {63'b0, `TLU.dec_tlu_packet_e4.pmu_i1_br_unpred & `TLU.tlu_i1_commit_cmt} + {63'b0, `TLU.dec_tlu_packet_e4.pmu_i0_br_unpred & `TLU.tlu_i0_commit_cmt};
+             perf_cnt[ `MHPME_FETCH_STALL     ]   +=  {63'b0, `TLU.ifu_pmu_fetch_stall};
+             perf_cnt[ `MHPME_ALGNR_STALL     ]   +=  {63'b0, `TLU.ifu_pmu_align_stall};
+             perf_cnt[ `MHPME_DECODE_STALL    ]   +=  {63'b0, `TLU.dec_pmu_decode_stall};
+             perf_cnt[ `MHPME_POSTSYNC_STALL  ]   +=  {63'b0, `TLU.dec_pmu_postsync_stall};
+             perf_cnt[ `MHPME_PRESYNC_STALL   ]   +=  {63'b0, `TLU.dec_pmu_presync_stall};
+             perf_cnt[ `MHPME_LSU_FREEZE      ]   +=  {63'b0, `TLU.lsu_freeze_dc3};
+             perf_cnt[ `MHPME_LSU_SB_WB_STALL ]   +=  {63'b0, `TLU.lsu_store_stall_any};
+             perf_cnt[ `MHPME_DMA_DCCM_STALL  ]   +=  {63'b0, `TLU.dma_dccm_stall_any};
+             perf_cnt[ `MHPME_DMA_ICCM_STALL  ]   +=  {63'b0, `TLU.dma_iccm_stall_any};
+             perf_cnt[ `MHPME_EXC_TAKEN       ]   +=  {63'b0, (`TLU.i0_exception_valid_e4 | `TLU.trigger_hit_e4 | `TLU.lsu_exc_valid_e4)};
+             perf_cnt[ `MHPME_TIMER_INT_TAKEN ]   +=  {63'b0, `TLU.take_timer_int | `TLU.take_int_timer0_int | `TLU.take_int_timer1_int};
+             perf_cnt[ `MHPME_EXT_INT_TAKEN   ]   +=  {63'b0, `TLU.take_ext_int};
+             perf_cnt[ `MHPME_FLUSH_LOWER     ]   +=  {63'b0, `TLU.tlu_flush_lower_e4};
+             perf_cnt[ `MHPME_BR_ERROR        ]   +=  {63'b0, (`TLU.dec_tlu_br1_error_e4 | `TLU.dec_tlu_br1_start_error_e4) & `TLU.rfpc_i1_e4} + {63'b0, (`TLU.dec_tlu_br0_error_e4 | `TLU.dec_tlu_br0_start_error_e4) & `TLU.rfpc_i0_e4};
+             perf_cnt[ `MHPME_IBUS_TRANS      ]   +=  {63'b0, `TLU.ifu_pmu_bus_trxn};
+             perf_cnt[ `MHPME_DBUS_TRANS      ]   +=  {63'b0, `TLU.lsu_pmu_bus_trxn};
+             perf_cnt[ `MHPME_DBUS_MA_TRANS   ]   +=  {63'b0, `TLU.lsu_pmu_bus_misaligned};
+             perf_cnt[ `MHPME_IBUS_ERROR      ]   +=  {63'b0, `TLU.ifu_pmu_bus_error};
+             perf_cnt[ `MHPME_DBUS_ERROR      ]   +=  {63'b0, `TLU.lsu_pmu_bus_error};
+             perf_cnt[ `MHPME_IBUS_STALL      ]   +=  {63'b0, `TLU.ifu_pmu_bus_busy};
+             perf_cnt[ `MHPME_DBUS_STALL      ]   +=  {63'b0, `TLU.lsu_pmu_bus_busy};
+             perf_cnt[ `MHPME_INT_DISABLED    ]   +=  {63'b0, ~`TLU.mstatus[`MSTATUS_MIE]};
+             perf_cnt[ `MHPME_INT_STALLED     ]   +=  {63'b0, ~`TLU.mstatus[`MSTATUS_MIE] & |(`TLU.mip[5:0] & `TLU.mie[5:0])};
+        end
+    end
+
+    //----------------------------------------------------------------------
+    // Decoder Event Monitor Counters section starts
+    //----------------------------------------------------------------------
+    `define DEC_I0_ISSUE_SUCCESS_CNT                0
+    `define DEC_I0_ISSUE_FAILD_CNT                  1
+    `define DEC_I0_IBUF_INVALID_CNT                 2
+    `define DEC_I0_BLOCK_CNT                        3
+    `define DEC_I0_BLOCK_CSR_RAW_CNT                4
+    `define DEC_I0_BLOCK_LEAK1_STALL_CNT            5 
+    `define DEC_I0_BLOCK_PAUSE_STALL_CNT            6 
+    `define DEC_I0_BLOCK_DEBUG_STALL_CNT            7 
+    `define DEC_I0_BLOCK_POSTSYNC_STALL_CNT         8 
+    `define DEC_I0_BLOCK_PRESYNC_STALL_CNT          9 
+    `define DEC_I0_BLOCK_FENCE_LSU_NOREADY_CNT      10 
+    `define DEC_I0_BLOCK_NBLOAD_STALL_CNT           11
+    `define DEC_I0_BLOCK_LOAD_RAW_CNT               12
+    `define DEC_I0_BLOCK_MUL_RAW_CNT                13
+    `define DEC_I0_BLOCK_STORE_STALL_CNT            14
+    `define DEC_I0_BLOCK_LOAD_STALL_CNT             15
+    `define DEC_I0_BLOCK_SEC_ALU_STALL_CNT          16
+    `define DEC_I0_BLOCK_SEC_ALU_BLOCK_CNT          17
+    `define DEC_I0_ILLEGAL_CNT                      18
+    `define DEC_FLUSH_WB_CNT                        19
+    `define DEC_FLUSH_E3_CNT                        20
+    `define DEC_FREEZE_CNT                          21
+    `define DEC_I1_ISSUE_SUCCESS_CNT                22
+    `define DEC_I1_ISSUE_FAILD_CNT                  23
+    `define DEC_I1_IBUF_INVALID_CNT                 24
+    `define DEC_I1_BLOCK_CNT                        25
+    `define DEC_I1_BLOCK_LEAK1_STALL_CNT            26
+    `define DEC_I1_BLOCK_I0_JAL_CNT                 27
+    `define DEC_I1_BLOCK_I0_TRIG_OR_BRACH_SEC_CNT   28
+    `define DEC_I1_BLOCK_I0_PRESYNC_CNT             29
+    `define DEC_I1_BLOCK_I0_POSTSYNC_CNT            30
+    `define DEC_I1_BLOCK_I1_PRESYNC_CNT             31
+    `define DEC_I1_BLOCK_I1_POSTSYNC_CNT            32
+    `define DEC_I1_BLOCK_I1_ICAF_CNT                33
+    `define DEC_I1_BLOCK_I1_PERR_CNT                34
+    `define DEC_I1_BLOCK_I1_SBECC_CNT               35
+    `define DEC_I1_BLOCK_I0_CSR_R_CNT               36
+    `define DEC_I1_BLOCK_I0_CSR_W_CNT               37
+    `define DEC_I1_BLOCK_I1_CSR_R_CNT               38
+    `define DEC_I1_BLOCK_I1_CSR_W_CNT               39
+    `define DEC_I1_BLOCK_NBLOAD_STALL_CNT           40
+    `define DEC_I1_BLOCK_STORE_STALL_CNT            41
+    `define DEC_I1_BLOCK_LOAD_RAW_CNT               42
+    `define DEC_I1_BLOCK_MUL_RAW_CNT                43
+    `define DEC_I1_BLOCK_DEPEND_I0_NEED_BLOCK_CNT   44
+    `define DEC_I1_BLOCK_B2B_LSU_CNT                45
+    `define DEC_I1_BLOCK_B2B_MUL_CNT                46
+    `define DEC_I1_BLOCK_LOAD_STALL_CNT             47
+    `define DEC_I1_BLOCK_SEC_ALU_BLOCK_CNT          48
+    `define DEC_I1_BLOCK_DUAL_DISABLE_CNT           49
+    `define DEC_I1_ILLEGAL_CNT                      50
+    `define DEC_STALL_CNT                           51
+    `define DEC_DUAL_ISSUE_CNT                      52
+    `define DEC_SINGLE_ISSUE_CNT                    53
+    `define DEC_I0_ISSUE_FAILD_NOFLUSH_NOFREEZE_CNT 54
+
+    `define I0_PRIM_ALU_ISSUE_CNT                   55
+    `define I0_SEC_ALU_ISSUE_CNT                    56
+    `define I1_PRIM_ALU_ISSUE_CNT                   57
+    `define I1_SEC_ALU_ISSUE_CNT                    58
+
+    `define DEC_CNT_DEPTH                           58
+
+    bit [63:0] dec_cnt [0:`DEC_CNT_DEPTH];
+
+    always @(negedge core_clk)
+    begin
+        if($test$plusargs("MONITOR") == 1)
+        begin
+
+            dec_cnt[ `I0_PRIM_ALU_ISSUE_CNT ] += {63'b0,  `DECODE.i0_dc.alu};
+            dec_cnt[ `I0_SEC_ALU_ISSUE_CNT ]  += {63'b0,  `DECODE.i0_dc.sec};
+            dec_cnt[ `I1_PRIM_ALU_ISSUE_CNT ] += {63'b0,  `DECODE.i1_dc.alu};
+            dec_cnt[ `I1_SEC_ALU_ISSUE_CNT ]  += {63'b0,  `DECODE.i1_dc.sec};
+
+            case({`DECODE.dec_i1_decode_d, `DECODE.dec_i0_decode_d})
+                2'b00: begin
+                    dec_cnt[ `DEC_STALL_CNT         ] += 64'b01;
+                end
+                2'b01: begin
+                    dec_cnt[ `DEC_SINGLE_ISSUE_CNT  ] += 64'b01;
+                end
+                2'b11: begin
+                    dec_cnt[ `DEC_DUAL_ISSUE_CNT    ] += 64'b01;
+                end 
+                default: ;
+            endcase
+
+            dec_cnt[ `DEC_FLUSH_WB_CNT                        ]  +=  {63'b0,  `DECODE.flush_lower_wb};
+            dec_cnt[ `DEC_FLUSH_E3_CNT                        ]  +=  {63'b0,  `DECODE.flush_final_e3};
+
+            dec_cnt[ `DEC_I0_ISSUE_SUCCESS_CNT                ]  +=  {63'b0,  `DECODE.dec_i0_decode_d};
+            dec_cnt[ `DEC_I0_ISSUE_FAILD_CNT                  ]  +=  {63'b0, ~`DECODE.dec_i0_decode_d};
+
+            dec_cnt[ `DEC_I1_ISSUE_SUCCESS_CNT                ]  +=  {63'b0,  `DECODE.dec_i1_decode_d};
+            dec_cnt[ `DEC_I1_ISSUE_FAILD_CNT                  ]  +=  {63'b0, ~`DECODE.dec_i1_decode_d};
+
+            if( ~`DECODE.flush_lower_wb && ~`DECODE.flush_final_e3) begin    // flush has highest priority
+
+                dec_cnt[ `DEC_FREEZE_CNT                          ]  +=  {63'b0,  `DECODE.freeze};
+
+                if( ~`DECODE.freeze ) begin
+
+                    dec_cnt[ `DEC_I0_ISSUE_FAILD_NOFLUSH_NOFREEZE_CNT ]  +=  {63'b0, ~`DECODE.dec_i0_decode_d};
+
+                    dec_cnt[ `DEC_I0_IBUF_INVALID_CNT                 ]  +=  {63'b0, ~`DECODE.i0_valid_d};
+
+                    if( `DECODE.i0_valid_d ) begin  // only when ibuf inst valid, decode info is valid
+                        dec_cnt[ `DEC_I0_BLOCK_CNT                        ]  +=  {63'b0,  `DECODE.i0_block_d};
+                        dec_cnt[ `DEC_I0_BLOCK_CSR_RAW_CNT                ]  +=  {63'b0, (`DECODE.i0_dp.csr_read & `DECODE.prior_csr_write)};
+                        dec_cnt[ `DEC_I0_BLOCK_PAUSE_STALL_CNT            ]  +=  {63'b0,  `DECODE.pause_stall};
+                        dec_cnt[ `DEC_I0_BLOCK_LEAK1_STALL_CNT            ]  +=  {63'b0,  `DECODE.leak1_i0_stall};
+                        dec_cnt[ `DEC_I0_BLOCK_DEBUG_STALL_CNT            ]  +=  {63'b0,  `DECODE.dec_tlu_debug_stall};
+                        dec_cnt[ `DEC_I0_BLOCK_POSTSYNC_STALL_CNT         ]  +=  {63'b0,  `DECODE.postsync_stall};
+                        dec_cnt[ `DEC_I0_BLOCK_PRESYNC_STALL_CNT          ]  +=  {63'b0,  `DECODE.presync_stall};
+                        dec_cnt[ `DEC_I0_BLOCK_FENCE_LSU_NOREADY_CNT      ]  +=  {63'b0,((`DECODE.i0_dp.fence | `DECODE.debug_fence) & ~`DECODE.lsu_idle)};
+                        dec_cnt[ `DEC_I0_BLOCK_NBLOAD_STALL_CNT           ]  +=  {63'b0,  `DECODE.i0_nonblock_load_stall};
+                        dec_cnt[ `DEC_I0_BLOCK_LOAD_RAW_CNT               ]  +=  {63'b0,  `DECODE.i0_load_block_d};
+                        dec_cnt[ `DEC_I0_BLOCK_MUL_RAW_CNT                ]  +=  {63'b0,  `DECODE.i0_mul_block_d};
+                        dec_cnt[ `DEC_I0_BLOCK_STORE_STALL_CNT            ]  +=  {63'b0,  `DECODE.i0_store_stall_d};
+                        dec_cnt[ `DEC_I0_BLOCK_LOAD_STALL_CNT             ]  +=  {63'b0,  `DECODE.i0_load_stall_d};
+                        dec_cnt[ `DEC_I0_BLOCK_SEC_ALU_STALL_CNT          ]  +=  {63'b0,  `DECODE.i0_secondary_stall_d};
+                        dec_cnt[ `DEC_I0_BLOCK_SEC_ALU_BLOCK_CNT          ]  +=  {63'b0,  `DECODE.i0_secondary_block_d};
+                        
+                        if( `DECODE.dec_i0_decode_d ) begin
+
+                            dec_cnt[ `DEC_I0_ILLEGAL_CNT                      ]  +=  {63'b0, ~`DECODE.i0_legal};                                
+                        
+                            dec_cnt[ `DEC_I1_IBUF_INVALID_CNT                 ]  +=  {63'b0, ~`DECODE.i1_valid_d};
+
+                            if( `DECODE.i1_valid_d ) begin
+                                dec_cnt[ `DEC_I1_BLOCK_CNT                        ]  +=  {63'b0,  `DECODE.i1_block_d};
+                                dec_cnt[ `DEC_I1_BLOCK_LEAK1_STALL_CNT            ]  +=  {63'b0,  `DECODE.leak1_i1_stall};
+                                dec_cnt[ `DEC_I1_BLOCK_I0_JAL_CNT                 ]  +=  {63'b0,  `DECODE.i0_jal};
+                                dec_cnt[ `DEC_I1_BLOCK_I0_TRIG_OR_BRACH_SEC_CNT   ]  +=  {63'b0,(((|`DECODE.dec_i0_trigger_match_d[3:0]) | ((`DECODE.i0_dp.condbr | `DECODE.i0_dp.jal) & `DECODE.i0_secondary_d)) & `DECODE.i1_dp.load )};
+                                dec_cnt[ `DEC_I1_BLOCK_I0_PRESYNC_CNT             ]  +=  {63'b0,  `DECODE.i0_presync};
+                                dec_cnt[ `DEC_I1_BLOCK_I0_POSTSYNC_CNT            ]  +=  {63'b0,  `DECODE.i0_postsync};
+                                dec_cnt[ `DEC_I1_BLOCK_I1_PRESYNC_CNT             ]  +=  {63'b0,  `DECODE.i1_dp.presync};
+                                dec_cnt[ `DEC_I1_BLOCK_I1_POSTSYNC_CNT            ]  +=  {63'b0,  `DECODE.i1_dp.postsync};
+                                dec_cnt[ `DEC_I1_BLOCK_I1_ICAF_CNT                ]  +=  {63'b0,  `DECODE.i1_icaf_d};
+                                dec_cnt[ `DEC_I1_BLOCK_I1_PERR_CNT                ]  +=  {63'b0,  `DECODE.dec_i1_perr_d};
+                                dec_cnt[ `DEC_I1_BLOCK_I1_SBECC_CNT               ]  +=  {63'b0,  `DECODE.dec_i1_sbecc_d};
+                                dec_cnt[ `DEC_I1_BLOCK_I0_CSR_R_CNT               ]  +=  {63'b0,  `DECODE.i0_dp.csr_read};
+                                dec_cnt[ `DEC_I1_BLOCK_I0_CSR_W_CNT               ]  +=  {63'b0,  `DECODE.i0_dp.csr_write};
+                                dec_cnt[ `DEC_I1_BLOCK_I1_CSR_R_CNT               ]  +=  {63'b0,  `DECODE.i1_dp.csr_read};
+                                dec_cnt[ `DEC_I1_BLOCK_I1_CSR_W_CNT               ]  +=  {63'b0,  `DECODE.i1_dp.csr_write};
+                                dec_cnt[ `DEC_I1_BLOCK_NBLOAD_STALL_CNT           ]  +=  {63'b0,  `DECODE.i1_nonblock_load_stall};
+                                dec_cnt[ `DEC_I1_BLOCK_STORE_STALL_CNT            ]  +=  {63'b0,  `DECODE.i1_store_stall_d};
+                                dec_cnt[ `DEC_I1_BLOCK_LOAD_RAW_CNT               ]  +=  {63'b0,  `DECODE.i1_load_block_d};
+                                dec_cnt[ `DEC_I1_BLOCK_MUL_RAW_CNT                ]  +=  {63'b0,  `DECODE.i1_mul_block_d};
+                                dec_cnt[ `DEC_I1_BLOCK_DEPEND_I0_NEED_BLOCK_CNT   ]  +=  {63'b0, (`DECODE.i1_depend_i0_d & ~`DECODE.non_block_case_d & ~`DECODE.store_data_bypass_i0_e2_c2)};
+                                dec_cnt[ `DEC_I1_BLOCK_B2B_LSU_CNT                ]  +=  {63'b0,  `DECODE.i1_load2_block_d};
+                                dec_cnt[ `DEC_I1_BLOCK_B2B_MUL_CNT                ]  +=  {63'b0,  `DECODE.i1_mul2_block_d};
+                                dec_cnt[ `DEC_I1_BLOCK_LOAD_STALL_CNT             ]  +=  {63'b0,  `DECODE.i1_load_stall_d};
+                                dec_cnt[ `DEC_I1_BLOCK_SEC_ALU_BLOCK_CNT          ]  +=  {63'b0,  `DECODE.i1_secondary_block_d};
+                                dec_cnt[ `DEC_I1_BLOCK_DUAL_DISABLE_CNT           ]  +=  {63'b0,  `DECODE.dec_tlu_dual_issue_disable};
+
+                                dec_cnt[ `DEC_I1_ILLEGAL_CNT                      ]  +=  {63'b0, ~`DECODE.i1_dp.legal};
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    // task used to print monitor information to monitor.log file
+    task printf_monitor_info;
+    begin
+        $fwrite(mt, "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+        $fwrite(mt, "Performance Event Counter\n");
+        $fwrite(mt, "Legend: IP = In-Pipe; OOP = Out-Of-Pipe.\n");
+        $fwrite(mt, "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+        $fwrite(mt, "1. Number of cycles clock active (OOP)                                               : %d\n", perf_cnt[ `MHPME_CLK_ACTIVE       ]);
+        $fwrite(mt, "2. Number of I-cache hits (OOP, speculative, valid fetch & hit)                      : %d\n", perf_cnt[ `MHPME_ICACHE_HIT       ]);
+        $fwrite(mt, "3. Number of I-cache misses (OOP, valid fetch & miss)                                : %d\n", perf_cnt[ `MHPME_ICACHE_MISS      ]);
+        $fwrite(mt, "4. Number of all (16b+32b) instructions committed (IP, non-speculative, 0/1/2)       : %d\n", perf_cnt[ `MHPME_INST_COMMIT      ]);
+        $fwrite(mt, "5. Number of 16b instructions committed (IP, non-speculative, 0/1/2)                 : %d\n", perf_cnt[ `MHPME_INST_COMMIT_16B  ]);
+        $fwrite(mt, "6. Number of 32b instructions committed (IP, non-speculative, 0/1/2)                 : %d\n", perf_cnt[ `MHPME_INST_COMMIT_32B  ]);
+        $fwrite(mt, "7. Number of all (16b+32b) instructions aligned (OOP, speculative, 0/1/2)            : %d\n", perf_cnt[ `MHPME_INST_ALIGNED     ]);
+        $fwrite(mt, "8. Number of all (16b+32b) instructions decoded (OOP, speculative, 0/1/2)            : %d\n", perf_cnt[ `MHPME_INST_DECODED     ]);
+        $fwrite(mt, "9. Number of multiplications committed (IP, 0/1)                                     : %d\n", perf_cnt[ `MHPME_INST_MUL         ]);
+        $fwrite(mt, "10.Number of divisions and remainders committed (IP, 0/1)                            : %d\n", perf_cnt[ `MHPME_INST_DIV         ]);
+        $fwrite(mt, "11.Number of loads committed (IP, 0/1)                                               : %d\n", perf_cnt[ `MHPME_INST_LOAD        ]);
+        $fwrite(mt, "12.Number of stores committed (IP, 0/1)                                              : %d\n", perf_cnt[ `MHPME_INST_STORE       ]);
+        $fwrite(mt, "13.Number of misaligned loads (IP, 0/1)                                              : %d\n", perf_cnt[ `MHPME_INST_MALOAD      ]);
+        $fwrite(mt, "14.Number of misaligned stores (IP, 0/1)                                             : %d\n", perf_cnt[ `MHPME_INST_MASTORE     ]);
+        $fwrite(mt, "15.Number of basic ALU operations committed (IP, 0/1/2)                              : %d\n", perf_cnt[ `MHPME_INST_ALU         ]);
+        $fwrite(mt, "16.Number of Bit-Manipulation operations committed (IP, 0/1/2)                       : %d\n", perf_cnt[ `MHPME_INST_BMP         ]);
+        $fwrite(mt, "17.Number of CSR read instructions committed (IP, 0/1)                               : %d\n", perf_cnt[ `MHPME_INST_CSRREAD     ]);
+        $fwrite(mt, "18.Number of CSR read/write instructions committed (IP, 0/1)                         : %d\n", perf_cnt[ `MHPME_INST_CSRRW       ]);
+        $fwrite(mt, "19.Number of CSR write rd==0 instructions committed (IP, 0/1)                        : %d\n", perf_cnt[ `MHPME_INST_CSRWRITE    ]);
+        $fwrite(mt, "20.Number of ebreak instructions committed (IP, 0/1)                                 : %d\n", perf_cnt[ `MHPME_INST_EBREAK      ]);
+        $fwrite(mt, "21.Number of ecall instructions committed (IP, 0/1)                                  : %d\n", perf_cnt[ `MHPME_INST_ECALL       ]);
+        $fwrite(mt, "22.Number of fence instructions committed (IP, 0/1)                                  : %d\n", perf_cnt[ `MHPME_INST_FENCE       ]);
+        $fwrite(mt, "23.Number of fence.i instructions committed (IP, 0/1)                                : %d\n", perf_cnt[ `MHPME_INST_FENCEI      ]);
+        $fwrite(mt, "24.Number of mret instructions committed (IP, 0/1)                                   : %d\n", perf_cnt[ `MHPME_INST_MRET        ]);
+        $fwrite(mt, "25.Number of branches committed (IP)                                                 : %d\n", perf_cnt[ `MHPME_INST_BRANCH      ]);
+        $fwrite(mt, "26.Number of branches mispredicted (IP)                                              : %d\n", perf_cnt[ `MHPME_BRANCH_MP        ]);
+        $fwrite(mt, "27.Number of branches taken (IP)                                                     : %d\n", perf_cnt[ `MHPME_BRANCH_TAKEN     ]);
+        $fwrite(mt, "28.Number of unpredictable branches (IP)                                             : %d\n", perf_cnt[ `MHPME_BRANCH_NOTP      ]);
+        $fwrite(mt, "29.Number of branch error flushes (IP)                                               : %d\n", perf_cnt[ `MHPME_BR_ERROR         ]);
+        $fwrite(mt, "30.Number of cycles fetch ready but stalled (OOP)                                    : %d\n", perf_cnt[ `MHPME_FETCH_STALL      ]);
+        $fwrite(mt, "31.Number of cycles one or more instructions valid in aligner but IB full (OOP)      : %d\n", perf_cnt[ `MHPME_ALGNR_STALL      ]);
+        $fwrite(mt, "32.Number of cycles one or more instructions valid in IB but decode stalled (OOP)    : %d\n", perf_cnt[ `MHPME_DECODE_STALL     ]);
+        $fwrite(mt, "33.Number of cycles postsync stalled at decode (OOP)                                 : %d\n", perf_cnt[ `MHPME_POSTSYNC_STALL   ]);
+        $fwrite(mt, "34.Number of cycles presync stalled at decode (OOP)                                  : %d\n", perf_cnt[ `MHPME_PRESYNC_STALL    ]);
+        $fwrite(mt, "35.Number of cycles pipe is frozen by LSU (OOP)                                      : %d\n", perf_cnt[ `MHPME_LSU_FREEZE       ]);
+        $fwrite(mt, "36.Number of cycles decode stalled due to SB or WB full (OOP)                        : %d\n", perf_cnt[ `MHPME_LSU_SB_WB_STALL  ]);
+        $fwrite(mt, "37.Number of cycles DMA stalled due to decode for load/store (OOP)                   : %d\n", perf_cnt[ `MHPME_DMA_DCCM_STALL   ]);
+        $fwrite(mt, "38.Number of cycles DMA stalled due to fetch (OOP)                                   : %d\n", perf_cnt[ `MHPME_DMA_ICCM_STALL   ]);
+        $fwrite(mt, "39.Number of exceptions taken (IP)                                                   : %d\n", perf_cnt[ `MHPME_EXC_TAKEN        ]);
+        $fwrite(mt, "40.Number of timer interrupts taken (IP)                                             : %d\n", perf_cnt[ `MHPME_TIMER_INT_TAKEN  ]);
+        $fwrite(mt, "41.Number of external interrupts taken (IP)                                          : %d\n", perf_cnt[ `MHPME_EXT_INT_TAKEN    ]);
+        $fwrite(mt, "42.Number of TLU flushes (flush lower) (IP)                                          : %d\n", perf_cnt[ `MHPME_FLUSH_LOWER      ]);
+        $fwrite(mt, "43.Number of instr transactions on I-bus interface (OOP)                             : %d\n", perf_cnt[ `MHPME_IBUS_TRANS       ]);
+        $fwrite(mt, "44.Number of ld/st transactions on D-bus interface (OOP)                             : %d\n", perf_cnt[ `MHPME_DBUS_TRANS       ]);
+        $fwrite(mt, "45.Number of misaligned transactions on D-bus interface (OOP)                        : %d\n", perf_cnt[ `MHPME_DBUS_MA_TRANS    ]);
+        $fwrite(mt, "46.Number of transaction errors on I-bus interface (OOP)                             : %d\n", perf_cnt[ `MHPME_IBUS_ERROR       ]);
+        $fwrite(mt, "47.Number of transaction errors on D-bus interface (OOP)                             : %d\n", perf_cnt[ `MHPME_DBUS_ERROR       ]);
+        $fwrite(mt, "48.Number of cycles stalled due to AXI4 or AHB-Lite I-bus busy (OOP)                 : %d\n", perf_cnt[ `MHPME_IBUS_STALL       ]);
+        $fwrite(mt, "49.Number of cycles stalled due to AXI4 or AHB-Lite D-bus busy (OOP)                 : %d\n", perf_cnt[ `MHPME_DBUS_STALL       ]);
+        $fwrite(mt, "50.Number of cycles interrupts disabled (MSTATUS.MIE==0) (OOP)                       : %d\n", perf_cnt[ `MHPME_INT_DISABLED     ]);
+        $fwrite(mt, "51.Number of cycles interrupts stalled while disabled (MSTATUS.MIE==0) (OOP)         : %d\n", perf_cnt[ `MHPME_INT_STALLED      ]);
+        $fwrite(mt, "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+        $fwrite(mt, "Branch Predict Correct Rate : %.2f%%\n", (perf_cnt[`MHPME_INST_BRANCH] == 0) ? 0.0 : 100*(1-$bitstoreal(perf_cnt[`MHPME_BRANCH_MP])/$bitstoreal(perf_cnt[`MHPME_INST_BRANCH])));
+        $fwrite(mt, "Cache Hit Rate              : %.2f%%\n", ((perf_cnt[`MHPME_ICACHE_HIT]+perf_cnt[`MHPME_ICACHE_MISS]) == 0) ? 0.0 : 100*$bitstoreal(perf_cnt[`MHPME_ICACHE_HIT])/$bitstoreal(perf_cnt[`MHPME_ICACHE_HIT]+perf_cnt[`MHPME_ICACHE_MISS]));
+        $fwrite(mt, "IPC                         : %.3f\n", (perf_cnt[`MHPME_CLK_ACTIVE] == 0) ? 0.0 : $bitstoreal(perf_cnt[`MHPME_INST_COMMIT])/$bitstoreal(perf_cnt[`MHPME_CLK_ACTIVE]));
+        $fwrite(mt, "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+
+        $fwrite(mt, "\n\n");
+        $fwrite(mt, "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+        $fwrite(mt, "Decoder Event Counter\n");
+        $fwrite(mt, "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+        $fwrite(mt, "1. Number of cycles decoder issue inst successfully (>=1 inst issued)                : %d\n", dec_cnt[`DEC_SINGLE_ISSUE_CNT] + dec_cnt[`DEC_DUAL_ISSUE_CNT]);
+        $fwrite(mt, "       single issue                                                                  : %d      %.2f%%\n", dec_cnt[`DEC_SINGLE_ISSUE_CNT], ((dec_cnt[`DEC_SINGLE_ISSUE_CNT] + dec_cnt[`DEC_DUAL_ISSUE_CNT]) == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`DEC_SINGLE_ISSUE_CNT])/$bitstoreal(dec_cnt[`DEC_SINGLE_ISSUE_CNT] + dec_cnt[`DEC_DUAL_ISSUE_CNT]));
+        $fwrite(mt, "       dual   issue                                                                  : %d      %.2f%%\n", dec_cnt[`DEC_DUAL_ISSUE_CNT],   ((dec_cnt[`DEC_SINGLE_ISSUE_CNT] + dec_cnt[`DEC_DUAL_ISSUE_CNT]) == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`DEC_DUAL_ISSUE_CNT])/$bitstoreal(dec_cnt[`DEC_SINGLE_ISSUE_CNT] + dec_cnt[`DEC_DUAL_ISSUE_CNT]));
+        $fwrite(mt, "\n");
+        $fwrite(mt, "2. Number of cycles decoder stalled (0 inst issued)                                  : %d\n", dec_cnt[`DEC_STALL_CNT]);
+        $fwrite(mt, "\n");
+        $fwrite(mt, "3. Number of instructions decoder issued successfully                                : %d\n", dec_cnt[`DEC_I0_ISSUE_SUCCESS_CNT] + dec_cnt[`DEC_I1_ISSUE_SUCCESS_CNT]);
+        $fwrite(mt, "       issued from i0                                                                : %d      %.2f%%\n", dec_cnt[`DEC_I0_ISSUE_SUCCESS_CNT], ((dec_cnt[`DEC_I0_ISSUE_SUCCESS_CNT] + dec_cnt[`DEC_I1_ISSUE_SUCCESS_CNT]) == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`DEC_I0_ISSUE_SUCCESS_CNT])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_SUCCESS_CNT] + dec_cnt[`DEC_I1_ISSUE_SUCCESS_CNT]));
+        $fwrite(mt, "           i0 alu inst (include bitmanip)                                            :     %d      %.2f%%\n", dec_cnt[`I0_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I0_SEC_ALU_ISSUE_CNT], (dec_cnt[`DEC_I0_ISSUE_SUCCESS_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`I0_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I0_SEC_ALU_ISSUE_CNT])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_SUCCESS_CNT]));
+        $fwrite(mt, "               i0 primary   alu                                                      :         %d      %.2f%%\n", dec_cnt[`I0_PRIM_ALU_ISSUE_CNT], ((dec_cnt[`I0_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I0_SEC_ALU_ISSUE_CNT]) == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`I0_PRIM_ALU_ISSUE_CNT])/$bitstoreal(dec_cnt[`I0_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I0_SEC_ALU_ISSUE_CNT]));
+        $fwrite(mt, "               i0 secondary alu                                                      :         %d      %.2f%%\n", dec_cnt[`I0_SEC_ALU_ISSUE_CNT], ((dec_cnt[`I0_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I0_SEC_ALU_ISSUE_CNT]) == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`I0_SEC_ALU_ISSUE_CNT])/$bitstoreal(dec_cnt[`I0_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I0_SEC_ALU_ISSUE_CNT]));
+        
+        $fwrite(mt, "       issued from i1                                                                : %d      %.2f%%\n", dec_cnt[`DEC_I1_ISSUE_SUCCESS_CNT], ((dec_cnt[`DEC_I0_ISSUE_SUCCESS_CNT] + dec_cnt[`DEC_I1_ISSUE_SUCCESS_CNT]) == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`DEC_I1_ISSUE_SUCCESS_CNT])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_SUCCESS_CNT] + dec_cnt[`DEC_I1_ISSUE_SUCCESS_CNT]));
+        $fwrite(mt, "           i1 alu inst (include bitmanip)                                            :     %d      %.2f%%\n", dec_cnt[`I1_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I1_SEC_ALU_ISSUE_CNT], (dec_cnt[`DEC_I1_ISSUE_SUCCESS_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`I1_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I1_SEC_ALU_ISSUE_CNT])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_SUCCESS_CNT]));
+        $fwrite(mt, "               i1 primary   alu                                                      :         %d      %.2f%%\n", dec_cnt[`I1_PRIM_ALU_ISSUE_CNT], ((dec_cnt[`I1_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I1_SEC_ALU_ISSUE_CNT]) == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`I1_PRIM_ALU_ISSUE_CNT])/$bitstoreal(dec_cnt[`I1_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I1_SEC_ALU_ISSUE_CNT]));
+        $fwrite(mt, "               i1 secondary alu                                                      :         %d      %.2f%%\n", dec_cnt[`I1_SEC_ALU_ISSUE_CNT], ((dec_cnt[`I1_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I1_SEC_ALU_ISSUE_CNT]) == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`I1_SEC_ALU_ISSUE_CNT])/$bitstoreal(dec_cnt[`I1_PRIM_ALU_ISSUE_CNT]+dec_cnt[`I1_SEC_ALU_ISSUE_CNT]));
+        
+
+        $fwrite(mt, "\n");
+        $fwrite(mt, "4. Number of instructions decoder issued un-successfully                             : %d\n", dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] + dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]);
+        $fwrite(mt, "       failed from i0                                                                : %d      %.2f%%\n", dec_cnt[`DEC_I0_ISSUE_FAILD_CNT], ((dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] + dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]) == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] + dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "       failed from i1                                                                : %d      %.2f%%\n", dec_cnt[`DEC_I1_ISSUE_FAILD_CNT], ((dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] + dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]) == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] + dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "\n");
+        $fwrite(mt, "5. Number of I0 issue failure statistics                                             : %d\n", dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]);
+        $fwrite(mt, "     due to flush from wb                                                            : %d      %.2f%%\n", dec_cnt[ `DEC_FLUSH_WB_CNT                        ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_FLUSH_WB_CNT                        ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to flush from e3                                                            : %d      %.2f%%\n", dec_cnt[ `DEC_FLUSH_E3_CNT                        ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_FLUSH_E3_CNT                        ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to lsu dc3 freeze                                                           : %d      %.2f%%\n", dec_cnt[ `DEC_FREEZE_CNT                          ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_FREEZE_CNT                          ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to ibuf[0] in-valid                                                         : %d      %.2f%%\n", dec_cnt[ `DEC_I0_IBUF_INVALID_CNT                 ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_IBUF_INVALID_CNT                 ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to i0 is blocked                                                            : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_CNT                        ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_CNT                        ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i0 is a csr read and a csr write inst in prior pipeline          : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_CSR_RAW_CNT                ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_CSR_RAW_CNT                ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from pause stall                                                      : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_PAUSE_STALL_CNT            ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_PAUSE_STALL_CNT            ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i0 leak one stall                                                : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_LEAK1_STALL_CNT            ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_LEAK1_STALL_CNT            ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from debug stall                                                      : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_DEBUG_STALL_CNT            ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_DEBUG_STALL_CNT            ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from postsync stall                                                   : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_POSTSYNC_STALL_CNT         ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_POSTSYNC_STALL_CNT         ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from presync stall                                                    : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_PRESYNC_STALL_CNT          ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_PRESYNC_STALL_CNT          ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from fence operations when lsu is not idle                            : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_FENCE_LSU_NOREADY_CNT      ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_FENCE_LSU_NOREADY_CNT      ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from data depend nonblock load                                        : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_NBLOAD_STALL_CNT           ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_NBLOAD_STALL_CNT           ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from data depend from prior load in pipe and cannot get back in time  : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_LOAD_RAW_CNT               ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_LOAD_RAW_CNT               ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from data depend from prior mul in pipe and cannot get back in time   : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_MUL_RAW_CNT                ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_MUL_RAW_CNT                ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i0 is a store and stbuf/busbuf full or dma stall                 : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_STORE_STALL_CNT            ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_STORE_STALL_CNT            ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i0 is a load and busbuf full or dma stall                        : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_LOAD_STALL_CNT             ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_LOAD_STALL_CNT             ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 depend i0, i0 is a sec alu inst and i1 is a not alu inst      : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_SEC_ALU_STALL_CNT          ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_SEC_ALU_STALL_CNT          ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i0 depend a prior sec alu inst, i0 is not alu and cannot bypass  : %d      %.2f%%\n", dec_cnt[ `DEC_I0_BLOCK_SEC_ALU_BLOCK_CNT          ], (dec_cnt[`DEC_I0_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_BLOCK_SEC_ALU_BLOCK_CNT          ])/$bitstoreal(dec_cnt[`DEC_I0_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "\n");
+        $fwrite(mt, "6. Number of I1 issue failure statistics                                             : %d\n", dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]);
+        $fwrite(mt, "     due to flush from wb                                                            : %d      %.2f%%\n", dec_cnt[ `DEC_FLUSH_WB_CNT                        ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_FLUSH_WB_CNT                        ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to flush from e3                                                            : %d      %.2f%%\n", dec_cnt[ `DEC_FLUSH_E3_CNT                        ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_FLUSH_E3_CNT                        ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to lsu dc3 freeze                                                           : %d      %.2f%%\n", dec_cnt[ `DEC_FREEZE_CNT                          ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_FREEZE_CNT                          ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to i0 inst issue failed                                                     : %d      %.2f%%\n", dec_cnt[ `DEC_I0_ISSUE_FAILD_NOFLUSH_NOFREEZE_CNT ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_ISSUE_FAILD_NOFLUSH_NOFREEZE_CNT ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to i0 inst illegal (illegal inst will postsync and flush)                   : %d      %.2f%%\n", dec_cnt[ `DEC_I0_ILLEGAL_CNT                      ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I0_ILLEGAL_CNT                      ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to ibuf[1] in-valid                                                         : %d      %.2f%%\n", dec_cnt[ `DEC_I1_IBUF_INVALID_CNT                 ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_IBUF_INVALID_CNT                 ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to i1 inst illegal (illegal inst only can be issued in i0)                  : %d      %.2f%%\n", dec_cnt[ `DEC_I1_ILLEGAL_CNT                      ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_ILLEGAL_CNT                      ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "     due to i1 is blocked                                                            : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_CNT                        ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_CNT                        ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 leak one stall                                                : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_LEAK1_STALL_CNT            ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_LEAK1_STALL_CNT            ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i0 is a jal (will postsync, jump and flush)                      : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I0_JAL_CNT                 ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I0_JAL_CNT                 ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 is load when i0 trigger match or i0 is a sec alu branch       : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I0_TRIG_OR_BRACH_SEC_CNT   ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I0_TRIG_OR_BRACH_SEC_CNT   ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i0 is presync/tlu csr presync/debug fence presync/pipe disabled  : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I0_PRESYNC_CNT             ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I0_PRESYNC_CNT             ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i0 is postsync/write pause/tlu csr postsync/debug fence postsync : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I0_POSTSYNC_CNT            ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I0_POSTSYNC_CNT            ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 is a presync inst (presync only be handle in i0)              : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I1_PRESYNC_CNT             ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I1_PRESYNC_CNT             ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 is a postsync inst (presync only be handle in i0)             : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I1_POSTSYNC_CNT            ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I1_POSTSYNC_CNT            ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 inst access fault (icaf only be handle in i0)                 : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I1_ICAF_CNT                ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I1_ICAF_CNT                ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 inst parity error (perr only be handle in i0)                 : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I1_PERR_CNT                ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I1_PERR_CNT                ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 inst single bit ecc error (sbecc only be handle in i0)        : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I1_SBECC_CNT               ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I1_SBECC_CNT               ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i0 is a csr read                                                 : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I0_CSR_R_CNT               ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I0_CSR_R_CNT               ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i0 is a csr write                                                : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I0_CSR_W_CNT               ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I0_CSR_W_CNT               ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 is a csr read (csr isnt only can be issued in i0)             : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I1_CSR_R_CNT               ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I1_CSR_R_CNT               ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 is a csr write (csr isnt only can be issued in i0)            : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_I1_CSR_W_CNT               ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_I1_CSR_W_CNT               ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from data depend nonblock load                                        : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_NBLOAD_STALL_CNT           ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_NBLOAD_STALL_CNT           ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 is a store and stbuf/busbuf full or dma stall                 : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_STORE_STALL_CNT            ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_STORE_STALL_CNT            ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from data depend from prior load in pipe and cannot get back in time  : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_LOAD_RAW_CNT               ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_LOAD_RAW_CNT               ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from data depend from prior mul in pipe and cannot get back in time   : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_MUL_RAW_CNT                ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_MUL_RAW_CNT                ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 depend i0 data in same dec stage and cannot handle by bypass  : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_DEPEND_I0_NEED_BLOCK_CNT   ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_DEPEND_I0_NEED_BLOCK_CNT   ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 and i0 are back to back load/store due to only one lsu        : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_B2B_LSU_CNT                ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_B2B_LSU_CNT                ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 and i0 are back to back mul due to only one multiplier        : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_B2B_MUL_CNT                ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_B2B_MUL_CNT                ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 is a load and busbuf full or dma stall                        : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_LOAD_STALL_CNT             ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_LOAD_STALL_CNT             ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from i1 depend a prior sec alu inst, i0 is not alu and cannot bypass  : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_SEC_ALU_BLOCK_CNT          ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_SEC_ALU_BLOCK_CNT          ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+        $fwrite(mt, "         block from tlu dual issue is disabled                                       : %d      %.2f%%\n", dec_cnt[ `DEC_I1_BLOCK_DUAL_DISABLE_CNT           ], (dec_cnt[`DEC_I1_ISSUE_FAILD_CNT] == 0) ? 0.0 : 100*$bitstoreal(dec_cnt[ `DEC_I1_BLOCK_DUAL_DISABLE_CNT           ])/$bitstoreal(dec_cnt[`DEC_I1_ISSUE_FAILD_CNT]));
+    end
+    endtask
 
    //=========================================================================-
    // RTL instance
@@ -447,9 +946,9 @@ swerv_wrapper rvtop (
     .rst_l                  ( rst_l         ),
     .dbg_rst_l              ( porst_l       ),
     .clk                    ( core_clk      ),
-    .rst_vec                ( reset_vector[31:1]),
+    .rst_vec                ( reset_vector[63:1]),
     .nmi_int                ( nmi_int       ),
-    .nmi_vec                ( nmi_vector[31:1]),
+    .nmi_vec                ( nmi_vector[63:1]),
     .jtag_id                ( jtag_id[31:1]),
 
 `ifdef RV_BUILD_AHB_LITE
@@ -939,20 +1438,35 @@ axi_lsu_dma_bridge # (`RV_LSU_BUS_TAG,`RV_LSU_BUS_TAG ) bridge(
 
 );
 
+// this always block is used to maintain data consistency in imem and lmem
+// lmem can be write, imem is read only
+always @ (negedge lmem.aclk) begin
+    if(lmem.awvalid) begin
+        if(lmem.wstrb[7]) imem.mem[lmem.awaddr+7] = lmem.wdata[63:56];
+        if(lmem.wstrb[6]) imem.mem[lmem.awaddr+6] = lmem.wdata[55:48];
+        if(lmem.wstrb[5]) imem.mem[lmem.awaddr+5] = lmem.wdata[47:40];
+        if(lmem.wstrb[4]) imem.mem[lmem.awaddr+4] = lmem.wdata[39:32];
+        if(lmem.wstrb[3]) imem.mem[lmem.awaddr+3] = lmem.wdata[31:24];
+        if(lmem.wstrb[2]) imem.mem[lmem.awaddr+2] = lmem.wdata[23:16];
+        if(lmem.wstrb[1]) imem.mem[lmem.awaddr+1] = lmem.wdata[15:08];
+        if(lmem.wstrb[0]) imem.mem[lmem.awaddr+0] = lmem.wdata[07:00];
+    end
+end
+
 `endif
 
 task preload_iccm;
 bit[31:0] data;
-bit[31:0] addr, eaddr, saddr;
+bit[63:0] addr, eaddr, saddr;
 
 /*
 addresses:
- 0xfffffff0 - ICCM start address to load
- 0xfffffff4 - ICCM end address to load
+ 0xffffffe0 - ICCM start address to load
+ 0xffffffe8 - ICCM end address to load
 */
 
-addr = 'hffff_fff0;
-saddr = {lmem.mem[addr+3],lmem.mem[addr+2],lmem.mem[addr+1],lmem.mem[addr]};
+addr = 64'hffff_ffe0;
+saddr = {lmem.mem[addr+7],lmem.mem[addr+6],lmem.mem[addr+5],lmem.mem[addr+4], lmem.mem[addr+3],lmem.mem[addr+2],lmem.mem[addr+1],lmem.mem[addr]};
 if ( (saddr < `RV_ICCM_SADR) || (saddr > `RV_ICCM_EADR)) return;
 `ifndef RV_ICCM_ENABLE
     $display("********************************************************");
@@ -960,8 +1474,8 @@ if ( (saddr < `RV_ICCM_SADR) || (saddr > `RV_ICCM_EADR)) return;
     $display("********************************************************");
     $finish;
 `endif
-addr += 4;
-eaddr = {lmem.mem[addr+3],lmem.mem[addr+2],lmem.mem[addr+1],lmem.mem[addr]};
+addr += 8;
+eaddr = {lmem.mem[addr+7],lmem.mem[addr+6],lmem.mem[addr+5],lmem.mem[addr+4], lmem.mem[addr+3],lmem.mem[addr+2],lmem.mem[addr+1],lmem.mem[addr]};
 $display("ICCM pre-load from %h to %h", saddr, eaddr);
 
 for(addr= saddr; addr <= eaddr; addr+=4) begin
@@ -973,17 +1487,17 @@ endtask
 
 
 task preload_dccm;
-bit[31:0] data;
-bit[31:0] addr, saddr, eaddr;
+bit[63:0] data;
+bit[63:0] addr, saddr, eaddr;
 
 /*
 addresses:
- 0xffff_fff8 - DCCM start address to load
- 0xffff_fffc - DCCM end address to load
+ 0xfffffff0 - DCCM start address to load
+ 0xfffffff8 - DCCM end address to load
 */
 
-addr = 'hffff_fff8;
-saddr = {lmem.mem[addr+3],lmem.mem[addr+2],lmem.mem[addr+1],lmem.mem[addr]};
+addr = 64'hffff_fff0;
+saddr = {lmem.mem[addr+7],lmem.mem[addr+6],lmem.mem[addr+5],lmem.mem[addr+4], lmem.mem[addr+3],lmem.mem[addr+2],lmem.mem[addr+1],lmem.mem[addr]};
 if (saddr < `RV_DCCM_SADR || saddr > `RV_DCCM_EADR) return;
 `ifndef RV_DCCM_ENABLE
     $display("********************************************************");
@@ -991,13 +1505,13 @@ if (saddr < `RV_DCCM_SADR || saddr > `RV_DCCM_EADR) return;
     $display("********************************************************");
     $finish;
 `endif
-addr += 4;
-eaddr = {lmem.mem[addr+3],lmem.mem[addr+2],lmem.mem[addr+1],lmem.mem[addr]};
+addr += 8;
+eaddr = {lmem.mem[addr+7],lmem.mem[addr+6],lmem.mem[addr+5],lmem.mem[addr+4], lmem.mem[addr+3],lmem.mem[addr+2],lmem.mem[addr+1],lmem.mem[addr]};
 $display("DCCM pre-load from %h to %h", saddr, eaddr);
 
-for(addr=saddr; addr <= eaddr; addr+=4) begin
-    data = {lmem.mem[addr+3],lmem.mem[addr+2],lmem.mem[addr+1],lmem.mem[addr]};
-    slam_dccm_ram(addr, data == 0 ? 0 : {riscv_ecc32(data),data});
+for(addr=saddr; addr <= eaddr; addr+=8) begin
+    data = {lmem.mem[addr+7],lmem.mem[addr+6],lmem.mem[addr+5],lmem.mem[addr+4], lmem.mem[addr+3],lmem.mem[addr+2],lmem.mem[addr+1],lmem.mem[addr]};
+    slam_dccm_ram(addr, data == 0 ? 0 : {riscv_ecc64(data),data});
 end
 
 endtask
@@ -1012,7 +1526,7 @@ endtask
 `define IRAM3(bk) `ICCM_PATH.mem_bank[bk].iccm_bank_hi1.ram_core
 
 
-task slam_iccm_ram(input [31:0] addr, input[38:0] data);
+task slam_iccm_ram(input [63:0] addr, input[38:0] data);
 int bank, indx;
 `ifdef RV_ICCM_ENABLE
 bank = get_iccm_bank(addr, indx);
@@ -1041,7 +1555,7 @@ endcase
 `endif
 endtask
 
-task slam_dccm_ram(input [31:0] addr, input[38:0] data);
+task slam_dccm_ram(input [63:0] addr, input[71:0] data);
 int bank, indx;
 `ifdef RV_DCCM_ENABLE
 bank = get_dccm_bank(addr, indx);
@@ -1076,20 +1590,33 @@ synd[6] = ^{data, synd[5:0]};
 return synd;
 endfunction
 
-function int get_dccm_bank(input int addr,  output int bank_idx);
+function[7:0] riscv_ecc64(input[63:0] data);
+reg[7:0] synd;
+synd[0] = ^(data & 64'hab55555556aaad5b);
+synd[1] = ^(data & 64'hcd9999999b33366d);
+synd[2] = ^(data & 64'hf1e1e1e1e3c3c78e);
+synd[3] = ^(data & 64'h01fe01fe03fc07f0);
+synd[4] = ^(data & 64'h01fffe0003fff800);
+synd[5] = ^(data & 64'h01fffffffc000000);
+synd[6] = ^(data & 64'hfe00000000000000);
+synd[7] = ^{data, synd[6:0]};
+return synd;
+endfunction
+
+function int get_dccm_bank(input [63:0] addr,  output int bank_idx);
 `ifdef RV_DCCM_NUM_BANKS_2
-    bank_idx = int'(addr[`RV_DCCM_BITS-1:3]);
-    return int'( addr[2]);
-`elsif RV_DCCM_NUM_BANKS_4
     bank_idx = int'(addr[`RV_DCCM_BITS-1:4]);
-    return int'(addr[3:2]);
-`elsif RV_DCCM_NUM_BANKS_8
+    return int'( addr[3]);
+`elsif RV_DCCM_NUM_BANKS_4
     bank_idx = int'(addr[`RV_DCCM_BITS-1:5]);
-    return int'( addr[4:2]);
+    return int'(addr[4:3]);
+`elsif RV_DCCM_NUM_BANKS_8
+    bank_idx = int'(addr[`RV_DCCM_BITS-1:6]);
+    return int'( addr[5:3]);
 `endif
 endfunction
 
-function int get_iccm_bank(input int addr,  output int bank_idx);
+function int get_iccm_bank(input [63:0] addr,  output int bank_idx);
 `ifdef RV_ICCM_NUM_BANKS_4
     bank_idx = int'(addr[`RV_ICCM_BITS-1:4]);
     return int'( addr[3:2]);

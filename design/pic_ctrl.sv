@@ -30,8 +30,8 @@ module pic_ctrl
                      input  logic                   clk_override,         // Clock over-ride for gating
                      input  logic                   lsu_freeze_dc3,       // LSU pipeline freeze
                      input  logic [`RV_PIC_TOTAL_INT_PLUS1-1:0]   extintsrc_req,        // Interrupt requests
-                     input  logic [31:0]            picm_addr,            // Address of the register
-                     input  logic [31:0]            picm_wr_data,         // Data to be written to the register
+                     input  logic [63:0]            picm_addr,            // Address of the register
+                     input  logic [63:0]            picm_wr_data,         // Data to be written to the register
                      input  logic                   picm_wren,            // Write enable to the register
                      input  logic                   picm_rden,            // Read enable for the register
                      input  logic                   picm_mken,            // Read the Mask for the register
@@ -41,7 +41,7 @@ module pic_ctrl
                      output logic                   mexintpend,           // External Inerrupt request to the core
                      output logic [7:0]             claimid,              // Claim Id of the requested interrupt
                      output logic [3:0]             pl,                   // Priority level of the requested interrupt
-                     output logic [31:0]            picm_rd_data,         // Read data of the register
+                     output logic [63:0]            picm_rd_data,         // Read data of the register
                      output logic                   mhwakeup,             // Wake-up interrupt request
                      input  logic                   scan_mode             // scan mode
 
@@ -50,20 +50,21 @@ module pic_ctrl
 
 localparam NUM_LEVELS            = $clog2(TOTAL_INT);
 localparam INTPRIORITY_BASE_ADDR = `RV_PIC_BASE_ADDR ;
-localparam INTPEND_BASE_ADDR     = `RV_PIC_BASE_ADDR + 32'h00001000 ;
-localparam INTENABLE_BASE_ADDR   = `RV_PIC_BASE_ADDR + 32'h00002000 ;
-localparam EXT_INTR_PIC_CONFIG   = `RV_PIC_BASE_ADDR + 32'h00003000 ;
-localparam EXT_INTR_GW_CONFIG    = `RV_PIC_BASE_ADDR + 32'h00004000 ;
-localparam EXT_INTR_GW_CLEAR     = `RV_PIC_BASE_ADDR + 32'h00005000 ;
+// 改成这样后，要求RV_PIC_BITS改为16
+localparam INTPEND_BASE_ADDR     = `RV_PIC_BASE_ADDR + 64'h00000000_00002000 ;
+localparam INTENABLE_BASE_ADDR   = `RV_PIC_BASE_ADDR + 64'h00000000_00004000 ;
+localparam EXT_INTR_PIC_CONFIG   = `RV_PIC_BASE_ADDR + 64'h00000000_00006000 ;
+localparam EXT_INTR_GW_CONFIG    = `RV_PIC_BASE_ADDR + 64'h00000000_00008000 ;
+localparam EXT_INTR_GW_CLEAR     = `RV_PIC_BASE_ADDR + 64'h00000000_0000a000 ;
 
 
-localparam INTPEND_SIZE          = (TOTAL_INT < 32)  ? 32  :
+localparam INTPEND_SIZE          = //(TOTAL_INT < 32)  ? 32  :
                                    (TOTAL_INT < 64)  ? 64  :
                                    (TOTAL_INT < 128) ? 128 :
                                    (TOTAL_INT < 256) ? 256 :
                                    (TOTAL_INT < 512) ? 512 :  1024 ;
 
-localparam INT_GRPS              =   INTPEND_SIZE / 32 ;
+localparam INT_GRPS              =   INTPEND_SIZE / 64 ;
 localparam INTPRIORITY_BITS      =  4 ;
 localparam ID_BITS               =  8 ;
 localparam int GW_CONFIG[TOTAL_INT-1:0] = '{default:0} ;
@@ -78,7 +79,7 @@ logic  mexintpend_in;
 logic  mhwakeup_in ;
 logic  intpend_reg_read ;
 
-logic [31:0]                                 picm_rd_data_in, intpend_rd_out;
+logic [63:0]                                 picm_rd_data_in, intpend_rd_out;
 logic                                        intenable_rd_out ;
 logic [INTPRIORITY_BITS-1:0]                 intpriority_rd_out;
 logic [1:0]                                  gw_config_rd_out;
@@ -102,7 +103,7 @@ logic [TOTAL_INT-1:0] [INTPRIORITY_BITS-1:0] intpend_w_prior_en;
 logic [TOTAL_INT-1:0] [ID_BITS-1:0]          intpend_id;
 logic [INTPRIORITY_BITS-1:0]                 maxint;
 logic [INTPRIORITY_BITS-1:0]                 selected_int_priority;
-logic [INT_GRPS-1:0] [31:0]                  intpend_rd_part_out ;
+logic [INT_GRPS-1:0] [63:0]                  intpend_rd_part_out ;
 
 logic                                        config_reg;
 logic                                        intpriord;
@@ -114,8 +115,8 @@ logic                                        intpriority_reg_read ;
 logic                                        intenable_reg_read   ;
 logic                                        gw_config_reg_read   ;
 logic                                        picm_wren_ff , picm_rden_ff ;
-logic [31:0]                                 picm_addr_ff;
-logic [31:0]                                 picm_wr_data_ff;
+logic [63:0]                                 picm_addr_ff;
+logic [63:0]                                 picm_wr_data_ff;
 logic [3:0]                                  mask;
 logic                                        picm_mken_ff;
 logic [ID_BITS-1:0]                          claimid_in ;
@@ -158,21 +159,23 @@ logic [TOTAL_INT-1:0]                        extintsrc_req_gw;
 
 // ------ end clock gating section ------------------------
 
-assign addr_intpend_base_match      = (picm_addr_ff[31:6]            == INTPEND_BASE_ADDR[31:6]) ;
-assign addr_intenable_base_match    = (picm_addr_ff[31:NUM_LEVELS+2] == INTENABLE_BASE_ADDR[31:NUM_LEVELS+2]) ;
-assign addr_intpriority_base_match  = (picm_addr_ff[31:NUM_LEVELS+2] == INTPRIORITY_BASE_ADDR[31:NUM_LEVELS+2]) ;
-assign addr_config_pic_match        = (picm_addr_ff[31:0]            == EXT_INTR_PIC_CONFIG[31:0]) ;
-assign addr_config_gw_base_match    = (picm_addr_ff[31:NUM_LEVELS+2] == EXT_INTR_GW_CONFIG[31:NUM_LEVELS+2]) ;
-assign addr_clear_gw_base_match     = (picm_addr_ff[31:NUM_LEVELS+2] == EXT_INTR_GW_CLEAR[31:NUM_LEVELS+2]) ;
+// 由于最大只能支持256个中断，256=8*2^5，因此只需要低5b即可
+assign addr_intpend_base_match      = (picm_addr_ff[63:5]            == INTPEND_BASE_ADDR[63:5]) ;
+// 64b对应8字节对应3位地址，因此+3
+assign addr_intenable_base_match    = (picm_addr_ff[63:NUM_LEVELS+3] == INTENABLE_BASE_ADDR[63:NUM_LEVELS+3]) ;
+assign addr_intpriority_base_match  = (picm_addr_ff[63:NUM_LEVELS+3] == INTPRIORITY_BASE_ADDR[63:NUM_LEVELS+3]) ;
+assign addr_config_pic_match        = (picm_addr_ff[63:0]            == EXT_INTR_PIC_CONFIG[63:0]) ;
+assign addr_config_gw_base_match    = (picm_addr_ff[63:NUM_LEVELS+3] == EXT_INTR_GW_CONFIG[63:NUM_LEVELS+3]) ;
+assign addr_clear_gw_base_match     = (picm_addr_ff[63:NUM_LEVELS+3] == EXT_INTR_GW_CLEAR[63:NUM_LEVELS+3]) ;
 
 assign picm_rden_in = lsu_freeze_dc3 ? picm_rden_ff : picm_rden;
 assign picm_mken_in = lsu_freeze_dc3 ? picm_mken_ff : picm_mken;
 
-rvdff #(32)                picm_add_flop   (.*, .din (picm_addr),                    .dout(picm_addr_ff),         .clk(pic_addr_c1_clk));
+rvdff #(64)                picm_add_flop   (.*, .din (picm_addr),                    .dout(picm_addr_ff),         .clk(pic_addr_c1_clk));
 rvdff  #(1)                picm_wre_flop   (.*, .din (picm_wren),                    .dout(picm_wren_ff),         .clk(active_clk));
 rvdff  #(1)                picm_rde_flop   (.*, .din (picm_rden_in),                 .dout(picm_rden_ff),         .clk(active_clk));
 rvdff  #(1)                picm_mke_flop   (.*, .din (picm_mken_in),                 .dout(picm_mken_ff),         .clk(active_clk));
-rvdff #(32)                picm_dat_flop   (.*, .din (picm_wr_data[31:0]),           .dout(picm_wr_data_ff[31:0]), .clk(pic_data_c1_clk));
+rvdff #(64)                picm_dat_flop   (.*, .din (picm_wr_data[63:0]),           .dout(picm_wr_data_ff[63:0]), .clk(pic_data_c1_clk));
 
 rvsyncss  #(TOTAL_INT-1) sync_inst
 (
@@ -187,16 +190,16 @@ genvar i, l, m , j, k;
 for (i=0; i<TOTAL_INT ; i++) begin  : SETREG
 
  if (i > 0 ) begin : NON_ZERO_INT
-     assign intpriority_reg_we[i] =  addr_intpriority_base_match & (picm_addr_ff[NUM_LEVELS+1:2] == i) & picm_wren_ff;
-     assign intpriority_reg_re[i] =  addr_intpriority_base_match & (picm_addr_ff[NUM_LEVELS+1:2] == i) & picm_rden_ff;
+     assign intpriority_reg_we[i] =  addr_intpriority_base_match & (picm_addr_ff[NUM_LEVELS+2:3] == i) & picm_wren_ff;
+     assign intpriority_reg_re[i] =  addr_intpriority_base_match & (picm_addr_ff[NUM_LEVELS+2:3] == i) & picm_rden_ff;
 
-     assign intenable_reg_we[i]   =  addr_intenable_base_match   & (picm_addr_ff[NUM_LEVELS+1:2] == i) & picm_wren_ff;
-     assign intenable_reg_re[i]   =  addr_intenable_base_match   & (picm_addr_ff[NUM_LEVELS+1:2] == i) & picm_rden_ff;
+     assign intenable_reg_we[i]   =  addr_intenable_base_match   & (picm_addr_ff[NUM_LEVELS+2:3] == i) & picm_wren_ff;
+     assign intenable_reg_re[i]   =  addr_intenable_base_match   & (picm_addr_ff[NUM_LEVELS+2:3] == i) & picm_rden_ff;
 
-     assign gw_config_reg_we[i]   =  addr_config_gw_base_match   & (picm_addr_ff[NUM_LEVELS+1:2] == i) & picm_wren_ff;
-     assign gw_config_reg_re[i]   =  addr_config_gw_base_match   & (picm_addr_ff[NUM_LEVELS+1:2] == i) & picm_rden_ff;
+     assign gw_config_reg_we[i]   =  addr_config_gw_base_match   & (picm_addr_ff[NUM_LEVELS+2:3] == i) & picm_wren_ff;
+     assign gw_config_reg_re[i]   =  addr_config_gw_base_match   & (picm_addr_ff[NUM_LEVELS+2:3] == i) & picm_rden_ff;
 
-     assign gw_clear_reg_we[i]    =  addr_clear_gw_base_match   & (picm_addr_ff[NUM_LEVELS+1:2] == i) & picm_wren_ff ;
+     assign gw_clear_reg_we[i]    =  addr_clear_gw_base_match   & (picm_addr_ff[NUM_LEVELS+2:3] == i) & picm_wren_ff ;
 
      rvdffs #(INTPRIORITY_BITS) intpriority_ff  (.*, .en( intpriority_reg_we[i]), .din (picm_wr_data_ff[INTPRIORITY_BITS-1:0]), .dout(intpriority_reg[i]), .clk(pic_pri_c1_clk));
      rvdffs #(1)                 intenable_ff   (.*, .en( intenable_reg_we[i]),   .din (picm_wr_data_ff[0]),                    .dout(intenable_reg[i]),   .clk(pic_int_c1_clk));
@@ -405,7 +408,8 @@ assign gw_config_reg_read   =  addr_config_gw_base_match   & picm_rden_ff;
 assign intpend_reg_extended[INTPEND_SIZE-1:0]  = {{INTPEND_SIZE-TOTAL_INT{1'b0}},extintsrc_req_gw[TOTAL_INT-1:0]} ;
 
    for (i=0; i<(INT_GRPS); i++) begin
-            assign intpend_rd_part_out[i] =  (({32{intpend_reg_read & picm_addr_ff[5:2] == i}}) & intpend_reg_extended[((32*i)+31):(32*i)]) ;
+            // 由于只需要5b，因此索引改为4:3
+            assign intpend_rd_part_out[i] =  (({64{intpend_reg_read & picm_addr_ff[4:3] == i}}) & intpend_reg_extended[((64*i)+63):(64*i)]) ;
    end
 
    always_comb begin : INTPEND_RD
@@ -433,22 +437,23 @@ assign intpend_reg_extended[INTPEND_SIZE-1:0]  = {{INTPEND_SIZE-TOTAL_INT{1'b0}}
    end
 
 
- assign picm_rd_data_in[31:0] = ({32{intpend_reg_read      }} &   intpend_rd_out                                                    ) |
-                                ({32{intpriority_reg_read  }} &  {{32-INTPRIORITY_BITS{1'b0}}, intpriority_rd_out                 } ) |
-                                ({32{intenable_reg_read    }} &  {31'b0 , intenable_rd_out                                        } ) |
-                                ({32{gw_config_reg_read    }} &  {30'b0 , gw_config_rd_out                                        } ) |
-                                ({32{config_reg_re         }} &  {31'b0 , config_reg                                              } ) |
-                                ({32{picm_mken_ff & mask[3]}} &  {30'b0 , 2'b11                                                   } ) |
-                                ({32{picm_mken_ff & mask[2]}} &  {31'b0 , 1'b1                                                    } ) |
-                                ({32{picm_mken_ff & mask[1]}} &  {28'b0 , 4'b1111                                                 } ) |
-                                ({32{picm_mken_ff & mask[0]}} &   32'b0                                                             ) ;
+ assign picm_rd_data_in[63:0] = ({64{intpend_reg_read      }} &   intpend_rd_out                                                    ) |
+                                ({64{intpriority_reg_read  }} &  {{64-INTPRIORITY_BITS{1'b0}}, intpriority_rd_out                 } ) |
+                                ({64{intenable_reg_read    }} &  {63'b0 , intenable_rd_out                                        } ) |
+                                ({64{gw_config_reg_read    }} &  {62'b0 , gw_config_rd_out                                        } ) |
+                                ({64{config_reg_re         }} &  {63'b0 , config_reg                                              } ) |
+                                ({64{picm_mken_ff & mask[3]}} &  {62'b0 , 2'b11                                                   } ) |
+                                ({64{picm_mken_ff & mask[2]}} &  {63'b0 , 1'b1                                                    } ) |
+                                ({64{picm_mken_ff & mask[1]}} &  {60'b0 , 4'b1111                                                 } ) |
+                                ({64{picm_mken_ff & mask[0]}} &   64'b0                                                             ) ;
 
 
-assign picm_rd_data[31:0] = picm_rd_data_in[31:0] ;
+assign picm_rd_data[63:0] = picm_rd_data_in[63:0] ;
 
-logic [14:0] address;
+// 64位下需要16位地址空间
+logic [15:0] address;
 
-assign address[14:0] = picm_addr_ff[14:0];
+assign address[15:0] = picm_addr_ff[15:0];
 
 `include "pic_map_auto.h"
 

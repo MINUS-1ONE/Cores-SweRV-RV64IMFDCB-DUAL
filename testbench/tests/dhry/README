@@ -3,5 +3,5 @@ This is dhrystone, compiled according to the spec:
  2. No inlining.
  to run in demo TB:
 
-  make -f $RV_ROOT/tools/Makefile [<simulator>] TEST=dhry
+  make -f $RV64_ROOT/tools/Makefile [<simulator>] TEST=dhry
 

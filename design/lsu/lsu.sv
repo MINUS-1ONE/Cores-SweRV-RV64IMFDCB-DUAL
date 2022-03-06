@@ -29,9 +29,9 @@ module lsu
    import swerv_types::*;
 (
 
-   input logic [31:0]                      i0_result_e4_eff, // I0 e4 result for e4 -> dc3 store forwarding
-   input logic [31:0]                      i1_result_e4_eff, // I1 e4 result for e4 -> dc3 store forwarding
-   input logic [31:0]                      i0_result_e2,     // I0 e2 result for e2 -> dc2 store forwarding
+   input logic [63:0]                      i0_result_e4_eff, // I0 e4 result for e4 -> dc3 store forwarding
+   input logic [63:0]                      i1_result_e4_eff, // I1 e4 result for e4 -> dc3 store forwarding
+   input logic [63:0]                      i0_result_e2,     // I0 e2 result for e2 -> dc2 store forwarding
 
    input logic                             flush_final_e3,    // I0/I1 flush in e3
    input logic                             i0_flush_final_e3, // I0 flush in e3
@@ -47,17 +47,17 @@ module lsu
    input logic                             dec_tlu_sideeffect_posted_disable,  // disable posted writes to sideeffect addr to the bus
    input logic                             dec_tlu_core_ecc_disable,        // disable the generation of the ecc
 
-   input logic [31:0]                      exu_lsu_rs1_d,      // address rs operand
-   input logic [31:0]                      exu_lsu_rs2_d,      // store data
+   input logic [63:0]                      exu_lsu_rs1_d,      // address rs operand
+   input logic [63:0]                      exu_lsu_rs2_d,      // store data
    input logic [11:0]                      dec_lsu_offset_d,   // address offset operand
 
    input                                   lsu_pkt_t lsu_p,     // lsu control packet
    input logic                             dec_i0_lsu_decode_d, // lsu is in i0
-   input logic [31:0]                      dec_tlu_mrac_ff,     // CSR for memory region control
+   input logic [63:0]                      dec_tlu_mrac_ff,     // CSR for memory region control
 
-   output logic [31:0]                     lsu_result_dc3,      // lsu load data
+   output logic [63:0]                     lsu_result_dc3,      // lsu load data
    output logic                            lsu_single_ecc_error_incr,     // Increment the counter for Single ECC error
-   output logic [31:0]                     lsu_result_corr_dc4, // This is the ECC corrected data going to RF
+   output logic [63:0]                     lsu_result_corr_dc4, // This is the ECC corrected data going to RF
    output logic                            lsu_freeze_dc3,      // lsu freeze due to load to external
    output logic                            lsu_load_stall_any, // This is for blocking loads in the decode
    output logic                            lsu_store_stall_any, // This is for blocking stores in the decode
@@ -69,7 +69,7 @@ module lsu
    output logic                            lsu_freeze_external_ints_dc3,  // freeze due to sideeffects loads need to suppress external interrupt
    output logic                            lsu_imprecise_error_load_any,  // bus load imprecise error
    output logic                            lsu_imprecise_error_store_any, // bus store imprecise error
-   output logic [31:0]                     lsu_imprecise_error_addr_any,  // bus store imprecise error address
+   output logic [63:0]                     lsu_imprecise_error_addr_any,  // bus store imprecise error address
 
    // Non-blocking loads
    input  logic                                 dec_nonblock_load_freeze_dc2,   //
@@ -80,7 +80,7 @@ module lsu
    output logic                                 lsu_nonblock_load_data_valid,   // the non block is valid - sending information back to the cam
    output logic                                 lsu_nonblock_load_data_error,   // non block load has an error
    output logic [`RV_LSU_NUM_NBLOAD_WIDTH-1:0]  lsu_nonblock_load_data_tag,     // the tag of the non block load sending the data/error
-   output logic [31:0]                          lsu_nonblock_load_data,         // Data of the non block load
+   output logic [63:0]                          lsu_nonblock_load_data,         // Data of the non block load
 
    output logic                            lsu_pmu_misaligned_dc3,         // PMU : misaligned
    output logic                            lsu_pmu_bus_trxn,               // PMU : bus transaction
@@ -107,15 +107,15 @@ module lsu
    output logic                            picm_wren,    // PIC memory write enable
    output logic                            picm_rden,    // PIC memory read enable
    output logic                            picm_mken,    // Need to read the mask for stores to determine which bits to write/forward
-   output logic [31:0]                     picm_addr,    // PIC memory address
-   output logic [31:0]                     picm_wr_data, // PIC memory write data
-   input logic [31:0]                      picm_rd_data, // PIC memory read/mask data
+   output logic [63:0]                     picm_addr,    // PIC memory address
+   output logic [63:0]                     picm_wr_data, // PIC memory write data
+   input logic [63:0]                      picm_rd_data, // PIC memory read/mask data
 
    // AXI Write Channels
    output logic                            lsu_axi_awvalid,
    input  logic                            lsu_axi_awready,
    output logic [`RV_LSU_BUS_TAG-1:0]      lsu_axi_awid,
-   output logic [31:0]                     lsu_axi_awaddr,
+   output logic [63:0]                     lsu_axi_awaddr,
    output logic [3:0]                      lsu_axi_awregion,
    output logic [7:0]                      lsu_axi_awlen,
    output logic [2:0]                      lsu_axi_awsize,
@@ -140,7 +140,7 @@ module lsu
    output logic                            lsu_axi_arvalid,
    input  logic                            lsu_axi_arready,
    output logic [`RV_LSU_BUS_TAG-1:0]      lsu_axi_arid,
-   output logic [31:0]                     lsu_axi_araddr,
+   output logic [63:0]                     lsu_axi_araddr,
    output logic [3:0]                      lsu_axi_arregion,
    output logic [7:0]                      lsu_axi_arlen,
    output logic [2:0]                      lsu_axi_arsize,
@@ -161,7 +161,7 @@ module lsu
 
    // DMA slave
    input logic                             dma_dccm_req,       // DMA read/write to dccm
-   input logic [31:0]                      dma_mem_addr,       // DMA address
+   input logic [63:0]                      dma_mem_addr,       // DMA address
    input logic [2:0]                       dma_mem_sz,         // DMA access size
    input logic                             dma_mem_write,      // DMA access is a write
    input logic [63:0]                      dma_mem_wdata,      // DMA write data
@@ -185,26 +185,27 @@ module lsu
    logic        lsu_dccm_rden_dc3;
    logic [63:0] store_data_dc2;
    logic [63:0] store_data_dc3;
-   logic [31:0] store_data_dc4;
-   logic [31:0] store_data_dc5;
-   logic [31:0] store_ecc_datafn_hi_dc3;
-   logic [31:0] store_ecc_datafn_lo_dc3;
+   logic [63:0] store_data_dc4;
+   logic [63:0] store_data_dc5;
+   logic [63:0] store_ecc_datafn_hi_dc3;
+   logic [63:0] store_ecc_datafn_lo_dc3;
 
    logic        single_ecc_error_hi_dc3, single_ecc_error_lo_dc3;
    logic        lsu_single_ecc_error_dc3, lsu_single_ecc_error_dc4, lsu_single_ecc_error_dc5;
    logic        lsu_double_ecc_error_dc3;
 
-   logic [31:0] dccm_data_hi_dc3;
-   logic [31:0] dccm_data_lo_dc3;
-   logic [6:0]  dccm_data_ecc_hi_dc3;
-   logic [6:0]  dccm_data_ecc_lo_dc3;
+   logic [63:0] dccm_data_hi_dc3;
+   logic [63:0] dccm_data_lo_dc3;
+   // 32位时的7位ecc，在64位时为8位ecc
+   logic [7:0]  dccm_data_ecc_hi_dc3;
+   logic [7:0]  dccm_data_ecc_lo_dc3;
 
-   logic [31:0] lsu_ld_data_dc3;
-   logic [31:0] lsu_ld_data_corr_dc3;
-   logic [31:0] picm_mask_data_dc3;
+   logic [63:0] lsu_ld_data_dc3;
+   logic [63:0] lsu_ld_data_corr_dc3;
+   logic [63:0] picm_mask_data_dc3;
 
-   logic [31:0] lsu_addr_dc1, lsu_addr_dc2, lsu_addr_dc3, lsu_addr_dc4, lsu_addr_dc5;
-   logic [31:0] end_addr_dc1, end_addr_dc2, end_addr_dc3, end_addr_dc4, end_addr_dc5;
+   logic [63:0] lsu_addr_dc1, lsu_addr_dc2, lsu_addr_dc3, lsu_addr_dc4, lsu_addr_dc5;
+   logic [63:0] end_addr_dc1, end_addr_dc2, end_addr_dc3, end_addr_dc4, end_addr_dc5;
 
    lsu_pkt_t    lsu_pkt_dc1, lsu_pkt_dc2, lsu_pkt_dc3, lsu_pkt_dc4, lsu_pkt_dc5;
    logic        lsu_i0_valid_dc1, lsu_i0_valid_dc2, lsu_i0_valid_dc3, lsu_i0_valid_dc4, lsu_i0_valid_dc5;
@@ -246,9 +247,9 @@ module lsu
    logic        lsu_bus_buffer_empty_any;
    logic        lsu_bus_buffer_full_any;
    logic        lsu_busreq_dc2;
-   logic [31:0] bus_read_data_dc3;
+   logic [63:0] bus_read_data_dc3;
    logic        ld_bus_error_dc3;
-   logic [31:0] ld_bus_error_addr_dc3;
+   logic [63:0] ld_bus_error_addr_dc3;
 
    logic        flush_dc2_up, flush_dc3, flush_dc4, flush_dc5, flush_prior_dc5;
    logic        is_sideeffects_dc2, is_sideeffects_dc3;
@@ -320,11 +321,12 @@ module lsu
    assign lsu_busreq_dc2 = lsu_pkt_dc2.valid & (lsu_pkt_dc2.load | lsu_pkt_dc2.store) & addr_external_dc2 & ~flush_dc2_up & ~lsu_exc_dc2;
 
    // PMU signals
-   assign lsu_pmu_misaligned_dc3 = lsu_pkt_dc3.valid & ((lsu_pkt_dc3.half & lsu_addr_dc3[0]) | (lsu_pkt_dc3.word & (|lsu_addr_dc3[1:0])));
+   // 增加了访问double word时地址非对齐的情况
+   assign lsu_pmu_misaligned_dc3 = lsu_pkt_dc3.valid & ((lsu_pkt_dc3.half & lsu_addr_dc3[0]) | (lsu_pkt_dc3.word & (|lsu_addr_dc3[1:0])) | (lsu_pkt_dc3.dword & (|lsu_addr_dc3[2:0])));
 
 
    lsu_dccm_ctl dccm_ctl (
-      .lsu_addr_dc1(lsu_addr_dc1[31:0]),
+      .lsu_addr_dc1(lsu_addr_dc1[63:0]),
       .end_addr_dc1(end_addr_dc1[DCCM_BITS-1:0]),
       .lsu_addr_dc3(lsu_addr_dc3[DCCM_BITS-1:0]),
       .*
@@ -348,7 +350,7 @@ module lsu
    );
 
    lsu_trigger trigger (
-      .store_data_dc3(store_data_dc3[31:0]),
+      .store_data_dc3(store_data_dc3[63:0]),
       .*
    );
 

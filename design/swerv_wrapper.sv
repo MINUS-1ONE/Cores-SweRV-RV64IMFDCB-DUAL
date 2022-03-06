@@ -28,19 +28,19 @@ module swerv_wrapper
    input logic                       clk,
    input logic                       rst_l,
    input logic                       dbg_rst_l,
-   input logic [31:1]                rst_vec,
+   input logic [63:1]                rst_vec,
    input logic                       nmi_int,
-   input logic [31:1]                nmi_vec,
+   input logic [63:1]                nmi_vec,
    input logic [31:1]                jtag_id,
 
 
    output logic [63:0] trace_rv_i_insn_ip,
-   output logic [63:0] trace_rv_i_address_ip,
+   output logic [127:0] trace_rv_i_address_ip,
    output logic [2:0]  trace_rv_i_valid_ip,
    output logic [2:0]  trace_rv_i_exception_ip,
    output logic [4:0]  trace_rv_i_ecause_ip,
    output logic [2:0]  trace_rv_i_interrupt_ip,
-   output logic [31:0] trace_rv_i_tval_ip,
+   output logic [63:0] trace_rv_i_tval_ip,
 
    // Bus signals
 
@@ -50,7 +50,7 @@ module swerv_wrapper
    output logic                            lsu_axi_awvalid,
    input  logic                            lsu_axi_awready,
    output logic [`RV_LSU_BUS_TAG-1:0]      lsu_axi_awid,
-   output logic [31:0]                     lsu_axi_awaddr,
+   output logic [63:0]                     lsu_axi_awaddr,
    output logic [3:0]                      lsu_axi_awregion,
    output logic [7:0]                      lsu_axi_awlen,
    output logic [2:0]                      lsu_axi_awsize,
@@ -75,7 +75,7 @@ module swerv_wrapper
    output logic                            lsu_axi_arvalid,
    input  logic                            lsu_axi_arready,
    output logic [`RV_LSU_BUS_TAG-1:0]      lsu_axi_arid,
-   output logic [31:0]                     lsu_axi_araddr,
+   output logic [63:0]                     lsu_axi_araddr,
    output logic [3:0]                      lsu_axi_arregion,
    output logic [7:0]                      lsu_axi_arlen,
    output logic [2:0]                      lsu_axi_arsize,
@@ -97,7 +97,7 @@ module swerv_wrapper
    output logic                            ifu_axi_awvalid,
    input  logic                            ifu_axi_awready,
    output logic [`RV_IFU_BUS_TAG-1:0]      ifu_axi_awid,
-   output logic [31:0]                     ifu_axi_awaddr,
+   output logic [63:0]                     ifu_axi_awaddr,
    output logic [3:0]                      ifu_axi_awregion,
    output logic [7:0]                      ifu_axi_awlen,
    output logic [2:0]                      ifu_axi_awsize,
@@ -122,7 +122,7 @@ module swerv_wrapper
    output logic                            ifu_axi_arvalid,
    input  logic                            ifu_axi_arready,
    output logic [`RV_IFU_BUS_TAG-1:0]      ifu_axi_arid,
-   output logic [31:0]                     ifu_axi_araddr,
+   output logic [63:0]                     ifu_axi_araddr,
    output logic [3:0]                      ifu_axi_arregion,
    output logic [7:0]                      ifu_axi_arlen,
    output logic [2:0]                      ifu_axi_arsize,
@@ -144,7 +144,7 @@ module swerv_wrapper
    output logic                            sb_axi_awvalid,
    input  logic                            sb_axi_awready,
    output logic [`RV_SB_BUS_TAG-1:0]       sb_axi_awid,
-   output logic [31:0]                     sb_axi_awaddr,
+   output logic [63:0]                     sb_axi_awaddr,
    output logic [3:0]                      sb_axi_awregion,
    output logic [7:0]                      sb_axi_awlen,
    output logic [2:0]                      sb_axi_awsize,
@@ -169,7 +169,7 @@ module swerv_wrapper
    output logic                            sb_axi_arvalid,
    input  logic                            sb_axi_arready,
    output logic [`RV_SB_BUS_TAG-1:0]       sb_axi_arid,
-   output logic [31:0]                     sb_axi_araddr,
+   output logic [63:0]                     sb_axi_araddr,
    output logic [3:0]                      sb_axi_arregion,
    output logic [7:0]                      sb_axi_arlen,
    output logic [2:0]                      sb_axi_arsize,
@@ -191,7 +191,7 @@ module swerv_wrapper
    input  logic                         dma_axi_awvalid,
    output logic                         dma_axi_awready,
    input  logic [`RV_DMA_BUS_TAG-1:0]   dma_axi_awid,
-   input  logic [31:0]                  dma_axi_awaddr,
+   input  logic [63:0]                  dma_axi_awaddr,
    input  logic [2:0]                   dma_axi_awsize,
    input  logic [2:0]                   dma_axi_awprot,
    input  logic [7:0]                   dma_axi_awlen,
@@ -213,7 +213,7 @@ module swerv_wrapper
    input  logic                         dma_axi_arvalid,
    output logic                         dma_axi_arready,
    input  logic [`RV_DMA_BUS_TAG-1:0]   dma_axi_arid,
-   input  logic [31:0]                  dma_axi_araddr,
+   input  logic [63:0]                  dma_axi_araddr,
    input  logic [2:0]                   dma_axi_arsize,
    input  logic [2:0]                   dma_axi_arprot,
    input  logic [7:0]                   dma_axi_arlen,
@@ -230,7 +230,7 @@ module swerv_wrapper
 
 `ifdef RV_BUILD_AHB_LITE
  //// AHB LITE BUS
-   output logic [31:0]               haddr,
+   output logic [63:0]               haddr,
    output logic [2:0]                hburst,
    output logic                      hmastlock,
    output logic [3:0]                hprot,
@@ -243,7 +243,7 @@ module swerv_wrapper
    input logic                       hresp,
 
    // LSU AHB Master
-   output logic [31:0]               lsu_haddr,
+   output logic [63:0]               lsu_haddr,
    output logic [2:0]                lsu_hburst,
    output logic                      lsu_hmastlock,
    output logic [3:0]                lsu_hprot,
@@ -256,7 +256,7 @@ module swerv_wrapper
    input logic                       lsu_hready,
    input logic                       lsu_hresp,
    // Debug Syster Bus AHB
-   output logic [31:0]               sb_haddr,
+   output logic [63:0]               sb_haddr,
    output logic [2:0]                sb_hburst,
    output logic                      sb_hmastlock,
    output logic [3:0]                sb_hprot,
@@ -270,7 +270,7 @@ module swerv_wrapper
    input  logic                      sb_hresp,
 
    // DMA Slave
-   input logic [31:0]                dma_haddr,
+   input logic [63:0]                dma_haddr,
    input logic [2:0]                 dma_hburst,
    input logic                       dma_hmastlock,
    input logic [3:0]                 dma_hprot,
@@ -346,7 +346,7 @@ module swerv_wrapper
    // PIC ports
 
    // Icache & Itag ports
-   logic [31:2]  ic_rw_addr;
+   logic [63:2]  ic_rw_addr;
    logic [3:0]   ic_wr_en  ;     // Which way to write
    logic         ic_rd_en ;
 
@@ -363,15 +363,15 @@ module swerv_wrapper
    logic [3:0]   ic_debug_way;       // Debug way. Rd or Wr.
 
 `ifdef RV_ICACHE_ECC
-   logic [24:0]  ictag_debug_rd_data;// Debug icache tag.
+   logic [57:0]  ictag_debug_rd_data;// Debug icache tag.
    logic [83:0]  ic_wr_data;         // ic_wr_data[135:0]
    logic [167:0] ic_rd_data;         // ic_rd_data[135:0]
-   logic [41:0]  ic_debug_wr_data;   // Debug wr cache.
+   logic [74:0]  ic_debug_wr_data;   // Debug wr cache.
 `else
-   logic [20:0]  ictag_debug_rd_data;// Debug icache tag.
+   logic [52:0]  ictag_debug_rd_data;// Debug icache tag.
    logic [67:0]  ic_wr_data;         // ic_wr_data[135:0]
    logic [135:0] ic_rd_data;         // ic_rd_data[135:0]
-   logic [33:0]  ic_debug_wr_data;   // Debug wr cache.
+   logic [65:0]  ic_debug_wr_data;   // Debug wr cache.
 `endif
 
    logic [127:0] ic_premux_data;

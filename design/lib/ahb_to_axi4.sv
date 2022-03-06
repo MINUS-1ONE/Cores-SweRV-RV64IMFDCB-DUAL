@@ -33,7 +33,7 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
    output logic            axi_awvalid,
    input  logic            axi_awready,
    output logic [TAG-1:0]  axi_awid,
-   output logic [31:0]     axi_awaddr,
+   output logic [63:0]     axi_awaddr,
    output logic [2:0]      axi_awsize,
    output logic [2:0]      axi_awprot,
    output logic [7:0]      axi_awlen,
@@ -54,7 +54,7 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
    output logic            axi_arvalid,
    input  logic            axi_arready,
    output logic [TAG-1:0]  axi_arid,
-   output logic [31:0]     axi_araddr,
+   output logic [63:0]     axi_araddr,
    output logic [2:0]      axi_arsize,
    output logic [2:0]      axi_arprot,
    output logic [7:0]      axi_arlen,
@@ -67,7 +67,7 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
    input  logic [1:0]      axi_rresp,
 
    // AHB-Lite signals
-   input logic [31:0]      ahb_haddr,     // ahb bus address
+   input logic [63:0]      ahb_haddr,     // ahb bus address
    input logic [2:0]       ahb_hburst,    // tied to 0
    input logic             ahb_hmastlock, // tied to 0
    input logic [3:0]       ahb_hprot,     // tied to 4'b0011
@@ -103,7 +103,7 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
    logic [1:0]              ahb_htrans_in, ahb_htrans_q;
    logic [2:0]              ahb_hsize_q;
    logic                    ahb_hwrite_q;
-   logic [31:0]             ahb_haddr_q;
+   logic [63:0]             ahb_haddr_q;
    logic [63:0]             ahb_hwdata_q;
    logic                    ahb_hresp_q;
 
@@ -121,7 +121,7 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
    logic                    cmdbuf_vld, cmdbuf_write;
    logic [1:0]              cmdbuf_size;
    logic [7:0]              cmdbuf_wstrb;
-   logic [31:0]             cmdbuf_addr;
+   logic [63:0]             cmdbuf_addr;
    logic [63:0]             cmdbuf_wdata;
 
    logic                    bus_clk;
@@ -188,7 +188,7 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
    rvdff_fpga  #(.WIDTH(2))    htrans_ff (.din(ahb_htrans_in[1:0]), .dout(ahb_htrans_q[1:0]), .clk(ahb_clk),      .clken(bus_clk_en), .rawclk(clk), .*);
    rvdff_fpga  #(.WIDTH(3))    hsize_ff  (.din(ahb_hsize[2:0]),     .dout(ahb_hsize_q[2:0]),  .clk(ahb_addr_clk), .clken(ahb_bus_addr_clk_en), .rawclk(clk), .*);
    rvdff_fpga  #(.WIDTH(1))    hwrite_ff (.din(ahb_hwrite),         .dout(ahb_hwrite_q),      .clk(ahb_addr_clk), .clken(ahb_bus_addr_clk_en), .rawclk(clk), .*);
-   rvdff_fpga  #(.WIDTH(32))   haddr_ff  (.din(ahb_haddr[31:0]),    .dout(ahb_haddr_q[31:0]), .clk(ahb_addr_clk), .clken(ahb_bus_addr_clk_en), .rawclk(clk), .*);
+   rvdff_fpga  #(.WIDTH(64))   haddr_ff  (.din(ahb_haddr[63:0]),    .dout(ahb_haddr_q[63:0]), .clk(ahb_addr_clk), .clken(ahb_bus_addr_clk_en), .rawclk(clk), .*);
    rvdffs_fpga #($bits(state_t)) state_reg (.din(buf_nxtstate),     .dout({buf_state}), .en(buf_state_en), .clk(ahb_clk), .clken(bus_clk_en),  .rawclk(clk), .*);
    rvdff_fpga  #(.WIDTH(64)) buf_rdata_ff  (.din(axi_rdata[63:0]),  .dout(buf_rdata[63:0]),   .clk(buf_rdata_clk), .clken(buf_rdata_clk_en),   .rawclk(clk), .*);
    // buf_read_error will be high only one cycle
@@ -213,7 +213,7 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
    // Address check  dccm
    rvrangecheck #(.CCM_SADR(`RV_DCCM_SADR),
                   .CCM_SIZE(`RV_DCCM_SIZE)) addr_dccm_rangecheck (
-      .addr(ahb_haddr_q[31:0]),
+      .addr(ahb_haddr_q[63:0]),
       .in_range(ahb_addr_in_dccm),
       .in_region(ahb_addr_in_dccm_region_nc)
    );
@@ -222,7 +222,7 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
 `ifdef RV_ICCM_ENABLE
    rvrangecheck #(.CCM_SADR(`RV_ICCM_SADR),
                   .CCM_SIZE(`RV_ICCM_SIZE)) addr_iccm_rangecheck (
-      .addr(ahb_haddr_q[31:0]),
+      .addr(ahb_haddr_q[63:0]),
       .in_range(ahb_addr_in_iccm),
       .in_region(ahb_addr_in_iccm_region_nc)
    );
@@ -234,7 +234,7 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
    // PIC memory address check
    rvrangecheck #(.CCM_SADR(`RV_PIC_BASE_ADDR),
                   .CCM_SIZE(`RV_PIC_SIZE)) addr_pic_rangecheck (
-      .addr(ahb_haddr_q[31:0]),
+      .addr(ahb_haddr_q[63:0]),
       .in_range(ahb_addr_in_pic),
       .in_region(ahb_addr_in_pic_region_nc)
    );
@@ -250,17 +250,17 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
 
 // REVIEW : was 2 clock headers
 
-//   rvdffe  #(.WIDTH(32))  cmdbuf_addrff     (.din(ahb_haddr_q[31:0]),   .dout(cmdbuf_addr[31:0]),   .en(cmdbuf_wr_en),   .clk(bus_clk), .*);
+//   rvdffe  #(.WIDTH(64))  cmdbuf_addrff     (.din(ahb_haddr_q[63:0]),   .dout(cmdbuf_addr[63:0]),   .en(cmdbuf_wr_en),   .clk(bus_clk), .*);
 //   rvdffe  #(.WIDTH(64))  cmdbuf_wdataff    (.din(ahb_hwdata[63:0]),    .dout(cmdbuf_wdata[63:0]),  .en(cmdbuf_wr_en),   .clk(bus_clk), .*);
 
-   rvdffe  #(.WIDTH(32))  cmdbuf_addrff     (.din(ahb_haddr_q[31:0]),   .dout(cmdbuf_addr[31:0]),   .en(cmdbuf_wr_en & bus_clk_en), .*);
+   rvdffe  #(.WIDTH(64))  cmdbuf_addrff     (.din(ahb_haddr_q[63:0]),   .dout(cmdbuf_addr[63:0]),   .en(cmdbuf_wr_en & bus_clk_en), .*);
    rvdffe  #(.WIDTH(64))  cmdbuf_wdataff    (.din(ahb_hwdata[63:0]),    .dout(cmdbuf_wdata[63:0]),  .en(cmdbuf_wr_en & bus_clk_en), .*);
 
 
    // AXI Write Command Channel
    assign axi_awvalid           = cmdbuf_vld & cmdbuf_write;
    assign axi_awid[TAG-1:0]     = '0;
-   assign axi_awaddr[31:0]      = cmdbuf_addr[31:0];
+   assign axi_awaddr[63:0]      = cmdbuf_addr[63:0];
    assign axi_awsize[2:0]       = {1'b0, cmdbuf_size[1:0]};
    assign axi_awprot[2:0]       = 3'b0;
    assign axi_awlen[7:0]        = '0;
@@ -275,7 +275,7 @@ module ahb_to_axi4 #(parameter TAG  = 1) (
    // AXI Read Channels
    assign axi_arvalid           = cmdbuf_vld & ~cmdbuf_write;
    assign axi_arid[TAG-1:0]     = '0;
-   assign axi_araddr[31:0]      = cmdbuf_addr[31:0];
+   assign axi_araddr[63:0]      = cmdbuf_addr[63:0];
    assign axi_arsize[2:0]       = {1'b0, cmdbuf_size[1:0]};
    assign axi_arprot            = 3'b0;
    assign axi_arlen[7:0]        = '0;

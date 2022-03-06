@@ -20,10 +20,15 @@
 `define RV_NUM_THREADS 1
 `endif
 
-bit[31:0] [31:0] gpr[`RV_NUM_THREADS];
+bit[31:0] [63:0] gpr[`RV_NUM_THREADS];
 
 // main DASM function
-function string dasm(input[31:0] opcode, input[31:0] pc, input[4:0] regn, input[31:0] regv, input tid=0);
+// opcode: instruction code
+// pc: address
+// regn: write back gpr number
+// regv: write back value to gpr
+// tid: thread id
+function string dasm(input[31:0] opcode, input[63:0] pc, input[4:0] regn, input[63:0] regv, input tid=0);
     dasm = (opcode[1:0] == 2'b11) ? dasm32(opcode, pc, tid) : dasm16(opcode, pc, tid);
     if(regn) gpr[tid][regn] = regv;
 endfunction
@@ -31,7 +36,7 @@ endfunction
 
 ///////////////// 16 bits instructions ///////////////////////
 
-function string dasm16( input[31:0] opcode, input[31:0] pc, input tid=0);
+function string dasm16( input[31:0] opcode, input[63:0] pc, input tid=0);
     case(opcode[1:0])
     0: return dasm16_0(opcode, tid);
     1: return dasm16_1(opcode, pc);
@@ -43,12 +48,10 @@ endfunction
 function string dasm16_0( input[31:0] opcode, tid);
     case(opcode[15:13])
     3'b000: return dasm16_ciw(opcode);
-    3'b001: return {"c.fld  ", dasm16_cl(opcode, tid)};
     3'b010: return {"c.lw   ", dasm16_cl(opcode, tid)};
-    3'b011: return {"c.flw  ", dasm16_cl(opcode, tid)};
-    3'b101: return {"c.fsd  ", dasm16_cl(opcode, tid)};
+    3'b011: return {"c.ld   ", dasm16_cl(opcode, tid)};
     3'b110: return {"c.sw   ", dasm16_cl(opcode, tid)};
-    3'b111: return {"c.fsw  ", dasm16_cl(opcode, tid)};
+    3'b111: return {"c.sd   ", dasm16_cl(opcode, tid)};
     endcase
     return $sformatf(".short  0x%h", opcode[15:0]);
 endfunction
@@ -65,15 +68,26 @@ function string dasm16_cl( input[31:0] opcode, input tid=0);
 int imm;
     imm=0;
     imm[5:3] = opcode[12:10];
-    imm[7:6] = opcode[6:5];
+    case(opcode[15:13])
+    3'b010: begin //c.lw
+        imm[6] = opcode[5];
+        imm[2] = opcode[6];
+    end
+    3'b011: imm[7:6] = opcode[6:5]; //c.ld
+    3'b110: begin //c.sw
+        imm[6] = opcode[5];
+        imm[2] = opcode[6];
+    end
+    3'b111: imm[7:6] = opcode[6:5]; //c.sd
+    endcase
 
     return $sformatf(" %s,%0d(%s) [%h]", abi_reg[opcode[4:2]+8], imm, abi_reg[opcode[9:7]+8], gpr[tid][opcode[9:7]+8]+imm);
 endfunction
 
-function string dasm16_1( input[31:0] opcode, input[31:0] pc);
+function string dasm16_1( input[31:0] opcode, input[63:0] pc);
     case(opcode[15:13])
     3'b000: return opcode[11:7]==0 ? "c.nop" : {"c.addi  ",dasm16_ci(opcode)};
-    3'b001: return {"c.jal   ", dasm16_cj(opcode, pc)};
+    3'b001: return {"c.addiw ", dasm16_ci(opcode)};
     3'b010: return {"c.li    ", dasm16_ci(opcode)};
     3'b011: return dasm16_1_3(opcode);
     3'b100: return dasm16_cr(opcode);
@@ -91,7 +105,7 @@ int imm;
     return $sformatf("%s,%0d", abi_reg[opcode[11:7]], imm);
 endfunction
 
-function string dasm16_cj( input[31:0] opcode, input[31:0] pc);
+function string dasm16_cj( input[31:0] opcode, input[63:0] pc);
 bit[31:0] imm;
     imm=0;
     {imm[11],imm[4],imm[9:8],imm[10],imm[6], imm[7],imm[3:1], imm[5]} = opcode[12:2];
@@ -99,7 +113,7 @@ bit[31:0] imm;
     return $sformatf("0x%0h", imm+pc);
 endfunction
 
-function string dasm16_cb( input[31:0] opcode, input[31:0] pc);
+function string dasm16_cb( input[31:0] opcode, input[63:0] pc);
 bit[31:0] imm;
     imm=0;
     {imm[8],imm[4:3]} = opcode[12:10];
@@ -113,19 +127,28 @@ bit[31:0] imm;
 
     imm = 0;
     imm[4:0] = opcode[6:2];
-    if(opcode[5]) imm [31:5] = '1;
+    if(opcode[12]) imm [31:5] = '1;
     case(opcode[11:10])
     0: return $sformatf("c.srli  %s,%0d",  abi_reg[opcode[9:7]+8], imm[5:0]);
     1: return $sformatf("c.srai  %s,%0d",  abi_reg[opcode[9:7]+8], imm[5:0]);
     2: return $sformatf("c.andi  %s,0x%0h", abi_reg[opcode[9:7]+8], imm);
     endcase
 
-    case(opcode[6:5])
-    0: return $sformatf("c.sub   %s,%s", abi_reg[opcode[9:7]+8], abi_reg[opcode[4:2]+8]);
-    1: return $sformatf("c.xor   %s,%s", abi_reg[opcode[9:7]+8], abi_reg[opcode[4:2]+8]);
-    2: return $sformatf("c.or    %s,%s", abi_reg[opcode[9:7]+8], abi_reg[opcode[4:2]+8]);
-    3: return $sformatf("c.and   %s,%s", abi_reg[opcode[9:7]+8], abi_reg[opcode[4:2]+8]);
-    endcase
+//modified for RV64C
+    if(opcode[12]) begin
+        case(opcode[6:5])
+        0: return $sformatf("c.subw  %s,%s", abi_reg[opcode[9:7]+8], abi_reg[opcode[4:2]+8]);
+        1: return $sformatf("c.addw  %s,%s", abi_reg[opcode[9:7]+8], abi_reg[opcode[4:2]+8]);
+        endcase
+    end
+    else begin
+        case(opcode[6:5])
+        0: return $sformatf("c.sub   %s,%s", abi_reg[opcode[9:7]+8], abi_reg[opcode[4:2]+8]);
+        1: return $sformatf("c.xor   %s,%s", abi_reg[opcode[9:7]+8], abi_reg[opcode[4:2]+8]);
+        2: return $sformatf("c.or    %s,%s", abi_reg[opcode[9:7]+8], abi_reg[opcode[4:2]+8]);
+        3: return $sformatf("c.and   %s,%s", abi_reg[opcode[9:7]+8], abi_reg[opcode[4:2]+8]);
+        endcase
+    end
 endfunction
 
 function string dasm16_1_3( input[31:0] opcode);
@@ -145,15 +168,14 @@ int imm;
     end
 endfunction
 
+// moodified for RV64C
 function string dasm16_2( input[31:0] opcode, input tid=0);
     case(opcode[15:13])
     3'b000: return {"c.slli  ", dasm16_ci(opcode)};
-    3'b001: return {"c.fldsp ", dasm16_cls(opcode,1,tid)};
     3'b010: return {"c.lwsp  ", dasm16_cls(opcode,0,tid)};
-    3'b011: return {"c.flwsp ", dasm16_cls(opcode,0,tid)};
-    3'b101: return {"c.fsdsp ", dasm16_css(opcode,1,tid)};
+    3'b011: return {"c.ldsp  ", dasm16_cls(opcode,1,tid)};
     3'b110: return {"c.swsp  ", dasm16_css(opcode,0,tid)};
-    3'b111: return {"c.fswsp ", dasm16_css(opcode,0,tid)};
+    3'b111: return {"c.sdsp  ", dasm16_css(opcode,1,tid)};
     endcase
     if(opcode[12]) begin
         if(opcode[12:2] == 0) return "c.ebreak";
@@ -186,7 +208,7 @@ endfunction
 
 ///////////////// 32 bit instructions ///////////////////////
 
-function string dasm32( input[31:0] opcode, input[31:0] pc, input tid=0);
+function string dasm32( input[31:0] opcode, input[63:0] pc, input tid=0);
     case(opcode[6:0])
     7'b0110111: return {"lui     ", dasm32_u(opcode)};
     7'b0010111: return {"auipc   ", dasm32_u(opcode)};
@@ -196,6 +218,8 @@ function string dasm32( input[31:0] opcode, input[31:0] pc, input tid=0);
     7'b0000011: return dasm32_l(opcode,tid);
     7'b0100011: return dasm32_s(opcode,tid);
     7'b0010011: return dasm32_ai(opcode);
+    7'b0011011: return dasm32_aiw(opcode);
+    7'b0111011: return dasm32_arw(opcode);
     7'b0110011: return dasm32_ar(opcode);
     7'b0001111: return {"fence", dasm32_fence(opcode)};
     7'b1110011: return dasm32_e(opcode);
@@ -212,7 +236,7 @@ bit[31:0] imm;
     return $sformatf("%s,0x%0h", abi_reg[opcode[11:7]], imm);
 endfunction
 
-function string dasm32_j( input[31:0] opcode, input[31:0] pc);
+function string dasm32_j( input[31:0] opcode, input[63:0] pc);
 int imm;
     imm=0;
     {imm[20], imm[10:1], imm[11], imm[19:12]} = opcode[31:12];
@@ -220,7 +244,7 @@ int imm;
     return $sformatf("%s,0x%0h",abi_reg[opcode[11:7]], imm+pc);
 endfunction
 
-function string dasm32_jr( input[31:0] opcode, input[31:0] pc);
+function string dasm32_jr( input[31:0] opcode, input[63:0] pc);
 int imm;
     imm=0;
     imm[11:1] = opcode[31:19];
@@ -228,7 +252,7 @@ int imm;
     return $sformatf("%s,%s,0x%0h",abi_reg[opcode[11:7]], abi_reg[opcode[19:15]], imm+pc);
 endfunction
 
-function string dasm32_b( input[31:0] opcode, input[31:0] pc);
+function string dasm32_b( input[31:0] opcode, input[63:0] pc);
 int imm;
 string mn;
     imm=0;
@@ -257,8 +281,10 @@ string mn;
     0: mn = "lb      ";
     1: mn = "lh      ";
     2: mn = "lw      ";
+    3: mn = "ld      ";
     4: mn = "lbu     ";
     5: mn = "lhu     ";
+    6: mn = "lwu     ";
     default : return $sformatf(".long   0x%h", opcode);
     endcase
     return $sformatf("%s%s,%0d(%s) [%h]", mn, abi_reg[opcode[11:7]], imm, abi_reg[opcode[19:15]], imm+gpr[tid][opcode[19:15]]);
@@ -275,6 +301,7 @@ string mn;
     0: mn = "sb      ";
     1: mn = "sh      ";
     2: mn = "sw      ";
+    3: mn = "sd      ";
     default : return $sformatf(".long   0x%h", opcode);
     endcase
     return $sformatf("%s%s,%0d(%s) [%h]", mn, abi_reg[opcode[24:20]], imm, abi_reg[opcode[19:15]], imm+gpr[tid][opcode[19:15]]);
@@ -294,7 +321,47 @@ string mn;
     6: mn = "ori     ";
     7: mn = "andi    ";
     default: return dasm32_si(opcode);
-endcase
+    endcase
+
+return $sformatf("%s%s,%s,%0d", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]], imm);
+endfunction
+
+// added for RV64I
+function string dasm32_aiw( input[31:0] opcode);
+int imm;
+string mn;
+    imm=0;
+    imm[5:0] = opcode[25:20];
+    case(opcode[14:12])
+    3'b000: begin
+       mn = "addiw   ";
+       imm[11:6] = opcode[31:26];
+       imm[31:12] = {20{opcode[31]}};
+    end
+    3'b001: begin
+        case(opcode[31:25])
+        7'b0000000: mn = "slliw   ";
+        7'b0000100,
+        7'b0000101: mn = "slli.uw ";
+        7'b0110000: begin
+            case(opcode[24:20])
+                5'b00000: mn = "clzw    ";
+                5'b00010: mn = "cpopw   ";
+                5'b00001: mn = "ctzw    ";
+            endcase
+            return $sformatf("%s%s,%s", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]]);
+        end
+        endcase
+    end
+    3'b101: begin
+        case(opcode[31:25])
+        7'b0000000: mn = "srliw   ";
+        7'b0100000: mn = "sraiw   ";
+        7'b0110000: mn = "roriw   ";
+        endcase
+    end
+    default: return $sformatf(".long   0x%h", opcode);
+    endcase
 
 return $sformatf("%s%s,%s,%0d", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]], imm);
 endfunction
@@ -302,41 +369,128 @@ endfunction
 function string dasm32_si( input[31:0] opcode);
 int imm;
 string mn;
-    imm = opcode[24:20];
-    case(opcode[14:12])
-    1: mn = "slli";
-    5: mn = opcode[30] ? "srli": "srai";
+    imm = opcode[25:20];
+    case({opcode[31:20],opcode[14:12]})
+    15'b001010000111_101: 
+    begin
+        mn = "orc.b   ";
+        return $sformatf("%s%s,%s", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]]);
+    end
+    15'b011010111000_101: 
+    begin
+        mn = "rev8    ";
+        return $sformatf("%s%s,%s", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]]);
+    end
     endcase
 
-    return $sformatf("%s    %s,%s,%0d", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]], imm);
+    case({opcode[31:27],opcode[14:12]})
+    8'b00000_001: mn = "slli    ";
+    8'b01000_101: mn = "srai    ";
+    8'b00000_101: mn = "srli    ";
+    8'b01100_101: mn = "rori    ";
+    8'b01001_001: mn = "bclri   ";
+    8'b00101_001: mn = "bseti   ";
+    8'b01101_001: mn = "binvi   ";
+    8'b01001_101: mn = "bexti   ";
+    8'b01100_001: return dasm32_cz(opcode);
+    default: return $sformatf(".long   0x%h", opcode);
+    endcase
+
+    return $sformatf("%s%s,%s,%0d", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]], imm);
 endfunction
 
-
+function string dasm32_cz( input[31:0] opcode);
+string mn;
+    case(opcode[24:20])
+    5'b00000: mn = "clz     ";
+    5'b00001: mn = "ctz     ";
+    5'b00010: mn = "cpop    ";
+    5'b00100: mn = "sext.b  ";
+    5'b00101: mn = "sext.h  ";
+    default: return $sformatf(".long   0x%h", opcode);
+    endcase
+    return $sformatf("%s%s,%s", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]]);
+endfunction
 
 function string dasm32_ar( input[31:0] opcode);
 string mn;
-    if(opcode[25])
-        case(opcode[14:12])
-        0: mn = "mul     ";
-        1: mn = "mulh    ";
-        2: mn = "mulhsu  ";
-        3: mn = "mulhu   ";
-        4: mn = "div     ";
-        5: mn = "divu    ";
-        6: mn = "rem     ";
-        7: mn = "remu    ";
-        endcase
-    else
-        case(opcode[14:12])
-        0: mn = opcode[30]? "sub     ":"add     ";
-        1: mn = "sll     ";
-        2: mn = "slt     ";
-        3: mn = "sltu    ";
-        4: mn = "xor     ";
-        5: mn = opcode[30]? "sra     ":"srl     ";
-        6: mn = "or      ";
-        7: mn = "and     ";
-        endcase
+//         func7         func3
+    case({opcode[31:25],opcode[14:12]})
+    10'b0000001_000: mn = "mul     ";
+    10'b0000001_001: mn = "mulh    ";
+    10'b0000001_010: mn = "mulhsu  ";
+    10'b0000001_011: mn = "mulhu   ";
+    10'b0000001_100: mn = "div     ";
+    10'b0000001_101: mn = "divu    ";
+    10'b0000001_110: mn = "rem     ";
+    10'b0000001_111: mn = "remu    ";
+    10'b0100000_000: mn = "sub     ";
+    10'b0000000_000: mn = "add     ";
+    10'b0000000_001: mn = "sll     ";
+    10'b0000000_010: mn = "slt     ";
+    10'b0000000_011: mn = "sltu    ";
+    10'b0000000_100: mn = "xor     ";
+    10'b0100000_101: mn = "sra     ";
+    10'b0000000_101: mn = "srl     ";
+    10'b0000000_110: mn = "or      ";
+    10'b0000000_111: mn = "and     ";
+// bit manip:
+    10'b0100000_111: mn = "andn    ";
+    10'b0100000_110: mn = "orn     ";
+    10'b0100000_100: mn = "xnor    ";
+    10'b0110000_001: mn = "rol     ";
+    10'b0110000_101: mn = "ror     ";
+    10'b0010000_010: mn = "sh1add  ";
+    10'b0010000_100: mn = "sh2add  ";
+    10'b0010000_110: mn = "sh3add  ";
+    10'b0100100_001: mn = "bclr    ";
+    10'b0010100_001: mn = "bset    ";
+    10'b0110100_001: mn = "binv    ";
+    10'b0100100_101: mn = "bext    ";
+    10'b0000101_001: mn = "clmul   ";
+    10'b0000101_010: mn = "clmulr  ";
+    10'b0000101_011: mn = "clmulh  ";
+    10'b0000101_100: mn = "min     ";
+    10'b0000101_101: mn = "minu    ";
+    10'b0000101_110: mn = "max     ";
+    10'b0000101_111: mn = "maxu    ";
+    default: return $sformatf(".long  0x%h", opcode);
+    endcase
+    return $sformatf("%s%s,%s,%s", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]], abi_reg[opcode[24:20]]);
+endfunction
+
+// added for RV64IM
+function string dasm32_arw( input[31:0] opcode);
+string mn;
+    if({opcode[31:20],opcode[14:12]}==15'b001010000111_101)
+    begin
+        mn = "zext.h  ";
+        return $sformatf("%s%s,%s", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]]);
+    end
+
+    case({opcode[31:25],opcode[14:12]})
+    //RV64I
+    10'b0000000_000: mn = "addw    ";
+    10'b0100000_000: mn = "subw    ";
+    10'b0000000_001: mn = "sllw    ";
+    10'b0000000_101: mn = "srlw    ";
+    10'b0100000_101: mn = "sraw    ";
+    //RV64M
+    10'b0000001_000: mn = "mulw    ";
+    10'b0000001_100: mn = "divw    ";
+    10'b0000001_101: mn = "divuw   ";
+    10'b0000001_110: mn = "remw    ";
+    10'b0000001_111: mn = "remuw   ";
+    //RV64B
+    10'b0000100_000: mn = "add.uw  ";
+    10'b0110000_001: mn = "rolw    ";
+    10'b0110000_101: mn = "rorw    ";
+    10'b0010000_010: mn = "sh1add.uw ";
+    10'b0010000_100: mn = "sh2add.uw ";
+    10'b0010000_110: mn = "sh3add.uw ";
+    default: return $sformatf(".long  0x%h", opcode);
+    endcase
+
     return $sformatf("%s%s,%s,%s", mn, abi_reg[opcode[11:7]], abi_reg[opcode[19:15]], abi_reg[opcode[24:20]]);
 endfunction
 
@@ -345,7 +499,9 @@ function string dasm32_fence( input[31:0] opcode);
 endfunction
 
 function string dasm32_e(input[31:0] opcode);
-    if(opcode[31:7] == 0) return "ecall";
+    if(opcode[31:0] == 32'b00110000001000000000000001110011) return "mret";
+    else if(opcode[31:0] == 32'b00010000010100000000000001110011) return "wfi";
+    else if(opcode[31:7] == 0) return "ecall";
     else if({opcode[31:21],opcode [19:7]} == 0) return "ebreak";
     else
         case(opcode[14:12])

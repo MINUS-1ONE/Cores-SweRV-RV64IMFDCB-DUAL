@@ -37,7 +37,7 @@ module svci_to_axi4 #(parameter TAG  = 1,
    input  logic            axi_awready,
    output logic            axi_awposted,
    output logic [TAG-1:0]  axi_awid,
-   output logic [31:0]     axi_awaddr,
+   output logic [63:0]     axi_awaddr,
    output logic [2:0]      axi_awsize,
    output logic [2:0]      axi_awprot,
    output logic [7:0]      axi_awlen,
@@ -63,7 +63,7 @@ module svci_to_axi4 #(parameter TAG  = 1,
    output logic            axi_arvalid,
    input  logic            axi_arready,
    output logic [TAG-1:0]  axi_arid,
-   output logic [31:0]     axi_araddr,
+   output logic [63:0]     axi_araddr,
    output logic [2:0]      axi_arsize,
    output logic [2:0]      axi_arprot,
    output logic [7:0]      axi_arlen,
@@ -84,7 +84,7 @@ module svci_to_axi4 #(parameter TAG  = 1,
    output logic            svci_cmd_ready,
    input logic [TAG-1:0]   svci_cmd_tag,
    input logic [ID-1:0]    svci_cmd_mid,
-   input logic [31:0]      svci_cmd_addr,
+   input logic [63:0]      svci_cmd_addr,
    input logic [63:0]      svci_cmd_wdata,
    input logic [7:0]       svci_cmd_wbe,
    input logic [2:0]       svci_cmd_length,
@@ -106,7 +106,7 @@ module svci_to_axi4 #(parameter TAG  = 1,
    logic                   cmdbuf_vld, cmdbuf_data_vld;
    logic [2:0]             cmdbuf_opc, cmdbuf_size;
    logic [7:0]             cmdbuf_wstrb;
-   logic [31:0]            cmdbuf_addr;
+   logic [63:0]            cmdbuf_addr;
    logic [63:0]            cmdbuf_wdata;
    logic [TAG-1:0]         cmdbuf_tag;
    logic [ID-1:0]          cmdbuf_mid;
@@ -137,7 +137,7 @@ module svci_to_axi4 #(parameter TAG  = 1,
    rvdffs  #(.WIDTH(3)) cmdbuf_opcff(.din(svci_cmd_opc[2:0]), .dout(cmdbuf_opc[2:0]), .en(cmdbuf_wr_en), .clk(bus_clk), .*);
    rvdffs  #(.WIDTH(3)) cmdbuf_sizeff(.din(svci_cmd_length[2:0]), .dout(cmdbuf_size[2:0]), .en(cmdbuf_wr_en), .clk(bus_clk), .*);
    rvdffe  #(.WIDTH(8)) cmdbuf_wstrbff(.din(svci_cmd_wbe[7:0]), .dout(cmdbuf_wstrb[7:0]), .en(cmdbuf_wr_en & bus_clk_en), .*);
-   rvdffe  #(.WIDTH(32)) cmdbuf_addrff(.din(svci_cmd_addr[31:0]), .dout(cmdbuf_addr[31:0]), .en(cmdbuf_wr_en & bus_clk_en), .*);
+   rvdffe  #(.WIDTH(64)) cmdbuf_addrff(.din(svci_cmd_addr[63:0]), .dout(cmdbuf_addr[63:0]), .en(cmdbuf_wr_en & bus_clk_en), .*);
    rvdffe  #(.WIDTH(64)) cmdbuf_wdataff(.din(svci_cmd_wdata[63:0]), .dout(cmdbuf_wdata[63:0]), .en(cmdbuf_data_en & bus_clk_en), .*);
    rvdffs  #(.WIDTH(TAG)) cmdbuf_tagff(.din(svci_cmd_tag[TAG-1:0]), .dout(cmdbuf_tag[TAG-1:0]), .en(cmdbuf_wr_en), .clk(bus_clk), .*);
    rvdffs  #(.WIDTH(ID)) cmdbuf_midff(.din(svci_cmd_mid[ID-1:0]), .dout(cmdbuf_mid[ID-1:0]), .en(cmdbuf_wr_en), .clk(bus_clk), .*);
@@ -147,7 +147,7 @@ module svci_to_axi4 #(parameter TAG  = 1,
    assign axi_awvalid       = cmdbuf_vld & (cmdbuf_opc[2:1] == 2'b01);
    assign axi_awposted      = axi_awvalid & ~cmdbuf_opc[0];
    assign axi_awid[TAG-1:0] = cmdbuf_tag[TAG-1:0];
-   assign axi_awaddr[31:0]  = cmdbuf_addr[31:0];
+   assign axi_awaddr[63:0]  = cmdbuf_addr[63:0];
    assign axi_awsize[2:0]   = cmdbuf_size[2:0];
    assign axi_awprot[2:0]   = 3'b0;
    assign axi_awlen[7:0]    = '0;
@@ -165,7 +165,7 @@ module svci_to_axi4 #(parameter TAG  = 1,
    // AXI Read Channels
    assign axi_arvalid       = cmdbuf_vld & (cmdbuf_opc[2:0] == 3'b0);
    assign axi_arid[TAG-1:0] = cmdbuf_tag[TAG-1:0];
-   assign axi_araddr[31:0]  = cmdbuf_addr[31:0];
+   assign axi_araddr[63:0]  = cmdbuf_addr[63:0];
    assign axi_arsize[2:0]   = cmdbuf_size[2:0];
    assign axi_arprot        = 3'b0;
    assign axi_arlen[7:0]    = '0;
@@ -178,7 +178,7 @@ module svci_to_axi4 #(parameter TAG  = 1,
    assign svci_rsp_valid        = wrbuf_vld | axi_rvalid;
    assign svci_rsp_tag[TAG-1:0] = wrbuf_vld ? wrbuf_tag[TAG-1:0] : axi_rid[TAG-1:0];
    assign svci_rsp_mid[ID-1:0]  = wrbuf_vld ? wrbuf_mid[ID-1:0] : axi_rmid[ID-1:0];
-   assign svci_rsp_rdata[63:0]  = wrbuf_vld ? {32'b0, error_address[31:0]} : axi_rdata[63:0];    // rdata
+   assign svci_rsp_rdata[63:0]  = wrbuf_vld ? error_address[63:0] : axi_rdata[63:0];    // rdata
    assign svci_rsp_opc[3:2]     = wrbuf_vld ? {1'b1, ~wrbuf_posted} : 2'b0;
   // assign svci_rsp_opc[1:0]     = wrbuf_vld ? {wrbuf_resp[1] ? (wrbuf_resp[0] ? 2'b10 : 2'b01) : 2'b0}  :     // AXI Slave Error -> SVCI Slave Error, AXI Decode Error -> SVCI Address Error
   //                                           {axi_rresp[1] ? (axi_rresp[0] ? 2'b10 : 2'b01) : 2'b0};
@@ -194,7 +194,7 @@ module svci_to_axi4 #(parameter TAG  = 1,
    assign wrbuf_rst = svci_rsp_valid & svci_rsp_ready & svci_rsp_opc[3] & ~wrbuf_en;
    assign axi_bresp_in[1:0] = {axi_bresp[1] ? (axi_bresp[0] ? 2'b10 : {dma_slv_algn_err, 1'b1}) : 2'b0};
    rvdffsc  #(.WIDTH(1))   wrbuf_vldff   (.din(1'b1), .dout(wrbuf_vld), .en(wrbuf_en), .clear(wrbuf_rst), .clk(bus_clk), .*);
-   rvdffs   #(.WIDTH(32))  wrbuf_erroff  (.din(axi_rdata[31:0]), .dout(error_address[31:0]), .en(wrbuf_en), .clk(bus_clk), .*);
+   rvdffs   #(.WIDTH(64))  wrbuf_erroff  (.din(axi_rdata[63:0]), .dout(error_address[63:0]), .en(wrbuf_en), .clk(bus_clk), .*);
    rvdffs   #(.WIDTH(1))   wrbuf_postedff(.din(axi_bposted), .dout(wrbuf_posted), .en(wrbuf_en), .clk(bus_clk), .*);
    rvdffs   #(.WIDTH(TAG)) wrbuf_tagff   (.din(axi_bid[TAG-1:0]), .dout(wrbuf_tag[TAG-1:0]), .en(wrbuf_en), .clk(bus_clk), .*);
    rvdffs   #(.WIDTH(ID))  wrbuf_midff   (.din(axi_bmid[ID-1:0]), .dout(wrbuf_mid[ID-1:0]), .en(wrbuf_en), .clk(bus_clk), .*);

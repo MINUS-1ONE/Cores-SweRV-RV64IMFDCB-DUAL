@@ -20,7 +20,7 @@
 
 #include "defines.h"
 
-#define STDOUT 0xd0580000
+#define STDOUT 0xd000000050580000
 
 
 // Code to execute
@@ -30,7 +30,8 @@ _start:
 
     // Clear minstret
     csrw minstret, zero
-    csrw minstreth, zero
+    //there is no minstreth in RV64I
+    //csrw minstreth, zero
 
     // Set up MTVEC - not expecting to use it though
     li x1, RV_ICCM_SADR
@@ -66,7 +67,8 @@ _finish:
 .global hw_data
 .data
 hw_data:
-.ascii "----------------------------------\n"
-.ascii "Hello World from SweRV EH1 @WDC !!\n"
-.ascii "----------------------------------\n"
+.ascii "-----------------------------------------\n"
+.ascii "Hello World from SweRV EH1 64-bit @XMU !!\n"
+.ascii ".data/.rodata is preload by tb to DCCM !!\n"
+.ascii "-----------------------------------------\n"
 .byte 0

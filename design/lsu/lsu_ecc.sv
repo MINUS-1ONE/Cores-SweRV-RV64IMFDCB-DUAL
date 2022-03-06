@@ -86,15 +86,17 @@ module lsu_ecc
    logic        is_ldst_hi_dc3, is_ldst_lo_dc3;
    logic [7:0]  ldst_byteen_dc3;
    logic [7:0]  store_byteen_dc3;
-   logic [7:0]  store_byteen_ext_dc3;
+   logic [15:0]  store_byteen_ext_dc3;
    logic [DCCM_BYTE_WIDTH-1:0]  store_byteen_hi_dc3, store_byteen_lo_dc3;
 
-   logic [163:0] store_data_ext_dc3;
+   logic [127:0] store_data_ext_dc3;
    logic [DCCM_DATA_WIDTH-1:0]  store_data_hi_dc3, store_data_lo_dc3;
-   logic [6:0]                  ecc_out_hi_nc, ecc_out_lo_nc;
+   // 对于64位数据，需要8位ecc
+   logic [7:0]                  ecc_out_hi_nc, ecc_out_lo_nc;
 
 
-   assign ldst_dual_dc3 = (lsu_addr_dc3[2] != end_addr_dc3[2]);
+   // 改为64位访问double word时地址非对齐的情况
+   assign ldst_dual_dc3 = (lsu_addr_dc3[3] != end_addr_dc3[3]);
    assign is_ldst_dc3 = lsu_pkt_dc3.valid & (lsu_pkt_dc3.load | lsu_pkt_dc3.store) & addr_in_dccm_dc3 & lsu_dccm_rden_dc3;
    assign is_ldst_lo_dc3 = is_ldst_dc3 & ~dec_tlu_core_ecc_disable;
    assign is_ldst_hi_dc3 = is_ldst_dc3 & ldst_dual_dc3 & ~dec_tlu_core_ecc_disable;
@@ -105,13 +107,13 @@ module lsu_ecc
                                  ({8{lsu_pkt_dc3.dword}} & 8'b1111_1111);
    assign store_byteen_dc3[7:0] = ldst_byteen_dc3[7:0] & {8{lsu_pkt_dc3.store}};
 
-   assign store_byteen_ext_dc3[7:0] = store_byteen_dc3[7:0] << lsu_addr_dc3[1:0];
-   assign store_byteen_hi_dc3[DCCM_BYTE_WIDTH-1:0] = store_byteen_ext_dc3[7:4];
-   assign store_byteen_lo_dc3[DCCM_BYTE_WIDTH-1:0] = store_byteen_ext_dc3[3:0];
+   assign store_byteen_ext_dc3[15:0] = {8'b0, store_byteen_dc3[7:0]} << lsu_addr_dc3[2:0];
+   assign store_byteen_hi_dc3[DCCM_BYTE_WIDTH-1:0] = store_byteen_ext_dc3[15:8];
+   assign store_byteen_lo_dc3[DCCM_BYTE_WIDTH-1:0] = store_byteen_ext_dc3[7:0];
 
-   assign store_data_ext_dc3[63:0] = store_data_dc3[63:0] << {lsu_addr_dc3[1:0], 3'b000};
-   assign store_data_hi_dc3[DCCM_DATA_WIDTH-1:0]  = store_data_ext_dc3[63:32];
-   assign store_data_lo_dc3[DCCM_DATA_WIDTH-1:0]  = store_data_ext_dc3[31:0];
+   assign store_data_ext_dc3[127:0] = {64'b0, store_data_dc3[63:0]} << {lsu_addr_dc3[2:0], 3'b000};
+   assign store_data_hi_dc3[DCCM_DATA_WIDTH-1:0]  = store_data_ext_dc3[127:64];
+   assign store_data_lo_dc3[DCCM_DATA_WIDTH-1:0]  = store_data_ext_dc3[63:0];
 
 
    // Merge store data and sec data
@@ -125,7 +127,7 @@ module lsu_ecc
 
    if (DCCM_ENABLE == 1) begin: Gen_dccm_enable
       //Detect/Repair for Hi/Lo
-      rvecc_decode lsu_ecc_decode_hi (
+      rvecc_decode_64 lsu_ecc_decode_hi (
          // Inputs
          .en(is_ldst_hi_dc3),
          .sed_ded (1'b0),    // 1 : means only detection
@@ -133,13 +135,13 @@ module lsu_ecc
          .ecc_in(dccm_data_ecc_hi_dc3[DCCM_ECC_WIDTH-1:0]),
          // Outputs
          .dout(sec_data_hi_dc3[DCCM_DATA_WIDTH-1:0]),
-         .ecc_out (ecc_out_hi_nc[6:0]),
+         .ecc_out (ecc_out_hi_nc[7:0]),
          .single_ecc_error(single_ecc_error_hi_dc3),
          .double_ecc_error(double_ecc_error_hi_dc3),
          .*
       );
 
-      rvecc_decode lsu_ecc_decode_lo (
+      rvecc_decode_64 lsu_ecc_decode_lo (
          // Inputs
          .en(is_ldst_lo_dc3),
          .sed_ded (1'b0),    // 1 : means only detection
@@ -147,14 +149,14 @@ module lsu_ecc
          .ecc_in(dccm_data_ecc_lo_dc3[DCCM_ECC_WIDTH-1:0]),
          // Outputs
          .dout(sec_data_lo_dc3[DCCM_DATA_WIDTH-1:0]),
-         .ecc_out (ecc_out_lo_nc[6:0]),
+         .ecc_out (ecc_out_lo_nc[7:0]),
          .single_ecc_error(single_ecc_error_lo_dc3),
          .double_ecc_error(double_ecc_error_lo_dc3),
          .*
       );
 
       // Generate the ECC bits for store buffer drain
-      rvecc_encode lsu_ecc_encode (
+      rvecc_encode_64 lsu_ecc_encode (
          //Inputs
          .din(stbuf_data_any[DCCM_DATA_WIDTH-1:0]),
          //Outputs

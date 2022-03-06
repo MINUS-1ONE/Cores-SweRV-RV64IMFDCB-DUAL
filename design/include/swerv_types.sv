@@ -14,36 +14,40 @@
 // limitations under the License.
 package swerv_types;
 
+// used to inst trace, to output dasm info to log file
 // performance monitor stuff
 typedef struct packed {
                        logic [2:0] trace_rv_i_valid_ip;
-                       logic [95:0] trace_rv_i_insn_ip;
-                       logic [95:0] trace_rv_i_address_ip;
+                       logic [95:0] trace_rv_i_insn_ip;     //32*3
+                       logic [191:0] trace_rv_i_address_ip;  //64*3
                        logic [2:0] trace_rv_i_exception_ip;
-                       logic [4:0] trace_rv_i_ecause_ip;
+                       logic [4:0] trace_rv_i_ecause_ip;    
                        logic [2:0] trace_rv_i_interrupt_ip;
-                       logic [31:0] trace_rv_i_tval_ip;
+                       logic [63:0] trace_rv_i_tval_ip;     //64
                        } trace_pkt_t;
 
 
 typedef enum logic [3:0] {
-                          NULL     = 4'b0000,
-                          MUL      = 4'b0001,
-                          LOAD     = 4'b0010,
-                          STORE    = 4'b0011,
-                          ALU      = 4'b0100,
-                          CSRREAD  = 4'b0101,
-                          CSRWRITE = 4'b0110,
-                          CSRRW    = 4'b0111,
-                          EBREAK   = 4'b1000,
-                          ECALL    = 4'b1001,
-                          FENCE    = 4'b1010,
-                          FENCEI   = 4'b1011,
-                          MRET     = 4'b1100,
-                          CONDBR   = 4'b1101,
-                          JAL      = 4'b1110
+                          NULL      = 4'b0000,
+                          MUL       = 4'b0001,
+                          LOAD      = 4'b0010,
+                          STORE     = 4'b0011,
+                          ALU       = 4'b0100,
+                          CSRREAD   = 4'b0101,
+                          CSRWRITE  = 4'b0110,
+                          CSRRW     = 4'b0111,
+                          EBREAK    = 4'b1000,
+                          ECALL     = 4'b1001,
+                          FENCE     = 4'b1010,
+                          FENCEI    = 4'b1011,
+                          MRET      = 4'b1100,
+                          CONDBR    = 4'b1101,
+                          JAL       = 4'b1110,
+                          BITMANIPU = 4'b1111
                           } inst_t;
 
+// used to transfer icache data error hamming code info
+// because 64bit inst's len is also 32bit, for iacche data bank and error info package we need not any change
 typedef struct packed {
 `ifdef RV_ICACHE_ECC
                        logic [39:0] ecc;
@@ -67,6 +71,8 @@ typedef struct packed {
                        logic pc1_ret;
                        logic pc1_pc4;
                        } rets_pkt_t;
+
+// modified prett width from 31 to 63
 typedef struct packed {
                        logic valid;
                        logic [11:0] toffset;
@@ -75,7 +81,7 @@ typedef struct packed {
                        logic br_start_error;
                        logic [`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] index;
                        logic [1:0] bank;
-                       logic [31:1] prett;  // predicted ret target
+                       logic [63:1] prett;  // predicted ret target
                        logic [`RV_BHT_GHR_RANGE] fghr;
 `ifdef RV_BTB_48
                        logic [1:0] way;
@@ -102,6 +108,7 @@ typedef struct packed {
                        logic middle;
                        } br_tlu_pkt_t;
 
+// modified prett width from 31 to 63
 typedef struct packed {
                        logic misp;
                        logic ataken;
@@ -114,7 +121,7 @@ typedef struct packed {
                        logic valid;
                        logic br_error;
                        logic br_start_error;
-                       logic [31:1] prett;
+                       logic [63:1] prett;
                        logic pcall;
                        logic pret;
                        logic pja;
@@ -208,13 +215,37 @@ typedef struct packed {
                        logic predict_nt;
                        logic csr_write;
                        logic csr_imm;
+                       logic word;  // for all alu insts with W-postfix in RV64I
+
+                       // for rvb
+                       logic clz;
+                       logic ctz;
+                       logic cpop;
+                       logic sext_b;
+                       logic sext_h;
+                       logic zext_h;
+                       logic min;
+                       logic max;
+                       logic rol;
+                       logic ror;
+                       logic bset;
+                       logic bclr;
+                       logic binv;
+                       logic bext;
+                       logic sh1add;
+                       logic sh2add;
+                       logic sh3add;
+                       logic orc_b;
+                       logic rev8;
+                       logic dotuw;
+                       logic rs2neg;
                        } alu_pkt_t;
 
 typedef struct packed {
                        logic by;
                        logic half;
                        logic word;
-                       logic dword;  // for dma
+                       logic dword;  // for dma and sd/ld inst
                        logic load;
                        logic store;
                        logic unsign;
@@ -236,60 +267,91 @@ typedef struct packed {
                       logic inst_pipe;   //0: i0, 1: i1
                       logic dma_valid;
                       logic exc_type;    //0: MisAligned, 1: Access Fault
-                      logic [31:0] addr;
+                      logic [63:0] addr;
                       } lsu_error_pkt_t;
 
 typedef struct packed {
-                       logic alu;
-                       logic rs1;
-                       logic rs2;
-                       logic imm12;
-                       logic rd;
-                       logic shimm5;
-                       logic imm20;
-                       logic pc;
-                       logic load;
-                       logic store;
-                       logic lsu;
-                       logic add;
-                       logic sub;
-                       logic land;
-                       logic lor;
-                       logic lxor;
-                       logic sll;
-                       logic sra;
-                       logic srl;
-                       logic slt;
-                       logic unsign;
-                       logic condbr;
-                       logic beq;
-                       logic bne;
-                       logic bge;
-                       logic blt;
-                       logic jal;
-                       logic by;
-                       logic half;
-                       logic word;
-                       logic csr_read;
-                       logic csr_clr;
-                       logic csr_set;
-                       logic csr_write;
-                       logic csr_imm;
-                       logic presync;
-                       logic postsync;
-                       logic ebreak;
-                       logic ecall;
-                       logic mret;
-                       logic mul;
-                       logic rs1_sign;
-                       logic rs2_sign;
-                       logic low;
-                       logic div;
-                       logic rem;
-                       logic fence;
-                       logic fence_i;
-                       logic pm_alu;
-                       logic legal;
+                        logic alu;
+                        logic rs1;
+                        logic rs2;
+                        logic imm12;
+                        logic rd;
+                        logic shimm6;  //adjust from shimm5 to shimm6 for SLLI in RV64I
+                        logic imm20;
+                        logic pc;
+                        logic load;
+                        logic store;
+                        logic lsu;
+                        logic add;
+                        logic sub;
+                        logic land;
+                        logic lor;
+                        logic lxor;
+                        logic sll;
+                        logic sra;
+                        logic srl;
+                        logic slt;
+                        logic unsign;
+                        logic condbr;
+                        logic beq;
+                        logic bne;
+                        logic bge;
+                        logic blt;
+                        logic jal;
+                        logic by;
+                        logic half;
+                        logic word;
+                        logic dword;  //added for ld/sd
+                        logic csr_read;
+                        logic csr_clr;
+                        logic csr_set;
+                        logic csr_write;
+                        logic csr_imm;
+                        logic presync;
+                        logic postsync;
+                        logic ebreak;
+                        logic ecall;
+                        logic mret;
+                        logic mul;
+                        logic rs1_sign;
+                        logic rs2_sign;
+                        logic low;
+                        logic div;
+                        logic rem;
+                        logic fence;
+                        logic fence_i;
+                        logic pm_alu;
+                        logic legal;
+                        logic wpostfix;  //for all insts with W-postfix in RV64IM
+
+                        //for rvb decode
+                        logic clz;
+                        logic ctz;
+                        logic cpop;
+                        logic sext_b;
+                        logic sext_h;
+                        logic zext_h;
+                        logic min;
+                        logic max;
+                        logic rol;
+                        logic ror;
+                        logic bset;
+                        logic bclr;
+                        logic binv;
+                        logic bext;
+                        logic clmul;
+                        logic reverse;
+                        logic sh1add;
+                        logic sh2add;
+                        logic sh3add;
+                        logic rev8;
+                        logic orc_b;
+                        logic zba;
+                        logic zbb;
+                        logic zbc;
+                        logic zbs;
+                        logic rs2neg;   //for rvb inst that need neg rs2 for example andn/orn/xnor
+                        logic dotuw;    //for rvb inst that with .uw postfix for example sh1add.uw/slli.uw
                        } dec_pkt_t;
 
 
@@ -297,15 +359,21 @@ typedef struct packed {
                        logic valid;
                        logic rs1_sign;
                        logic rs2_sign;
+                       logic word;    //added mulw signal to express MULW inst for RV64M
                        logic low;
                        logic load_mul_rs1_bypass_e1;
                        logic load_mul_rs2_bypass_e1;
+                       
+                       //added for rvb
+                       logic clmul;
+                       logic reverse;
                        } mul_pkt_t;
 
 typedef struct packed {
                        logic valid;
                        logic unsign;
                        logic rem;
+                       logic word;  //added word signal to express DIV[U]W/REM[U]W inst for RV64M
                        } div_pkt_t;
 
 
@@ -316,15 +384,17 @@ typedef struct packed {
                         logic        load;
                         logic        execute;
                         logic        m;
-                        logic [31:0] tdata2;
+                        logic [63:0] tdata2;
             } trigger_pkt_t;
 
 
 typedef struct packed {
 `ifdef RV_ICACHE_ECC
-                        logic [41:0]  icache_wrdata; // {dicad0[31:0], dicad1[1:0]}
+                        logic [74:0]  icache_wrdata; // {dicad1[10:0], dicad0[63:0]}
+                                                     // 75 bit for 10 ecc + 32 data
 `else
-                        logic [33:0]  icache_wrdata; // {dicad0[31:0], dicad1[1:0]}
+                        logic [65:0]  icache_wrdata; // {dicad0[0:0], dicad0[63:0]}
+                                                     // 66 bit for 2 parity + 32 data
 `endif
                         logic [18:2]  icache_dicawics;
                         logic         icache_rd_valid;

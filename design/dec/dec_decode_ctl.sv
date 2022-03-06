@@ -23,8 +23,8 @@ module dec_decode_ctl
    output logic [31:0] dec_i0_inst_wb1,       // 32b instruction at wb+1 for trace encoder
    output logic [31:0] dec_i1_inst_wb1,
 
-   output logic [31:1] dec_i0_pc_wb1,         // 31b pc at wb+1 for trace encoder
-   output logic [31:1] dec_i1_pc_wb1,
+   output logic [63:1] dec_i0_pc_wb1,         // 63b pc at wb+1 for trace encoder
+   output logic [63:1] dec_i1_pc_wb1,
 
 
    input logic                                lsu_nonblock_load_valid_dc3,     // valid nonblock load at dc3
@@ -69,7 +69,7 @@ module dec_decode_ctl
 
    input logic [15:0] ifu_illegal_inst,               // 16b illegal inst from aligner
 
-   input logic [31:1] dec_i0_pc_d,                    // pc
+   input logic [63:1] dec_i0_pc_d,                    // pc
 
    input logic lsu_freeze_dc3,                        // freeze pipe: decode -> dc3
    input logic lsu_halt_idle_any,                     // lsu idle: if fence instr & ~lsu_halt_idle_any then stall decode
@@ -80,7 +80,7 @@ module dec_decode_ctl
 
    input logic exu_div_finish,                        // div finish this cycle
    input logic exu_div_stall,                         // div executing: stall decode
-   input logic [31:0] exu_div_result,                 // div result
+   input logic [63:0] exu_div_result,                 // div result
 
    input logic dec_tlu_i0_kill_writeb_wb,    // I0 is flushed, don't writeback any results to arch state
    input logic dec_tlu_i1_kill_writeb_wb,    // I1 is flushed, don't writeback any results to arch state
@@ -90,24 +90,24 @@ module dec_decode_ctl
    input logic dec_tlu_presync_d,               // CSR read needs to be presync'd
    input logic dec_tlu_postsync_d,              // CSR ops that need to be postsync'd
 
-   input logic [31:0] exu_mul_result_e3,        // multiply result
+   input logic [63:0] exu_mul_result_e3,        // multiply result
 
    input logic dec_i0_pc4_d,               // inst is 4B inst else 2B
    input logic dec_i1_pc4_d,
 
-   input logic [31:0] dec_csr_rddata_d,    // csr read data at wb
+   input logic [63:0] dec_csr_rddata_d,    // csr read data at wb
    input logic dec_csr_legal_d,            // csr indicates legal operation
 
-   input logic [31:0] exu_csr_rs1_e1,      // rs1 for csr instr
+   input logic [63:0] exu_csr_rs1_e1,      // rs1 for csr instr
 
-   input logic [31:0] lsu_result_dc3,      // load result
-   input logic [31:0] lsu_result_corr_dc4, // corrected load result
+   input logic [63:0] lsu_result_dc3,      // load result
+   input logic [63:0] lsu_result_corr_dc4, // corrected load result
 
    input logic exu_i0_flush_final,         // lower flush or i0 flush at e2
    input logic exu_i1_flush_final,         // lower flush or i1 flush at e2
 
-   input logic [31:1] exu_i0_pc_e1,        // pcs at e1
-   input logic [31:1] exu_i1_pc_e1,
+   input logic [63:1] exu_i0_pc_e1,        // pcs at e1
+   input logic [63:1] exu_i1_pc_e1,
 
    input logic [31:0] dec_i0_instr_d,      // inst at decode
    input logic [31:0] dec_i1_instr_d,
@@ -115,11 +115,11 @@ module dec_decode_ctl
    input logic  dec_ib0_valid_d,          // inst valid at decode
    input logic  dec_ib1_valid_d,
 
-   input logic [31:0] exu_i0_result_e1,    // from primary alu's
-   input logic [31:0] exu_i1_result_e1,
+   input logic [63:0] exu_i0_result_e1,    // from primary alu's
+   input logic [63:0] exu_i1_result_e1,
 
-   input logic [31:0] exu_i0_result_e4,    // from secondary alu's
-   input logic [31:0] exu_i1_result_e4,
+   input logic [63:0] exu_i0_result_e4,    // from secondary alu's
+   input logic [63:0] exu_i1_result_e4,
 
    input logic  clk,                       // for rvdffe's
    input logic  active_clk,                // clk except for halt / pause
@@ -137,7 +137,7 @@ module dec_decode_ctl
 
 
 
-   output logic [31:0] dec_i0_immed_d,     // 32b immediate data decode
+   output logic [63:0] dec_i0_immed_d,     // 64b immediate data decode
 
    output logic          dec_i1_rs1_en_d,
    output logic          dec_i1_rs2_en_d,
@@ -147,7 +147,7 @@ module dec_decode_ctl
 
 
 
-   output logic [31:0] dec_i1_immed_d,
+   output logic [63:0] dec_i1_immed_d,
 
    output logic [12:1] dec_i0_br_immed_d,    // 12b branch immediate
    output logic [12:1] dec_i1_br_immed_d,
@@ -165,19 +165,19 @@ module dec_decode_ctl
    output logic          dec_i1_alu_decode_d,
 
 
-   output logic [31:0] i0_rs1_bypass_data_d,    // i0 rs1 bypass data
-   output logic [31:0] i0_rs2_bypass_data_d,    // i0 rs2 bypass data
-   output logic [31:0] i1_rs1_bypass_data_d,
-   output logic [31:0] i1_rs2_bypass_data_d,
+   output logic [63:0] i0_rs1_bypass_data_d,    // i0 rs1 bypass data
+   output logic [63:0] i0_rs2_bypass_data_d,    // i0 rs2 bypass data
+   output logic [63:0] i1_rs1_bypass_data_d,
+   output logic [63:0] i1_rs2_bypass_data_d,
 
 
    output logic [4:0]  dec_i0_waddr_wb,         // i0 logical source to write to gpr's
    output logic          dec_i0_wen_wb,         // i0 write enable
-   output logic [31:0] dec_i0_wdata_wb,         // i0 write data
+   output logic [63:0] dec_i0_wdata_wb,         // i0 write data
 
    output logic [4:0]  dec_i1_waddr_wb,
    output logic          dec_i1_wen_wb,
-   output logic [31:0] dec_i1_wdata_wb,
+   output logic [63:0] dec_i1_wdata_wb,
 
    output logic          dec_i0_select_pc_d,    // i0 select pc for rs1 - branches
    output logic          dec_i1_select_pc_d,
@@ -211,7 +211,7 @@ module dec_decode_ctl
    output logic        dec_csr_wen_wb,      // csr write enable at wb
    output logic [11:0] dec_csr_rdaddr_d,      // read address for csr
    output logic [11:0] dec_csr_wraddr_wb,     // write address for csr
-   output logic [31:0] dec_csr_wrdata_wb,   // csr write data at wb
+   output logic [63:0] dec_csr_wrdata_wb,   // csr write data at wb
    output logic        dec_csr_stall_int_ff, // csr is mie/mstatus
 
    output              dec_tlu_i0_valid_e4,  // i0 valid inst at e4
@@ -220,43 +220,43 @@ module dec_decode_ctl
    output              trap_pkt_t dec_tlu_packet_e4,   // trap packet
 
    output logic        dec_fence_pending, // tell TLU to stall DMA
-   output logic [31:1] dec_tlu_i0_pc_e4,  // i0 trap pc
-   output logic [31:1] dec_tlu_i1_pc_e4,
+   output logic [63:1] dec_tlu_i0_pc_e4,  // i0 trap pc
+   output logic [63:1] dec_tlu_i1_pc_e4,
 
    output logic [31:0] dec_illegal_inst,        // illegal inst
    output logic        dec_i1_valid_e1,         // i1 valid e1
    output logic        dec_div_decode_e4,       // i0 div e4
-   output logic [31:1] pred_correct_npc_e2,     // npc e2 if the prediction is correct
+   output logic [63:1] pred_correct_npc_e2,     // npc e2 if the prediction is correct
    output logic        dec_i0_rs1_bypass_en_e3, // i0 rs1 bypass enables e3
    output logic        dec_i0_rs2_bypass_en_e3, // i1 rs1 bypass enables e3
    output logic        dec_i1_rs1_bypass_en_e3,
    output logic        dec_i1_rs2_bypass_en_e3,
-   output logic [31:0] i0_rs1_bypass_data_e3,   // i0 rs1 bypass data e3
-   output logic [31:0] i0_rs2_bypass_data_e3,   // i1 rs1 bypass data e3
-   output logic [31:0] i1_rs1_bypass_data_e3,
-   output logic [31:0] i1_rs2_bypass_data_e3,
+   output logic [63:0] i0_rs1_bypass_data_e3,   // i0 rs1 bypass data e3
+   output logic [63:0] i0_rs2_bypass_data_e3,   // i1 rs1 bypass data e3
+   output logic [63:0] i1_rs1_bypass_data_e3,
+   output logic [63:0] i1_rs2_bypass_data_e3,
    output logic        dec_i0_sec_decode_e3,    // i0 secondary alu e3
    output logic        dec_i1_sec_decode_e3,    // i1 secondary alu e3
-   output logic [31:1] dec_i0_pc_e3,            // i0 pc e3
-   output logic [31:1] dec_i1_pc_e3,            // i1 pc e3
+   output logic [63:1] dec_i0_pc_e3,            // i0 pc e3
+   output logic [63:1] dec_i1_pc_e3,            // i1 pc e3
 
    output logic        dec_i0_rs1_bypass_en_e2, // i0 rs1 bypass enable e2
    output logic        dec_i0_rs2_bypass_en_e2, // i0 rs2 bypass enable e2
    output logic        dec_i1_rs1_bypass_en_e2,
    output logic        dec_i1_rs2_bypass_en_e2,
-   output logic [31:0] i0_rs1_bypass_data_e2,   // i0 rs1 bypass data e2
-   output logic [31:0] i0_rs2_bypass_data_e2,   // i0 rs2 bypass data e2
-   output logic [31:0] i1_rs1_bypass_data_e2,
-   output logic [31:0] i1_rs2_bypass_data_e2,
+   output logic [63:0] i0_rs1_bypass_data_e2,   // i0 rs1 bypass data e2
+   output logic [63:0] i0_rs2_bypass_data_e2,   // i0 rs2 bypass data e2
+   output logic [63:0] i1_rs1_bypass_data_e2,
+   output logic [63:0] i1_rs2_bypass_data_e2,
 
    output predict_pkt_t  i0_predict_p_d,        // i0 predict packet decode
    output predict_pkt_t  i1_predict_p_d,
 
    output logic          dec_i0_lsu_decode_d,   // i0 lsu decode
 
-   output logic [31:0] i0_result_e4_eff,        // i0 e4 result taking freeze into account
-   output logic [31:0] i1_result_e4_eff,
-   output logic [31:0] i0_result_e2,            // i0 result e2
+   output logic [63:0] i0_result_e4_eff,        // i0 e4 result taking freeze into account
+   output logic [63:0] i1_result_e4_eff,
+   output logic [63:0] i0_result_e2,            // i0 result e2
 
    output logic [4:2] dec_i0_data_en,           // clock-gating logic
    output logic [4:1] dec_i0_ctl_en,
@@ -290,16 +290,16 @@ module dec_decode_ctl
    logic [31:0]        i0, i1;
    logic               i0_valid_d, i1_valid_d;
 
-   logic [31:0]        i0_result_e1, i1_result_e1;
-   logic [31:0]                      i1_result_e2;
-   logic [31:0]        i0_result_e3, i1_result_e3;
-   logic [31:0]        i0_result_e4, i1_result_e4;
-   logic [31:0]        i0_result_wb, i1_result_wb;
+   logic [63:0]        i0_result_e1, i1_result_e1;
+   logic [63:0]                      i1_result_e2;
+   logic [63:0]        i0_result_e3, i1_result_e3;
+   logic [63:0]        i0_result_e4, i1_result_e4;
+   logic [63:0]        i0_result_wb, i1_result_wb;
 
-   logic [31:1]        i0_pc_e1, i1_pc_e1;
-   logic [31:1]        i0_pc_e2, i1_pc_e2;
-   logic [31:1]        i0_pc_e3, i1_pc_e3;
-   logic [31:1]        i0_pc_e4, i1_pc_e4;
+   logic [63:1]        i0_pc_e1, i1_pc_e1;
+   logic [63:1]        i0_pc_e2, i1_pc_e2;
+   logic [63:1]        i0_pc_e3, i1_pc_e3;
+   logic [63:1]        i0_pc_e4, i1_pc_e4;
 
    logic [9:0]         i0_rs1bypass, i0_rs2bypass;
    logic [9:0]         i1_rs1bypass, i1_rs2bypass;
@@ -310,7 +310,7 @@ module dec_decode_ctl
    //logic             flush_final_e3;
 
    logic               lsu_decode_d;
-   logic [31:0]        i0_immed_d;
+   logic [63:0]        i0_immed_d;
    logic               i0_presync;
    logic               i0_postsync;
 
@@ -323,15 +323,15 @@ module dec_decode_ctl
 
 
    logic        csr_clr_e1,csr_set_e1,csr_write_e1,csr_imm_e1;
-   logic [31:0] csr_mask_e1;
-   logic [31:0] write_csr_data_e1;
-   logic [31:0] write_csr_data_in;
-   logic [31:0] write_csr_data;
+   logic [63:0] csr_mask_e1;
+   logic [63:0] write_csr_data_e1;
+   logic [63:0] write_csr_data_in;
+   logic [63:0] write_csr_data;
    logic               csr_data_wen;
 
    logic [4:0]         csrimm_e1;
 
-   logic [31:0]        csr_rddata_e1;
+   logic [63:0]        csr_rddata_e1;
 
    logic               flush_lower_wb;
 
@@ -341,7 +341,7 @@ module dec_decode_ctl
    logic               i1_mul2_block_d;
    logic               mul_decode_d;
    logic               div_decode_d;
-   logic [31:1]        div_pc;
+   logic [63:1]        div_pc;
    logic               div_stall, div_stall_ff;
    logic [3:0]         div_trigger;
 
@@ -354,8 +354,8 @@ module dec_decode_ctl
 
    logic               i1_flush_final_e3;
 
-   logic [31:0]        i0_result_e3_final, i1_result_e3_final;
-   logic [31:0]        i0_result_wb_raw,   i1_result_wb_raw;
+   logic [63:0]        i0_result_e3_final, i1_result_e3_final;
+   logic [63:0]        i0_result_wb_raw,   i1_result_wb_raw;
    logic [12:1] last_br_immed_d;
    logic        i1_depend_i0_d;
    logic        i0_rs1_depend_i0_e1, i0_rs1_depend_i0_e2, i0_rs1_depend_i0_e3, i0_rs1_depend_i0_e4, i0_rs1_depend_i0_wb;
@@ -372,7 +372,7 @@ module dec_decode_ctl
    logic        i0_secondary_block_d, i1_secondary_block_d;
    logic        non_block_case_d;
    logic        i0_div_decode_d;
-   logic [31:0] i0_result_e4_final, i1_result_e4_final;
+   logic [63:0] i0_result_e4_final, i1_result_e4_final;
    logic        i0_load_block_d;
    logic        i0_mul_block_d;
    logic [3:0]  i0_rs1_depth_d, i0_rs2_depth_d;
@@ -419,9 +419,9 @@ module dec_decode_ctl
 
    logic        freeze_prior1, freeze_prior2;
 
-   logic [31:0] i0_result_e4_freeze, i1_result_e4_freeze;
-   logic [31:0] i0_result_wb_freeze, i1_result_wb_freeze;
-   logic [31:0] i1_result_wb_eff, i0_result_wb_eff;
+   logic [63:0] i0_result_e4_freeze, i1_result_e4_freeze;
+   logic [63:0] i0_result_wb_freeze, i1_result_wb_freeze;
+   logic [63:0] i1_result_wb_eff, i0_result_wb_eff;
    logic [2:0]  i1rs1_intra, i1rs2_intra;
    logic        i1_rs1_intra_bypass, i1_rs2_intra_bypass;
    logic        store_data_bypass_c1, store_data_bypass_c2;
@@ -492,7 +492,7 @@ module dec_decode_ctl
    logic pause_state_in, pause_state;
    logic pause_stall;
 
-   logic [31:1] i1_pc_wb;
+   logic [63:1] i1_pc_wb;
 
    logic        i0_brp_valid;
    logic        nonblock_load_cancel;
@@ -567,9 +567,9 @@ module dec_decode_ctl
    logic [31:0]        i0_inst_wb1,i1_inst_wb1;
 
    logic [31:0]        div_inst;
-   logic [31:1] i0_pc_wb, i0_pc_wb1;
-   logic [31:1]           i1_pc_wb1;
-   logic [31:1] last_pc_e2;
+   logic [63:1] i0_pc_wb, i0_pc_wb1;
+   logic [63:1]           i1_pc_wb1;
+   logic [63:1] last_pc_e2;
 
    reg_pkt_t i0r, i1r;
 
@@ -604,7 +604,7 @@ module dec_decode_ctl
    assign      i0_predict_p_d.pcall  =  i0_pcall;  // dont mark as pcall if branch error
    assign      i0_predict_p_d.pja    =  i0_pja;
    assign      i0_predict_p_d.pret   =  i0_pret;
-   assign      i0_predict_p_d.prett[31:1] = dec_i0_brp.prett[31:1];
+   assign      i0_predict_p_d.prett[63:1] = dec_i0_brp.prett[63:1];
    assign      i0_predict_p_d.pc4 = dec_i0_pc4_d;
    assign      i0_predict_p_d.hist[1:0] = dec_i0_brp.hist[1:0];
    assign      i0_predict_p_d.valid = i0_brp_valid & i0_legal_decode_d;
@@ -632,7 +632,7 @@ module dec_decode_ctl
    assign      i1_predict_p_d.pcall  =  i1_pcall;
    assign      i1_predict_p_d.pja    =  i1_pja;
    assign      i1_predict_p_d.pret   =  i1_pret;
-   assign      i1_predict_p_d.prett[31:1] = dec_i1_brp.prett[31:1];
+   assign      i1_predict_p_d.prett[63:1] = dec_i1_brp.prett[63:1];
    assign      i1_predict_p_d.pc4 = dec_i1_pc4_d;
    assign      i1_predict_p_d.hist[1:0] = dec_i1_brp.hist[1:0];
    assign      i1_predict_p_d.valid = dec_i1_brp.valid & dec_i1_decode_d;
@@ -720,7 +720,30 @@ module dec_decode_ctl
    assign i0_ap.bne =    i0_dp.bne;
    assign i0_ap.blt =    i0_dp.blt;
    assign i0_ap.bge =    i0_dp.bge;
+   assign i0_ap.word =   i0_dp.wpostfix;
 
+   // added for rvb
+   assign i0_ap.clz = i0_dp.clz;
+   assign i0_ap.ctz = i0_dp.ctz;
+   assign i0_ap.cpop = i0_dp.cpop;
+   assign i0_ap.sext_b = i0_dp.sext_b;
+   assign i0_ap.sext_h = i0_dp.sext_h;
+   assign i0_ap.zext_h = i0_dp.zext_h;
+   assign i0_ap.min = i0_dp.min;
+   assign i0_ap.max = i0_dp.max;
+   assign i0_ap.rol = i0_dp.rol;
+   assign i0_ap.ror = i0_dp.ror;
+   assign i0_ap.bset = i0_dp.bset;
+   assign i0_ap.bclr = i0_dp.bclr;
+   assign i0_ap.binv = i0_dp.binv;
+   assign i0_ap.bext = i0_dp.bext;
+   assign i0_ap.sh1add = i0_dp.sh1add;
+   assign i0_ap.sh2add = i0_dp.sh2add;
+   assign i0_ap.sh3add = i0_dp.sh3add;
+   assign i0_ap.orc_b = i0_dp.orc_b;
+   assign i0_ap.rev8 = i0_dp.rev8;
+   assign i0_ap.dotuw = i0_dp.dotuw;
+   assign i0_ap.rs2neg = i0_dp.rs2neg;
 
 
    assign i0_ap.csr_write = i0_csr_write_only_d;
@@ -754,6 +777,30 @@ module dec_decode_ctl
    assign i1_ap.bne =    i1_dp.bne;
    assign i1_ap.blt =    i1_dp.blt;
    assign i1_ap.bge =    i1_dp.bge;
+   assign i1_ap.word =   i1_dp.wpostfix;
+
+   // added for rvb
+   assign i1_ap.clz = i1_dp.clz;
+   assign i1_ap.ctz = i1_dp.ctz;
+   assign i1_ap.cpop = i1_dp.cpop;
+   assign i1_ap.sext_b = i1_dp.sext_b;
+   assign i1_ap.sext_h = i1_dp.sext_h;
+   assign i1_ap.zext_h = i1_dp.zext_h;
+   assign i1_ap.min = i1_dp.min;
+   assign i1_ap.max = i1_dp.max;
+   assign i1_ap.rol = i1_dp.rol;
+   assign i1_ap.ror = i1_dp.ror;
+   assign i1_ap.bset = i1_dp.bset;
+   assign i1_ap.bclr = i1_dp.bclr;
+   assign i1_ap.binv = i1_dp.binv;
+   assign i1_ap.bext = i1_dp.bext;
+   assign i1_ap.sh1add = i1_dp.sh1add;
+   assign i1_ap.sh2add = i1_dp.sh2add;
+   assign i1_ap.sh3add = i1_dp.sh3add;
+   assign i1_ap.orc_b = i1_dp.orc_b;
+   assign i1_ap.rev8 = i1_dp.rev8;
+   assign i1_ap.dotuw = i1_dp.dotuw;
+   assign i1_ap.rs2neg = i1_dp.rs2neg;
 
    assign i1_ap.csr_write = 1'b0;
    assign i1_ap.csr_imm   = 1'b0;
@@ -957,6 +1004,8 @@ end : cam_array
          if (i0_dp.load)                 i0_itype = LOAD;
          if (i0_dp.store)                i0_itype = STORE;
          if (i0_dp.pm_alu)               i0_itype = ALU;
+         if (i0_dp.zba | i0_dp.zbb |
+             i0_dp.zbc | i0_dp.zbs)      i0_itype = BITMANIPU;
          if ( csr_read & ~csr_write)     i0_itype = CSRREAD;
          if (~csr_read &  csr_write)     i0_itype = CSRWRITE;
          if ( csr_read &  csr_write)     i0_itype = CSRRW;
@@ -974,6 +1023,8 @@ end : cam_array
          if (i1_dp.load)                 i1_itype = LOAD;
          if (i1_dp.store)                i1_itype = STORE;
          if (i1_dp.pm_alu)               i1_itype = ALU;
+         if (i1_dp.zba | i1_dp.zbb |
+             i1_dp.zbc | i1_dp.zbs)      i1_itype = BITMANIPU;
          if (i1_dp.condbr)               i1_itype = CONDBR;
          if (i1_dp.jal)                  i1_itype = JAL;
       end
@@ -1076,30 +1127,35 @@ end : cam_array
    assign dec_i1_div_d = i1_dp.div;
 
 
-   assign div_p.valid = div_decode_d;
+   assign div_p.valid  = div_decode_d;
 
-   assign div_p.unsign = (i0_dp.div) ? i0_dp.unsign :   i1_dp.unsign;
-   assign div_p.rem  =   (i0_dp.div) ? i0_dp.rem    :   i1_dp.rem;
+   assign div_p.unsign =   (i0_dp.div) ? i0_dp.unsign   :   i1_dp.unsign;
+   assign div_p.rem    =   (i0_dp.div) ? i0_dp.rem      :   i1_dp.rem;
+   assign div_p.word   =   (i0_dp.div) ? i0_dp.wpostfix :   i1_dp.wpostfix;
 
 
-   assign mul_p.valid = mul_decode_d;
+   assign mul_p.valid    =   mul_decode_d;
 
    assign mul_p.rs1_sign =   (i0_dp.mul) ? i0_dp.rs1_sign :   i1_dp.rs1_sign;
    assign mul_p.rs2_sign =   (i0_dp.mul) ? i0_dp.rs2_sign :   i1_dp.rs2_sign;
    assign mul_p.low      =   (i0_dp.mul) ? i0_dp.low      :   i1_dp.low;
+   assign mul_p.word     =   (i0_dp.mul) ? i0_dp.wpostfix :   i1_dp.wpostfix;
 
    assign mul_p.load_mul_rs1_bypass_e1 = load_mul_rs1_bypass_e1;
    assign mul_p.load_mul_rs2_bypass_e1 = load_mul_rs2_bypass_e1;
 
+   // added for rvb
+   assign mul_p.clmul   = (i0_dp.mul) ? i0_dp.clmul   :   i1_dp.clmul;
+   assign mul_p.reverse = (i0_dp.mul) ? i0_dp.reverse :   i1_dp.reverse;
 
    assign lsu_p.valid = lsu_decode_d;
 
-   assign lsu_p.load =   (i0_dp.lsu) ? i0_dp.load :   i1_dp.load;
-   assign lsu_p.store =  (i0_dp.lsu) ? i0_dp.store :  i1_dp.store;
-   assign lsu_p.by =     (i0_dp.lsu) ? i0_dp.by :     i1_dp.by;
-   assign lsu_p.half =   (i0_dp.lsu) ? i0_dp.half :   i1_dp.half;
-   assign lsu_p.word =   (i0_dp.lsu) ? i0_dp.word :   i1_dp.word;
-   assign lsu_p.dword = '0;
+   assign lsu_p.load =   (i0_dp.lsu) ? i0_dp.load  :   i1_dp.load;
+   assign lsu_p.store =  (i0_dp.lsu) ? i0_dp.store :   i1_dp.store;
+   assign lsu_p.by =     (i0_dp.lsu) ? i0_dp.by    :   i1_dp.by;
+   assign lsu_p.half =   (i0_dp.lsu) ? i0_dp.half  :   i1_dp.half;
+   assign lsu_p.word =   (i0_dp.lsu) ? i0_dp.word  :   i1_dp.word;
+   assign lsu_p.dword =  (i0_dp.lsu) ? i0_dp.dword :   i1_dp.dword;
    assign lsu_p.dma = '0;
    assign lsu_p.store_data_bypass_i0_e2_c2   = store_data_bypass_i0_e2_c2;  // has priority over all else
    assign lsu_p.load_ldst_bypass_c1 = load_ldst_bypass_c1;
@@ -1180,23 +1236,23 @@ end : cam_array
 
    // perform the update operation if any
 
-   rvdffe #(37) csr_data_e1ff (.*, .en(i0_e1_data_en), .din( {i0[19:15],dec_csr_rddata_d[31:0]}), .dout({csrimm_e1[4:0],csr_rddata_e1[31:0]}));
+   rvdffe #(69) csr_data_e1ff (.*, .en(i0_e1_data_en), .din( {i0[19:15],dec_csr_rddata_d[63:0]}), .dout({csrimm_e1[4:0],csr_rddata_e1[63:0]}));
 
 
-   assign csr_mask_e1[31:0] = ({32{ csr_imm_e1}} & {27'b0,csrimm_e1[4:0]}) |
-                              ({32{~csr_imm_e1}} &  exu_csr_rs1_e1[31:0]);
+   assign csr_mask_e1[63:0] = ({64{ csr_imm_e1}} & {59'b0,csrimm_e1[4:0]}) |
+                              ({64{~csr_imm_e1}} &  exu_csr_rs1_e1[63:0]);
 
 
-   assign write_csr_data_e1[31:0] = ({32{csr_clr_e1}}   & (csr_rddata_e1[31:0] & ~csr_mask_e1[31:0])) |
-                                    ({32{csr_set_e1}}   & (csr_rddata_e1[31:0] |  csr_mask_e1[31:0])) |
-                                    ({32{csr_write_e1}} & (                       csr_mask_e1[31:0]));
+   assign write_csr_data_e1[63:0] = ({64{csr_clr_e1}}   & (csr_rddata_e1[63:0] & ~csr_mask_e1[63:0])) |
+                                    ({64{csr_set_e1}}   & (csr_rddata_e1[63:0] |  csr_mask_e1[63:0])) |
+                                    ({64{csr_write_e1}} & (                       csr_mask_e1[63:0]));
 
 
 // pause instruction
 //   logic pause_state_ff;
 
    assign clear_pause = (dec_tlu_flush_lower_wb & ~dec_tlu_flush_pause_wb) |
-                        (pause_state & (write_csr_data[31:1] == 31'b0));        // if 0 or 1 then exit pause state - 1 cycle pause
+                        (pause_state & (write_csr_data[63:1] == 63'b0));        // if 0 or 1 then exit pause state - 1 cycle pause
 
    assign pause_state_in = (dec_tlu_wr_pause_wb | pause_state) & ~clear_pause;
 
@@ -1215,30 +1271,30 @@ end : cam_array
 
    assign csr_data_wen = ((csr_clr_e1 | csr_set_e1 | csr_write_e1) & csr_read_e1 & ~freeze) | dec_tlu_wr_pause_wb | pause_state;
 
-   assign write_csr_data_in[31:0] = (pause_state)         ? (write_csr_data[31:0] - 32'b1) :
-                                    (dec_tlu_wr_pause_wb) ? dec_csr_wrdata_wb[31:0] : write_csr_data_e1[31:0];
+   assign write_csr_data_in[63:0] = (pause_state)         ? (write_csr_data[63:0] - 64'b1) :
+                                    (dec_tlu_wr_pause_wb) ? dec_csr_wrdata_wb[63:0] : write_csr_data_e1[63:0];
 
    // will hold until write-back at which time the CSR will be updated while GPR is possibly written with prior CSR
-   rvdffe #(32) write_csr_ff (.*, .en(csr_data_wen), .din(write_csr_data_in[31:0]), .dout(write_csr_data[31:0]));
+   rvdffe #(64) write_csr_ff (.*, .en(csr_data_wen), .din(write_csr_data_in[63:0]), .dout(write_csr_data[63:0]));
 
    assign pause_stall = pause_state;
 
    // for csr write only data is produced by the alu
-   assign dec_csr_wrdata_wb[31:0] = (wbd.csrwonly) ? i0_result_wb[31:0] : write_csr_data[31:0];
+   assign dec_csr_wrdata_wb[63:0] = (wbd.csrwonly) ? i0_result_wb[63:0] : write_csr_data[63:0];
 
 
 
 // read the csr value through rs2 immed port
-   assign dec_i0_immed_d[31:0] = ({32{ i0_dp.csr_read}} & dec_csr_rddata_d[31:0]) |
-                                 ({32{~i0_dp.csr_read}} & i0_immed_d[31:0]);
+   assign dec_i0_immed_d[63:0] = ({64{ i0_dp.csr_read}} & dec_csr_rddata_d[63:0]) |
+                                 ({64{~i0_dp.csr_read}} & i0_immed_d[63:0]);
 
 // end csr stuff
 
-   assign     i0_immed_d[31:0] = ({32{i0_dp.imm12}} &   { {20{i0[31]}},i0[31:20] }) |  // jalr
-                                 ({32{i0_dp.shimm5}} &    {27'b0, i0[24:20]}) |
-                                 ({32{i0_jalimm20}} &   { {12{i0[31]}},i0[19:12],i0[20],i0[30:21],1'b0}) |
-                                 ({32{i0_uiimm20}}  &     {i0[31:12],12'b0 }) |
-                                 ({32{i0_csr_write_only_d & i0_dp.csr_imm}} & {27'b0,i0[19:15]});  // for csr's that only write csr, dont read csr
+   assign     i0_immed_d[63:0] = ({64{i0_dp.imm12}} &   { {52{i0[31]}},i0[31:20] }) |  // jalr
+                                 ({64{i0_dp.shimm6}} &    {58'b0, i0[25:20]}) |
+                                 ({64{i0_jalimm20}} &   { {44{i0[31]}},i0[19:12],i0[20],i0[30:21],1'b0}) |
+                                 ({64{i0_uiimm20}}  &     {{32{i0[31]}}, i0[31:12],12'b0 }) |
+                                 ({64{i0_csr_write_only_d & i0_dp.csr_imm}} & {59'b0,i0[19:15]});  // for csr's that only write csr, dont read csr
 
 
 //   assign dec_i0_br_immed_d[12:1] = ({12{ i0_ap.predict_nt }} &           {i0[31],i0[7],i0[30:25],i0[11:8]}) |
@@ -1258,10 +1314,10 @@ end : cam_array
    assign i1_rd_d[4:0] = i1r.rd[4:0];
 
 
-   assign dec_i1_immed_d[31:0] = ({32{i1_dp.imm12}} &   { {20{i1[31]}},i1[31:20] }) |
-                                 ({32{i1_dp.shimm5}} &    {27'b0, i1[24:20]}) |
-                                 ({32{i1_jalimm20}} &   { {12{i1[31]}},i1[19:12],i1[20],i1[30:21],1'b0}) |
-                                 ({32{i1_uiimm20}}  &     {i1[31:12],12'b0 });
+   assign dec_i1_immed_d[63:0] = ({64{i1_dp.imm12}} &   { {52{i1[31]}},i1[31:20] }) |
+                                 ({64{i1_dp.shimm6}} &    {58'b0, i1[25:20]}) |
+                                 ({64{i1_jalimm20}} &   { {44{i1[31]}},i1[19:12],i1[20],i1[30:21],1'b0}) |
+                                 ({64{i1_uiimm20}}  &     {{32{i1[31]}}, i1[31:12],12'b0 });
 
 
    // jal is always +2 or +4
@@ -1551,20 +1607,20 @@ end : cam_array
    assign unfreeze_cycle1 = ~freeze & freeze_prior1;
    assign unfreeze_cycle2 = ~freeze & ~freeze_prior1 & freeze_prior2;
 
-   rvdffe #(32) freeze_i0_e4ff (.*, .en(freeze_after_unfreeze1), .din(i0_result_e4_final[31:0]), .dout(i0_result_e4_freeze[31:0]));
-   rvdffe #(32) freeze_i1_e4ff (.*, .en(freeze_after_unfreeze1), .din(i1_result_e4_final[31:0]), .dout(i1_result_e4_freeze[31:0]));
+   rvdffe #(64) freeze_i0_e4ff (.*, .en(freeze_after_unfreeze1), .din(i0_result_e4_final[63:0]), .dout(i0_result_e4_freeze[63:0]));
+   rvdffe #(64) freeze_i1_e4ff (.*, .en(freeze_after_unfreeze1), .din(i1_result_e4_final[63:0]), .dout(i1_result_e4_freeze[63:0]));
 
 
-   rvdffe #(32) freeze_i0_wbff (.*,
+   rvdffe #(64) freeze_i0_wbff (.*,
                               .en(freeze_after_unfreeze1),
-                              .din( (freeze_after_unfreeze2) ? i0_result_wb[31:0] : i0_result_e4_freeze[31:0]),
-                              .dout(i0_result_wb_freeze[31:0])
+                              .din( (freeze_after_unfreeze2) ? i0_result_wb[63:0] : i0_result_e4_freeze[63:0]),
+                              .dout(i0_result_wb_freeze[63:0])
                               );
 
-   rvdffe #(32) freeze_i1_wbff (.*,
+   rvdffe #(64) freeze_i1_wbff (.*,
                               .en(freeze_after_unfreeze1),
-                              .din( (freeze_after_unfreeze2) ? i1_result_wb[31:0] : i1_result_e4_freeze[31:0]),
-                              .dout(i1_result_wb_freeze[31:0])
+                              .din( (freeze_after_unfreeze2) ? i1_result_wb[63:0] : i1_result_e4_freeze[63:0]),
+                              .dout(i1_result_wb_freeze[63:0])
                               );
 
 
@@ -1584,26 +1640,26 @@ end : cam_array
                                   i1_dp.alu & i1_rs2_depth_d[3:0] == 4'd6 & i1_rs2_class_d.sec };
 
 
-   assign i1_result_wb_eff[31:0] = (unfreeze_cycle1) ? i1_result_wb_freeze[31:0] :
-                                   (unfreeze_cycle2) ? i1_result_e4_freeze[31:0] :
-                                   i1_result_wb[31:0];
+   assign i1_result_wb_eff[63:0] = (unfreeze_cycle1) ? i1_result_wb_freeze[63:0] :
+                                   (unfreeze_cycle2) ? i1_result_e4_freeze[63:0] :
+                                   i1_result_wb[63:0];
 
-   assign i0_result_wb_eff[31:0] = (unfreeze_cycle1) ? i0_result_wb_freeze[31:0] :
-                                   (unfreeze_cycle2) ? i0_result_e4_freeze[31:0] :
-                                   i0_result_wb[31:0];
+   assign i0_result_wb_eff[63:0] = (unfreeze_cycle1) ? i0_result_wb_freeze[63:0] :
+                                   (unfreeze_cycle2) ? i0_result_e4_freeze[63:0] :
+                                   i0_result_wb[63:0];
 
 
-   assign i0_rs1_bypass_data_e2[31:0] = ({32{e2d.i0rs1bype2[1]}} & i1_result_wb_eff[31:0]) |
-                                        ({32{e2d.i0rs1bype2[0]}} & i0_result_wb_eff[31:0]);
+   assign i0_rs1_bypass_data_e2[63:0] = ({64{e2d.i0rs1bype2[1]}} & i1_result_wb_eff[63:0]) |
+                                        ({64{e2d.i0rs1bype2[0]}} & i0_result_wb_eff[63:0]);
 
-   assign i0_rs2_bypass_data_e2[31:0] = ({32{e2d.i0rs2bype2[1]}} & i1_result_wb_eff[31:0]) |
-                                        ({32{e2d.i0rs2bype2[0]}} & i0_result_wb_eff[31:0]);
+   assign i0_rs2_bypass_data_e2[63:0] = ({64{e2d.i0rs2bype2[1]}} & i1_result_wb_eff[63:0]) |
+                                        ({64{e2d.i0rs2bype2[0]}} & i0_result_wb_eff[63:0]);
 
-   assign i1_rs1_bypass_data_e2[31:0] = ({32{e2d.i1rs1bype2[1]}} & i1_result_wb_eff[31:0]) |
-                                        ({32{e2d.i1rs1bype2[0]}} & i0_result_wb_eff[31:0]);
+   assign i1_rs1_bypass_data_e2[63:0] = ({64{e2d.i1rs1bype2[1]}} & i1_result_wb_eff[63:0]) |
+                                        ({64{e2d.i1rs1bype2[0]}} & i0_result_wb_eff[63:0]);
 
-   assign i1_rs2_bypass_data_e2[31:0] = ({32{e2d.i1rs2bype2[1]}} & i1_result_wb_eff[31:0]) |
-                                        ({32{e2d.i1rs2bype2[0]}} & i0_result_wb_eff[31:0]);
+   assign i1_rs2_bypass_data_e2[63:0] = ({64{e2d.i1rs2bype2[1]}} & i1_result_wb_eff[63:0]) |
+                                        ({64{e2d.i1rs2bype2[0]}} & i0_result_wb_eff[63:0]);
 
 
    assign dec_i0_rs1_bypass_en_e2 = |e2d.i0rs1bype2[1:0];
@@ -1675,39 +1731,39 @@ end : cam_array
 
 
 
-   assign i1_result_e4_eff[31:0] = (unfreeze_cycle1) ? i1_result_e4_freeze[31:0] :
-                                   i1_result_e4_final[31:0];
+   assign i1_result_e4_eff[63:0] = (unfreeze_cycle1) ? i1_result_e4_freeze[63:0] :
+                                   i1_result_e4_final[63:0];
 
-   assign i0_result_e4_eff[31:0] = (unfreeze_cycle1) ? i0_result_e4_freeze[31:0] :
-                                   i0_result_e4_final[31:0];
-
-
-   assign i0_rs1_bypass_data_e3[31:0] = ({32{e3d.i0rs1bype3[3]}} & i1_result_e4_eff[31:0]) |
-                                        ({32{e3d.i0rs1bype3[2]}} & i0_result_e4_eff[31:0]) |
-                                        ({32{e3d.i0rs1bype3[1]}} & i1_result_wb_eff[31:0]) |
-                                        ({32{e3d.i0rs1bype3[0]}} & i0_result_wb_eff[31:0]);
-
-   assign i0_rs2_bypass_data_e3[31:0] = ({32{e3d.i0rs2bype3[3]}} & i1_result_e4_eff[31:0]) |
-                                        ({32{e3d.i0rs2bype3[2]}} & i0_result_e4_eff[31:0]) |
-                                        ({32{e3d.i0rs2bype3[1]}} & i1_result_wb_eff[31:0]) |
-                                        ({32{e3d.i0rs2bype3[0]}} & i0_result_wb_eff[31:0]);
-
-   assign i1_rs1_bypass_data_e3[31:0] = ({32{e3d.i1rs1bype3[6]}} & i0_result_e3[31:0]) |
-                                        ({32{e3d.i1rs1bype3[5]}} & exu_mul_result_e3[31:0]) |
-                                        ({32{e3d.i1rs1bype3[4]}} & lsu_result_dc3[31:0]) |
-                                        ({32{e3d.i1rs1bype3[3]}} & i1_result_e4_eff[31:0]) |
-                                        ({32{e3d.i1rs1bype3[2]}} & i0_result_e4_eff[31:0]) |
-                                        ({32{e3d.i1rs1bype3[1]}} & i1_result_wb_eff[31:0]) |
-                                        ({32{e3d.i1rs1bype3[0]}} & i0_result_wb_eff[31:0]);
+   assign i0_result_e4_eff[63:0] = (unfreeze_cycle1) ? i0_result_e4_freeze[63:0] :
+                                   i0_result_e4_final[63:0];
 
 
-   assign i1_rs2_bypass_data_e3[31:0] = ({32{e3d.i1rs2bype3[6]}} & i0_result_e3[31:0]) |
-                                        ({32{e3d.i1rs2bype3[5]}} & exu_mul_result_e3[31:0]) |
-                                        ({32{e3d.i1rs2bype3[4]}} & lsu_result_dc3[31:0]) |
-                                        ({32{e3d.i1rs2bype3[3]}} & i1_result_e4_eff[31:0]) |
-                                        ({32{e3d.i1rs2bype3[2]}} & i0_result_e4_eff[31:0]) |
-                                        ({32{e3d.i1rs2bype3[1]}} & i1_result_wb_eff[31:0]) |
-                                        ({32{e3d.i1rs2bype3[0]}} & i0_result_wb_eff[31:0]);
+   assign i0_rs1_bypass_data_e3[63:0] = ({64{e3d.i0rs1bype3[3]}} & i1_result_e4_eff[63:0]) |
+                                        ({64{e3d.i0rs1bype3[2]}} & i0_result_e4_eff[63:0]) |
+                                        ({64{e3d.i0rs1bype3[1]}} & i1_result_wb_eff[63:0]) |
+                                        ({64{e3d.i0rs1bype3[0]}} & i0_result_wb_eff[63:0]);
+
+   assign i0_rs2_bypass_data_e3[63:0] = ({64{e3d.i0rs2bype3[3]}} & i1_result_e4_eff[63:0]) |
+                                        ({64{e3d.i0rs2bype3[2]}} & i0_result_e4_eff[63:0]) |
+                                        ({64{e3d.i0rs2bype3[1]}} & i1_result_wb_eff[63:0]) |
+                                        ({64{e3d.i0rs2bype3[0]}} & i0_result_wb_eff[63:0]);
+
+   assign i1_rs1_bypass_data_e3[63:0] = ({64{e3d.i1rs1bype3[6]}} & i0_result_e3[63:0]) |
+                                        ({64{e3d.i1rs1bype3[5]}} & exu_mul_result_e3[63:0]) |
+                                        ({64{e3d.i1rs1bype3[4]}} & lsu_result_dc3[63:0]) |
+                                        ({64{e3d.i1rs1bype3[3]}} & i1_result_e4_eff[63:0]) |
+                                        ({64{e3d.i1rs1bype3[2]}} & i0_result_e4_eff[63:0]) |
+                                        ({64{e3d.i1rs1bype3[1]}} & i1_result_wb_eff[63:0]) |
+                                        ({64{e3d.i1rs1bype3[0]}} & i0_result_wb_eff[63:0]);
+
+
+   assign i1_rs2_bypass_data_e3[63:0] = ({64{e3d.i1rs2bype3[6]}} & i0_result_e3[63:0]) |
+                                        ({64{e3d.i1rs2bype3[5]}} & exu_mul_result_e3[63:0]) |
+                                        ({64{e3d.i1rs2bype3[4]}} & lsu_result_dc3[63:0]) |
+                                        ({64{e3d.i1rs2bype3[3]}} & i1_result_e4_eff[63:0]) |
+                                        ({64{e3d.i1rs2bype3[2]}} & i0_result_e4_eff[63:0]) |
+                                        ({64{e3d.i1rs2bype3[1]}} & i1_result_wb_eff[63:0]) |
+                                        ({64{e3d.i1rs2bype3[0]}} & i0_result_wb_eff[63:0]);
 
 
 
@@ -2221,14 +2277,14 @@ end : cam_array
    assign     i0_wen_wb = wbd.i0v & ~(~dec_tlu_i1_kill_writeb_wb & ~i1_load_kill_wen & wbd.i0v & wbd.i1v & (wbd.i0rd[4:0] == wbd.i1rd[4:0])) & ~dec_tlu_i0_kill_writeb_wb;
    assign dec_i0_wen_wb = i0_wen_wb & ~i0_load_kill_wen;  // don't write a nonblock load 1st time down the pipe
 
-   assign dec_i0_wdata_wb[31:0] = i0_result_wb[31:0];
+   assign dec_i0_wdata_wb[63:0] = i0_result_wb[63:0];
 
    assign dec_i1_waddr_wb[4:0] = wbd.i1rd[4:0];
 
    assign     i1_wen_wb = wbd.i1v & ~dec_tlu_i1_kill_writeb_wb;
    assign dec_i1_wen_wb = i1_wen_wb & ~i1_load_kill_wen;
 
-   assign dec_i1_wdata_wb[31:0] = i1_result_wb[31:0];
+   assign dec_i1_wdata_wb[63:0] = i1_result_wb[63:0];
 
 // divide stuff
 
@@ -2240,7 +2296,7 @@ end : cam_array
 
    assign i0_div_decode_d = i0_legal_decode_d & i0_dp.div;
 
-   rvdffe #(31) divpcff (.*, .en(i0_div_decode_d), .din(dec_i0_pc_d[31:1]), .dout(div_pc[31:1]));
+   rvdffe #(63) divpcff (.*, .en(i0_div_decode_d), .din(dec_i0_pc_d[63:1]), .dout(div_pc[63:1]));
 
    rvdffs #(4) divtriggerff (.*, .en(i0_div_decode_d), .clk(active_clk), .din(dec_i0_trigger_match_d[3:0]), .dout(div_trigger[3:0]));
 
@@ -2250,39 +2306,39 @@ end : cam_array
    rvdff  #(1) divwbff (.*, .clk(active_clk), .din(exu_div_finish), .dout(div_wen_wb));
 
 
-   assign i0_result_e1[31:0] = exu_i0_result_e1[31:0];
-   assign i1_result_e1[31:0] = exu_i1_result_e1[31:0];
+   assign i0_result_e1[63:0] = exu_i0_result_e1[63:0];
+   assign i1_result_e1[63:0] = exu_i1_result_e1[63:0];
 
    // pipe the results down the pipe
-   rvdffe #(32) i0e2resultff (.*, .en(i0_e2_data_en), .din(i0_result_e1[31:0]), .dout(i0_result_e2[31:0]));
-   rvdffe #(32) i1e2resultff (.*, .en(i1_e2_data_en), .din(i1_result_e1[31:0]), .dout(i1_result_e2[31:0]));
+   rvdffe #(64) i0e2resultff (.*, .en(i0_e2_data_en), .din(i0_result_e1[63:0]), .dout(i0_result_e2[63:0]));
+   rvdffe #(64) i1e2resultff (.*, .en(i1_e2_data_en), .din(i1_result_e1[63:0]), .dout(i1_result_e2[63:0]));
 
-   rvdffe #(32) i0e3resultff (.*, .en(i0_e3_data_en), .din(i0_result_e2[31:0]), .dout(i0_result_e3[31:0]));
-   rvdffe #(32) i1e3resultff (.*, .en(i1_e3_data_en), .din(i1_result_e2[31:0]), .dout(i1_result_e3[31:0]));
-
-
-
-   assign i0_result_e3_final[31:0] = (e3d.i0v & e3d.i0load) ? lsu_result_dc3[31:0] : (e3d.i0v & e3d.i0mul) ? exu_mul_result_e3[31:0] : i0_result_e3[31:0];
-
-   assign i1_result_e3_final[31:0] = (e3d.i1v & e3d.i1load) ? lsu_result_dc3[31:0] : (e3d.i1v & e3d.i1mul) ? exu_mul_result_e3[31:0] : i1_result_e3[31:0];
+   rvdffe #(64) i0e3resultff (.*, .en(i0_e3_data_en), .din(i0_result_e2[63:0]), .dout(i0_result_e3[63:0]));
+   rvdffe #(64) i1e3resultff (.*, .en(i1_e3_data_en), .din(i1_result_e2[63:0]), .dout(i1_result_e3[63:0]));
 
 
 
-   rvdffe #(32) i0e4resultff (.*, .en(i0_e4_data_en), .din(i0_result_e3_final[31:0]), .dout(i0_result_e4[31:0]));
-   rvdffe #(32) i1e4resultff (.*, .en(i1_e4_data_en), .din(i1_result_e3_final[31:0]), .dout(i1_result_e4[31:0]));
+   assign i0_result_e3_final[63:0] = (e3d.i0v & e3d.i0load) ? lsu_result_dc3[63:0] : (e3d.i0v & e3d.i0mul) ? exu_mul_result_e3[63:0] : i0_result_e3[63:0];
 
-   assign i0_result_e4_final[31:0] =
-                                     (          e4d.i0secondary) ? exu_i0_result_e4[31:0] : (e4d.i0v & e4d.i0load) ? lsu_result_corr_dc4[31:0] : i0_result_e4[31:0];
+   assign i1_result_e3_final[63:0] = (e3d.i1v & e3d.i1load) ? lsu_result_dc3[63:0] : (e3d.i1v & e3d.i1mul) ? exu_mul_result_e3[63:0] : i1_result_e3[63:0];
 
-   assign i1_result_e4_final[31:0] =
-                                     (e4d.i1v & e4d.i1secondary) ? exu_i1_result_e4[31:0] : (e4d.i1v & e4d.i1load) ? lsu_result_corr_dc4[31:0] :i1_result_e4[31:0];
 
-   rvdffe #(32) i0wbresultff (.*, .en(i0_wb_data_en), .din(i0_result_e4_final[31:0]), .dout(i0_result_wb_raw[31:0]));
-   rvdffe #(32) i1wbresultff (.*, .en(i1_wb_data_en), .din(i1_result_e4_final[31:0]), .dout(i1_result_wb_raw[31:0]));
 
-   assign i0_result_wb[31:0] = (div_wen_wb) ? exu_div_result[31:0] : i0_result_wb_raw[31:0];
+   rvdffe #(64) i0e4resultff (.*, .en(i0_e4_data_en), .din(i0_result_e3_final[63:0]), .dout(i0_result_e4[63:0]));
+   rvdffe #(64) i1e4resultff (.*, .en(i1_e4_data_en), .din(i1_result_e3_final[63:0]), .dout(i1_result_e4[63:0]));
 
-   assign i1_result_wb[31:0] = i1_result_wb_raw[31:0];
+   assign i0_result_e4_final[63:0] =
+                                     (          e4d.i0secondary) ? exu_i0_result_e4[63:0] : (e4d.i0v & e4d.i0load) ? lsu_result_corr_dc4[63:0] : i0_result_e4[63:0];
+
+   assign i1_result_e4_final[63:0] =
+                                     (e4d.i1v & e4d.i1secondary) ? exu_i1_result_e4[63:0] : (e4d.i1v & e4d.i1load) ? lsu_result_corr_dc4[63:0] :i1_result_e4[63:0];
+
+   rvdffe #(64) i0wbresultff (.*, .en(i0_wb_data_en), .din(i0_result_e4_final[63:0]), .dout(i0_result_wb_raw[63:0]));
+   rvdffe #(64) i1wbresultff (.*, .en(i1_wb_data_en), .din(i1_result_e4_final[63:0]), .dout(i1_result_wb_raw[63:0]));
+
+   assign i0_result_wb[63:0] = (div_wen_wb) ? exu_div_result[63:0] : i0_result_wb_raw[63:0];
+
+   assign i1_result_wb[63:0] = i1_result_wb_raw[63:0];
 
 
    rvdffe #(12) e1brpcff (.*, .en(i0_e1_data_en), .din(last_br_immed_d[12:1] ), .dout(last_br_immed_e1[12:1]));
@@ -2316,46 +2372,46 @@ end : cam_array
    assign dec_i1_inst_wb1[31:0] = i1_inst_wb1[31:0];
 
 
-   rvdffe #(31) i0wbpcff  (.*, .en(i0_wb_data_en | exu_div_finish), .din(dec_tlu_i0_pc_e4[31:1]), .dout(i0_pc_wb[31:1]));
-   rvdffe #(31) i0wb1pcff (.*, .en(i0_wb1_data_en | div_wen_wb),    .din(i0_pc_wb[31:1]),         .dout(i0_pc_wb1[31:1]));
+   rvdffe #(63) i0wbpcff  (.*, .en(i0_wb_data_en | exu_div_finish), .din(dec_tlu_i0_pc_e4[63:1]), .dout(i0_pc_wb[63:1]));
+   rvdffe #(63) i0wb1pcff (.*, .en(i0_wb1_data_en | div_wen_wb),    .din(i0_pc_wb[63:1]),         .dout(i0_pc_wb1[63:1]));
 
-   rvdffe #(31) i1wb1pcff (.*, .en(i1_wb1_data_en),.din(i1_pc_wb[31:1]),         .dout(i1_pc_wb1[31:1]));
+   rvdffe #(63) i1wb1pcff (.*, .en(i1_wb1_data_en),.din(i1_pc_wb[63:1]),         .dout(i1_pc_wb1[63:1]));
 
-   assign dec_i0_pc_wb1[31:1] = i0_pc_wb1[31:1];
-   assign dec_i1_pc_wb1[31:1] = i1_pc_wb1[31:1];
+   assign dec_i0_pc_wb1[63:1] = i0_pc_wb1[63:1];
+   assign dec_i1_pc_wb1[63:1] = i1_pc_wb1[63:1];
 
 
    // pipe the pc's down the pipe
-   assign i0_pc_e1[31:1] = exu_i0_pc_e1[31:1];
-   assign i1_pc_e1[31:1] = exu_i1_pc_e1[31:1];
+   assign i0_pc_e1[63:1] = exu_i0_pc_e1[63:1];
+   assign i1_pc_e1[63:1] = exu_i1_pc_e1[63:1];
 
-   rvdffe #(31) i0e2pcff (.*, .en(i0_e2_data_en), .din(i0_pc_e1[31:1]), .dout(i0_pc_e2[31:1]));
-   rvdffe #(31) i0e3pcff (.*, .en(i0_e3_data_en), .din(i0_pc_e2[31:1]), .dout(i0_pc_e3[31:1]));
-   rvdffe #(31) i0e4pcff (.*, .en(i0_e4_data_en), .din(i0_pc_e3[31:1]), .dout(i0_pc_e4[31:1]));
-   rvdffe #(31) i1e2pcff (.*, .en(i1_e2_data_en), .din(i1_pc_e1[31:1]), .dout(i1_pc_e2[31:1]));
-   rvdffe #(31) i1e3pcff (.*, .en(i1_e3_data_en), .din(i1_pc_e2[31:1]), .dout(i1_pc_e3[31:1]));
-   rvdffe #(31) i1e4pcff (.*, .en(i1_e4_data_en), .din(i1_pc_e3[31:1]), .dout(i1_pc_e4[31:1]));
+   rvdffe #(63) i0e2pcff (.*, .en(i0_e2_data_en), .din(i0_pc_e1[63:1]), .dout(i0_pc_e2[63:1]));
+   rvdffe #(63) i0e3pcff (.*, .en(i0_e3_data_en), .din(i0_pc_e2[63:1]), .dout(i0_pc_e3[63:1]));
+   rvdffe #(63) i0e4pcff (.*, .en(i0_e4_data_en), .din(i0_pc_e3[63:1]), .dout(i0_pc_e4[63:1]));
+   rvdffe #(63) i1e2pcff (.*, .en(i1_e2_data_en), .din(i1_pc_e1[63:1]), .dout(i1_pc_e2[63:1]));
+   rvdffe #(63) i1e3pcff (.*, .en(i1_e3_data_en), .din(i1_pc_e2[63:1]), .dout(i1_pc_e3[63:1]));
+   rvdffe #(63) i1e4pcff (.*, .en(i1_e4_data_en), .din(i1_pc_e3[63:1]), .dout(i1_pc_e4[63:1]));
 
-   assign dec_i0_pc_e3[31:1] = i0_pc_e3[31:1];
-   assign dec_i1_pc_e3[31:1] = i1_pc_e3[31:1];
+   assign dec_i0_pc_e3[63:1] = i0_pc_e3[63:1];
+   assign dec_i1_pc_e3[63:1] = i1_pc_e3[63:1];
 
 
-   assign dec_tlu_i0_pc_e4[31:1] = (exu_div_finish) ? div_pc[31:1] : i0_pc_e4[31:1];
-   assign dec_tlu_i1_pc_e4[31:1] = i1_pc_e4[31:1];
+   assign dec_tlu_i0_pc_e4[63:1] = (exu_div_finish) ? div_pc[63:1] : i0_pc_e4[63:1];
+   assign dec_tlu_i1_pc_e4[63:1] = i1_pc_e4[63:1];
 
    // generate the correct npc for correct br predictions
-   assign last_pc_e2[31:1] = (e2d.i1valid) ? i1_pc_e2[31:1] : i0_pc_e2[31:1];
+   assign last_pc_e2[63:1] = (e2d.i1valid) ? i1_pc_e2[63:1] : i0_pc_e2[63:1];
 
    rvbradder ibradder_correct (
-                     .pc(last_pc_e2[31:1]),
+                     .pc(last_pc_e2[63:1]),
                      .offset(last_br_immed_e2[12:1]),
-                     .dout(pred_correct_npc_e2[31:1])
+                     .dout(pred_correct_npc_e2[63:1])
                      );
 
 
 
    // needed for debug triggers
-   rvdffe #(31) i1wbpcff (.*, .en(i1_wb_data_en), .din(dec_tlu_i1_pc_e4[31:1]), .dout(i1_pc_wb[31:1]));
+   rvdffe #(63) i1wbpcff (.*, .en(i1_wb_data_en), .din(dec_tlu_i1_pc_e4[63:1]), .dout(i1_pc_wb[63:1]));
 
 
 
@@ -2423,51 +2479,51 @@ end : cam_array
 
 
 
-   assign i0_rs1_bypass_data_d[31:0] = ({32{i0_rs1bypass[9]}} & i1_result_e1[31:0]) |
-                                       ({32{i0_rs1bypass[8]}} & i0_result_e1[31:0]) |
-                                       ({32{i0_rs1bypass[7]}} & i1_result_e2[31:0]) |
-                                       ({32{i0_rs1bypass[6]}} & i0_result_e2[31:0]) |
-                                       ({32{i0_rs1bypass[5]}} & i1_result_e3_final[31:0]) |
-                                       ({32{i0_rs1bypass[4]}} & i0_result_e3_final[31:0]) |
-                                       ({32{i0_rs1bypass[3]}} & i1_result_e4_final[31:0]) |
-                                       ({32{i0_rs1bypass[2]}} & i0_result_e4_final[31:0]) |
-                                       ({32{i0_rs1bypass[1]}} & i1_result_wb[31:0]) |
-                                       ({32{i0_rs1bypass[0]}} & i0_result_wb[31:0]);
+   assign i0_rs1_bypass_data_d[63:0] = ({64{i0_rs1bypass[9]}} & i1_result_e1[63:0]) |
+                                       ({64{i0_rs1bypass[8]}} & i0_result_e1[63:0]) |
+                                       ({64{i0_rs1bypass[7]}} & i1_result_e2[63:0]) |
+                                       ({64{i0_rs1bypass[6]}} & i0_result_e2[63:0]) |
+                                       ({64{i0_rs1bypass[5]}} & i1_result_e3_final[63:0]) |
+                                       ({64{i0_rs1bypass[4]}} & i0_result_e3_final[63:0]) |
+                                       ({64{i0_rs1bypass[3]}} & i1_result_e4_final[63:0]) |
+                                       ({64{i0_rs1bypass[2]}} & i0_result_e4_final[63:0]) |
+                                       ({64{i0_rs1bypass[1]}} & i1_result_wb[63:0]) |
+                                       ({64{i0_rs1bypass[0]}} & i0_result_wb[63:0]);
 
 
-   assign i0_rs2_bypass_data_d[31:0] = ({32{i0_rs2bypass[9]}} & i1_result_e1[31:0]) |
-                                       ({32{i0_rs2bypass[8]}} & i0_result_e1[31:0]) |
-                                       ({32{i0_rs2bypass[7]}} & i1_result_e2[31:0]) |
-                                       ({32{i0_rs2bypass[6]}} & i0_result_e2[31:0]) |
-                                       ({32{i0_rs2bypass[5]}} & i1_result_e3_final[31:0]) |
-                                       ({32{i0_rs2bypass[4]}} & i0_result_e3_final[31:0]) |
-                                       ({32{i0_rs2bypass[3]}} & i1_result_e4_final[31:0]) |
-                                       ({32{i0_rs2bypass[2]}} & i0_result_e4_final[31:0]) |
-                                       ({32{i0_rs2bypass[1]}} & i1_result_wb[31:0]) |
-                                       ({32{i0_rs2bypass[0]}} & i0_result_wb[31:0]);
+   assign i0_rs2_bypass_data_d[63:0] = ({64{i0_rs2bypass[9]}} & i1_result_e1[63:0]) |
+                                       ({64{i0_rs2bypass[8]}} & i0_result_e1[63:0]) |
+                                       ({64{i0_rs2bypass[7]}} & i1_result_e2[63:0]) |
+                                       ({64{i0_rs2bypass[6]}} & i0_result_e2[63:0]) |
+                                       ({64{i0_rs2bypass[5]}} & i1_result_e3_final[63:0]) |
+                                       ({64{i0_rs2bypass[4]}} & i0_result_e3_final[63:0]) |
+                                       ({64{i0_rs2bypass[3]}} & i1_result_e4_final[63:0]) |
+                                       ({64{i0_rs2bypass[2]}} & i0_result_e4_final[63:0]) |
+                                       ({64{i0_rs2bypass[1]}} & i1_result_wb[63:0]) |
+                                       ({64{i0_rs2bypass[0]}} & i0_result_wb[63:0]);
 
-   assign i1_rs1_bypass_data_d[31:0] = ({32{i1_rs1bypass[9]}} & i1_result_e1[31:0]) |
-                                       ({32{i1_rs1bypass[8]}} & i0_result_e1[31:0]) |
-                                       ({32{i1_rs1bypass[7]}} & i1_result_e2[31:0]) |
-                                       ({32{i1_rs1bypass[6]}} & i0_result_e2[31:0]) |
-                                       ({32{i1_rs1bypass[5]}} & i1_result_e3_final[31:0]) |
-                                       ({32{i1_rs1bypass[4]}} & i0_result_e3_final[31:0]) |
-                                       ({32{i1_rs1bypass[3]}} & i1_result_e4_final[31:0]) |
-                                       ({32{i1_rs1bypass[2]}} & i0_result_e4_final[31:0]) |
-                                       ({32{i1_rs1bypass[1]}} & i1_result_wb[31:0]) |
-                                       ({32{i1_rs1bypass[0]}} & i0_result_wb[31:0]);
+   assign i1_rs1_bypass_data_d[63:0] = ({64{i1_rs1bypass[9]}} & i1_result_e1[63:0]) |
+                                       ({64{i1_rs1bypass[8]}} & i0_result_e1[63:0]) |
+                                       ({64{i1_rs1bypass[7]}} & i1_result_e2[63:0]) |
+                                       ({64{i1_rs1bypass[6]}} & i0_result_e2[63:0]) |
+                                       ({64{i1_rs1bypass[5]}} & i1_result_e3_final[63:0]) |
+                                       ({64{i1_rs1bypass[4]}} & i0_result_e3_final[63:0]) |
+                                       ({64{i1_rs1bypass[3]}} & i1_result_e4_final[63:0]) |
+                                       ({64{i1_rs1bypass[2]}} & i0_result_e4_final[63:0]) |
+                                       ({64{i1_rs1bypass[1]}} & i1_result_wb[63:0]) |
+                                       ({64{i1_rs1bypass[0]}} & i0_result_wb[63:0]);
 
 
-   assign i1_rs2_bypass_data_d[31:0] = ({32{i1_rs2bypass[9]}} & i1_result_e1[31:0]) |
-                                       ({32{i1_rs2bypass[8]}} & i0_result_e1[31:0]) |
-                                       ({32{i1_rs2bypass[7]}} & i1_result_e2[31:0]) |
-                                       ({32{i1_rs2bypass[6]}} & i0_result_e2[31:0]) |
-                                       ({32{i1_rs2bypass[5]}} & i1_result_e3_final[31:0]) |
-                                       ({32{i1_rs2bypass[4]}} & i0_result_e3_final[31:0]) |
-                                       ({32{i1_rs2bypass[3]}} & i1_result_e4_final[31:0]) |
-                                       ({32{i1_rs2bypass[2]}} & i0_result_e4_final[31:0]) |
-                                       ({32{i1_rs2bypass[1]}} & i1_result_wb[31:0]) |
-                                       ({32{i1_rs2bypass[0]}} & i0_result_wb[31:0]);
+   assign i1_rs2_bypass_data_d[63:0] = ({64{i1_rs2bypass[9]}} & i1_result_e1[63:0]) |
+                                       ({64{i1_rs2bypass[8]}} & i0_result_e1[63:0]) |
+                                       ({64{i1_rs2bypass[7]}} & i1_result_e2[63:0]) |
+                                       ({64{i1_rs2bypass[6]}} & i0_result_e2[63:0]) |
+                                       ({64{i1_rs2bypass[5]}} & i1_result_e3_final[63:0]) |
+                                       ({64{i1_rs2bypass[4]}} & i0_result_e3_final[63:0]) |
+                                       ({64{i1_rs2bypass[3]}} & i1_result_e4_final[63:0]) |
+                                       ({64{i1_rs2bypass[2]}} & i0_result_e4_final[63:0]) |
+                                       ({64{i1_rs2bypass[1]}} & i1_result_wb[63:0]) |
+                                       ({64{i1_rs2bypass[0]}} & i0_result_wb[63:0]);
 
 
 
@@ -2504,166 +2560,275 @@ module dec_dec_ctl
 
    assign i[31:0] = inst[31:0];
 
+   assign out.alu = (i[27]&i[14]&i[4]) | (i[2]) | (!i[25]&i[4]) | (!i[5]&i[4]) | (i[6]);
 
-assign out.alu = (i[2]) | (i[6]) | (!i[25]&i[4]) | (!i[5]&i[4]);
+   assign out.rs1 = (!i[14]&!i[13]&!i[2]) | (!i[13]&i[11]&!i[2]) | (i[19]&i[13]&!i[2]) | (
+       !i[13]&i[10]&!i[2]) | (i[18]&i[13]&!i[2]) | (!i[13]&i[9]&!i[2]) | (
+       i[17]&i[13]&!i[2]) | (!i[13]&i[8]&!i[2]) | (i[16]&i[13]&!i[2]) | (
+       !i[13]&i[7]&!i[2]) | (i[15]&i[13]&!i[2]) | (!i[4]&!i[3]) | (!i[6]
+       &!i[2]);
 
-assign out.rs1 = (!i[14]&!i[13]&!i[2]) | (!i[13]&i[11]&!i[2]) | (i[19]&i[13]&!i[2]) | (
-    !i[13]&i[10]&!i[2]) | (i[18]&i[13]&!i[2]) | (!i[13]&i[9]&!i[2]) | (
-    i[17]&i[13]&!i[2]) | (!i[13]&i[8]&!i[2]) | (i[16]&i[13]&!i[2]) | (
-    !i[13]&i[7]&!i[2]) | (i[15]&i[13]&!i[2]) | (!i[4]&!i[3]) | (!i[6]
-    &!i[2]);
+   assign out.rs2 = (!i[27]&i[5]&i[3]&!i[2]) | (!i[14]&i[5]&i[3]&!i[2]) | (i[5]&!i[4]
+       &!i[2]) | (!i[6]&i[5]&!i[3]&!i[2]);
 
-assign out.rs2 = (i[5]&!i[4]&!i[2]) | (!i[6]&i[5]&!i[2]);
+   assign out.imm12 = (!i[4]&!i[3]&i[2]) | (!i[13]&!i[12]&i[6]&i[4]) | (i[13]&!i[5]
+       &i[4]&!i[2]) | (!i[12]&!i[5]&i[4]&!i[2]);
 
-assign out.imm12 = (!i[4]&!i[3]&i[2]) | (i[13]&!i[5]&i[4]&!i[2]) | (!i[13]&!i[12]
-    &i[6]&i[4]) | (!i[12]&!i[5]&i[4]&!i[2]);
+   assign out.rd = (!i[5]&!i[2]) | (i[5]&i[2]) | (i[4]);
 
-assign out.rd = (!i[5]&!i[2]) | (i[5]&i[2]) | (i[4]);
+   assign out.shimm6 = (i[27]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]) | (!i[27]&i[14]
+       &!i[13]&i[12]&!i[5]&i[4]&!i[2]) | (!i[29]&!i[13]&i[12]&!i[5]&i[4]
+       &!i[2]);
 
-assign out.shimm5 = (!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+   assign out.imm20 = (i[6]&i[3]) | (i[4]&i[2]);
 
-assign out.imm20 = (i[5]&i[3]) | (i[4]&i[2]);
+   assign out.pc = (!i[5]&!i[3]&i[2]) | (i[6]&i[3]);
 
-assign out.pc = (!i[5]&!i[3]&i[2]) | (i[5]&i[3]);
+   assign out.load = (!i[5]&!i[4]&!i[2]);
 
-assign out.load = (!i[5]&!i[4]&!i[2]);
+   assign out.store = (!i[6]&i[5]&!i[4]);
 
-assign out.store = (!i[6]&i[5]&!i[4]);
+   assign out.lsu = (!i[6]&!i[4]&!i[2]);
 
-assign out.lsu = (!i[6]&!i[4]&!i[2]);
+   assign out.add = (!i[5]&!i[3]&i[2]) | (!i[30]&!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]
+       &!i[2]) | (!i[14]&!i[13]&!i[12]&!i[5]&i[4]);
 
-assign out.add = (!i[14]&!i[13]&!i[12]&!i[5]&i[4]) | (!i[5]&!i[3]&i[2]) | (!i[30]
-    &!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]&!i[2]);
+   assign out.sub = (i[30]&!i[14]&!i[12]&!i[6]&i[5]&i[4]&!i[2]) | (i[27]&i[25]&i[14]
+       &!i[6]&i[5]&!i[2]) | (!i[29]&!i[25]&!i[14]&i[13]&!i[6]&i[4]&!i[2]) | (
+       !i[14]&i[13]&!i[5]&i[4]&!i[2]) | (i[6]&!i[4]&!i[2]);
 
-assign out.sub = (i[30]&!i[12]&!i[6]&i[5]&i[4]&!i[2]) | (!i[25]&!i[14]&i[13]&!i[6]
-    &i[4]&!i[2]) | (!i[14]&i[13]&!i[5]&i[4]&!i[2]) | (i[6]&!i[4]&!i[2]);
+   assign out.land = (!i[25]&i[14]&i[13]&i[12]&!i[6]&!i[2]) | (i[14]&i[13]&i[12]&!i[5]
+       &!i[2]);
 
-assign out.land = (i[14]&i[13]&i[12]&!i[5]&!i[2]) | (!i[25]&i[14]&i[13]&i[12]&!i[6]
-    &!i[2]);
+   assign out.lor = (!i[6]&i[3]&i[2]) | (!i[29]&!i[25]&i[14]&i[13]&!i[12]&i[4]&!i[2]) | (
+       i[5]&i[4]&i[2]) | (!i[12]&i[6]&i[4]) | (i[13]&i[6]&i[4]) | (i[14]
+       &i[13]&!i[12]&!i[5]&i[4]&!i[2]) | (i[7]&i[6]&i[4]) | (i[8]&i[6]&i[4]) | (
+       i[9]&i[6]&i[4]) | (i[10]&i[6]&i[4]) | (i[11]&i[6]&i[4]);
 
-assign out.lor = (!i[6]&i[3]) | (!i[25]&i[14]&i[13]&!i[12]&i[4]&!i[2]) | (i[5]&i[4]
-    &i[2]) | (!i[12]&i[6]&i[4]) | (i[13]&i[6]&i[4]) | (i[14]&i[13]&!i[12]
-    &!i[5]&!i[2]) | (i[7]&i[6]&i[4]) | (i[8]&i[6]&i[4]) | (i[9]&i[6]&i[4]) | (
-    i[10]&i[6]&i[4]) | (i[11]&i[6]&i[4]);
+   assign out.lxor = (!i[29]&!i[25]&i[14]&!i[13]&!i[12]&i[4]&!i[3]&!i[2]) | (i[14]
+       &!i[13]&!i[12]&!i[5]&i[4]&!i[2]);
 
-assign out.lxor = (!i[25]&i[14]&!i[13]&!i[12]&i[4]&!i[2]) | (i[14]&!i[13]&!i[12]
-    &!i[5]&i[4]&!i[2]);
+   assign out.sll = (!i[29]&!i[27]&!i[25]&!i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]) | (
+       !i[30]&!i[29]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
 
-assign out.sll = (!i[25]&!i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
+   assign out.sra = (i[30]&!i[29]&!i[27]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
 
-assign out.sra = (i[30]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
+   assign out.srl = (!i[30]&!i[25]&i[14]&!i[13]&i[12]&!i[6]&i[5]&!i[2]) | (!i[30]&!i[27]
+       &i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
 
-assign out.srl = (!i[30]&!i[25]&i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
+   assign out.slt = (!i[29]&!i[25]&!i[14]&i[13]&!i[6]&i[4]&!i[2]) | (!i[14]&i[13]&!i[5]
+       &i[4]&!i[2]);
 
-assign out.slt = (!i[25]&!i[14]&i[13]&!i[6]&i[4]&!i[2]) | (!i[14]&i[13]&!i[5]&i[4]
-    &!i[2]);
+   assign out.unsign = (i[14]&!i[5]&!i[4]) | (i[14]&i[13]&!i[4]&!i[2]) | (!i[25]&!i[14]
+       &i[13]&i[12]&!i[6]&i[4]&!i[2]) | (i[25]&i[14]&i[12]&!i[6]&i[5]&!i[2]) | (
+       !i[14]&i[13]&i[12]&!i[5]&i[4]&!i[2]);
 
-assign out.unsign = (!i[14]&i[13]&i[12]&!i[5]&!i[2]) | (i[13]&i[6]&!i[4]&!i[2]) | (
-    i[14]&!i[5]&!i[4]) | (!i[25]&!i[14]&i[13]&i[12]&!i[6]&!i[2]) | (
-    i[25]&i[14]&i[12]&!i[6]&i[5]&!i[2]);
+   assign out.condbr = (i[6]&!i[4]&!i[2]);
 
-assign out.condbr = (i[6]&!i[4]&!i[2]);
+   assign out.beq = (!i[14]&!i[12]&i[6]&!i[4]&!i[2]);
 
-assign out.beq = (!i[14]&!i[12]&i[6]&!i[4]&!i[2]);
+   assign out.bne = (!i[14]&i[12]&i[6]&!i[4]&!i[2]);
 
-assign out.bne = (!i[14]&i[12]&i[6]&!i[4]&!i[2]);
+   assign out.bge = (i[14]&i[12]&i[5]&!i[4]&!i[2]);
 
-assign out.bge = (i[14]&i[12]&i[5]&!i[4]&!i[2]);
+   assign out.blt = (i[14]&!i[12]&i[5]&!i[4]&!i[2]);
 
-assign out.blt = (i[14]&!i[12]&i[5]&!i[4]&!i[2]);
+   assign out.jal = (i[6]&i[2]);
 
-assign out.jal = (i[6]&i[2]);
+   assign out.by = (!i[13]&!i[12]&!i[6]&!i[4]&!i[2]);
 
-assign out.by = (!i[13]&!i[12]&!i[6]&!i[4]&!i[2]);
+   assign out.half = (!i[13]&i[12]&!i[6]&!i[4]&!i[2]);
 
-assign out.half = (i[12]&!i[6]&!i[4]&!i[2]);
+   assign out.word = (i[13]&!i[12]&!i[6]&!i[4]);
 
-assign out.word = (i[13]&!i[6]&!i[4]);
+   assign out.dword = (i[13]&i[12]&!i[6]&!i[4]);
 
-assign out.csr_read = (i[13]&i[6]&i[4]) | (i[7]&i[6]&i[4]) | (i[8]&i[6]&i[4]) | (
-    i[9]&i[6]&i[4]) | (i[10]&i[6]&i[4]) | (i[11]&i[6]&i[4]);
+   assign out.csr_read = (i[13]&i[6]&i[4]) | (i[7]&i[6]&i[4]) | (i[8]&i[6]&i[4]) | (
+       i[9]&i[6]&i[4]) | (i[10]&i[6]&i[4]) | (i[11]&i[6]&i[4]);
 
-assign out.csr_clr = (i[15]&i[13]&i[12]&i[6]&i[4]) | (i[16]&i[13]&i[12]&i[6]&i[4]) | (
-    i[17]&i[13]&i[12]&i[6]&i[4]) | (i[18]&i[13]&i[12]&i[6]&i[4]) | (
-    i[19]&i[13]&i[12]&i[6]&i[4]);
+   assign out.csr_clr = (i[15]&i[13]&i[12]&i[6]&i[4]) | (i[16]&i[13]&i[12]&i[6]&i[4]) | (
+       i[17]&i[13]&i[12]&i[6]&i[4]) | (i[18]&i[13]&i[12]&i[6]&i[4]) | (
+       i[19]&i[13]&i[12]&i[6]&i[4]);
 
-assign out.csr_set = (i[15]&!i[12]&i[6]&i[4]) | (i[16]&!i[12]&i[6]&i[4]) | (i[17]
-    &!i[12]&i[6]&i[4]) | (i[18]&!i[12]&i[6]&i[4]) | (i[19]&!i[12]&i[6]
-    &i[4]);
+   assign out.csr_set = (i[15]&!i[12]&i[6]&i[4]) | (i[16]&!i[12]&i[6]&i[4]) | (i[17]
+       &!i[12]&i[6]&i[4]) | (i[18]&!i[12]&i[6]&i[4]) | (i[19]&!i[12]&i[6]
+       &i[4]);
 
-assign out.csr_write = (!i[13]&i[12]&i[6]&i[4]);
+   assign out.csr_write = (!i[13]&i[12]&i[6]&i[4]);
 
-assign out.csr_imm = (i[14]&!i[13]&i[6]&i[4]) | (i[15]&i[14]&i[6]&i[4]) | (i[16]
-    &i[14]&i[6]&i[4]) | (i[17]&i[14]&i[6]&i[4]) | (i[18]&i[14]&i[6]&i[4]) | (
-    i[19]&i[14]&i[6]&i[4]);
+   assign out.csr_imm = (i[14]&!i[13]&i[6]&i[4]) | (i[15]&i[14]&i[6]&i[4]) | (i[16]
+       &i[14]&i[6]&i[4]) | (i[17]&i[14]&i[6]&i[4]) | (i[18]&i[14]&i[6]&i[4]) | (
+       i[19]&i[14]&i[6]&i[4]);
 
-assign out.presync = (!i[5]&i[3]) | (i[25]&i[14]&!i[6]&i[5]&!i[2]) | (!i[13]&i[7]
-    &i[6]&i[4]) | (!i[13]&i[8]&i[6]&i[4]) | (!i[13]&i[9]&i[6]&i[4]) | (
-    !i[13]&i[10]&i[6]&i[4]) | (!i[13]&i[11]&i[6]&i[4]) | (i[15]&i[13]
-    &i[6]&i[4]) | (i[16]&i[13]&i[6]&i[4]) | (i[17]&i[13]&i[6]&i[4]) | (
-    i[18]&i[13]&i[6]&i[4]) | (i[19]&i[13]&i[6]&i[4]);
+   assign out.presync = (!i[5]&i[3]&i[2]) | (!i[27]&i[25]&i[14]&!i[6]&i[5]&!i[2]) | (
+       !i[13]&i[7]&i[6]&i[4]) | (!i[13]&i[8]&i[6]&i[4]) | (!i[13]&i[9]&i[6]
+       &i[4]) | (!i[13]&i[10]&i[6]&i[4]) | (!i[13]&i[11]&i[6]&i[4]) | (
+       i[15]&i[13]&i[6]&i[4]) | (i[16]&i[13]&i[6]&i[4]) | (i[17]&i[13]&i[6]
+       &i[4]) | (i[18]&i[13]&i[6]&i[4]) | (i[19]&i[13]&i[6]&i[4]);
 
-assign out.postsync = (i[12]&!i[5]&i[3]) | (!i[22]&!i[13]&!i[12]&i[6]&i[4]) | (
-    i[25]&i[14]&!i[6]&i[5]&!i[2]) | (!i[13]&i[7]&i[6]&i[4]) | (!i[13]
-    &i[8]&i[6]&i[4]) | (!i[13]&i[9]&i[6]&i[4]) | (!i[13]&i[10]&i[6]&i[4]) | (
-    !i[13]&i[11]&i[6]&i[4]) | (i[15]&i[13]&i[6]&i[4]) | (i[16]&i[13]&i[6]
-    &i[4]) | (i[17]&i[13]&i[6]&i[4]) | (i[18]&i[13]&i[6]&i[4]) | (i[19]
-    &i[13]&i[6]&i[4]);
+   assign out.postsync = (i[12]&!i[5]&i[3]&i[2]) | (!i[22]&!i[13]&!i[12]&i[6]&i[4]) | (
+       !i[27]&i[25]&i[14]&!i[6]&i[5]&!i[2]) | (!i[13]&i[7]&i[6]&i[4]) | (
+       !i[13]&i[8]&i[6]&i[4]) | (!i[13]&i[9]&i[6]&i[4]) | (!i[13]&i[10]&i[6]
+       &i[4]) | (!i[13]&i[11]&i[6]&i[4]) | (i[15]&i[13]&i[6]&i[4]) | (i[16]
+       &i[13]&i[6]&i[4]) | (i[17]&i[13]&i[6]&i[4]) | (i[18]&i[13]&i[6]&i[4]) | (
+       i[19]&i[13]&i[6]&i[4]);
 
-assign out.ebreak = (!i[22]&i[20]&!i[13]&!i[12]&i[6]&i[4]);
+   assign out.ebreak = (!i[22]&i[20]&!i[13]&!i[12]&i[6]&i[4]);
 
-assign out.ecall = (!i[21]&!i[20]&!i[13]&!i[12]&i[6]&i[4]);
+   assign out.ecall = (!i[21]&!i[20]&!i[13]&!i[12]&i[6]&i[4]);
 
-assign out.mret = (i[29]&!i[13]&!i[12]&i[6]&i[4]);
+   assign out.mret = (i[29]&!i[13]&!i[12]&i[6]&i[4]);
 
-assign out.mul = (i[25]&!i[14]&!i[6]&i[5]&i[4]&!i[2]);
+   assign out.mul = (i[25]&!i[14]&!i[6]&i[5]&i[4]&!i[2]);
 
-assign out.rs1_sign = (i[25]&!i[14]&i[13]&!i[12]&!i[6]&i[5]&i[4]&!i[2]) | (i[25]
-    &!i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
+   assign out.rs1_sign = (!i[27]&i[25]&!i[14]&i[13]&!i[12]&!i[6]&i[5]&i[4]&!i[2]) | (
+       !i[27]&i[25]&!i[14]&!i[13]&i[12]&!i[6]&i[5]&i[4]&!i[2]);
 
-assign out.rs2_sign = (i[25]&!i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
+   assign out.rs2_sign = (!i[27]&i[25]&!i[14]&!i[13]&i[12]&!i[6]&i[5]&i[4]&!i[2]);
 
-assign out.low = (i[25]&!i[14]&!i[13]&!i[12]&i[5]&i[4]&!i[2]);
+   assign out.low = (i[27]&i[25]&!i[14]&!i[13]&!i[6]&i[5]&i[4]&!i[2]) | (i[25]&!i[14]
+       &!i[13]&!i[12]&i[5]&i[4]&!i[2]);
 
-assign out.div = (i[25]&i[14]&!i[6]&i[5]&!i[2]);
+   assign out.div = (!i[27]&i[25]&i[14]&!i[6]&i[5]&!i[2]);
 
-assign out.rem = (i[25]&i[14]&i[13]&!i[6]&i[5]&!i[2]);
+   assign out.rem = (!i[27]&i[25]&i[14]&i[13]&!i[6]&i[5]&!i[2]);
 
-assign out.fence = (!i[5]&i[3]);
+   assign out.fence = (!i[5]&i[3]&i[2]);
 
-assign out.fence_i = (i[12]&!i[5]&i[3]);
+   assign out.fence_i = (i[12]&!i[5]&i[3]&i[2]);
 
-assign out.pm_alu = (i[28]&i[22]&!i[13]&!i[12]&i[4]) | (i[4]&i[2]) | (!i[25]&!i[6]
-    &i[4]) | (!i[5]&i[4]);
+   assign out.pm_alu = (i[22]&!i[13]&!i[12]&i[6]&i[4]) | (!i[29]&!i[27]&!i[5]&i[4]) | (
+       !i[29]&!i[27]&!i[25]&!i[14]&!i[6]&i[4]) | (!i[30]&!i[29]&!i[25]&!i[6]
+       &i[4]&!i[3]) | (!i[29]&!i[27]&!i[25]&!i[13]&i[12]&!i[6]&i[4]) | (
+       i[13]&!i[5]&i[4]) | (!i[12]&!i[5]&i[4]) | (i[4]&i[2]);
+
+   assign out.wpostfix = (!i[29]&!i[27]&i[3]&!i[2]) | (!i[12]&!i[5]&i[3]&!i[2]) | (
+       !i[27]&i[12]&i[3]&!i[2]);
+
+   assign out.clz = (i[29]&!i[27]&!i[22]&!i[21]&!i[20]&!i[14]&!i[13]&i[12]&!i[5]&i[4]
+       &!i[2]);
+
+   assign out.ctz = (i[29]&!i[27]&!i[22]&i[20]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+
+   assign out.cpop = (i[29]&!i[27]&i[21]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+
+   assign out.sext_b = (i[29]&!i[27]&i[22]&!i[20]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+
+   assign out.sext_h = (i[29]&!i[27]&i[22]&i[20]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+
+   assign out.zext_h = (i[27]&i[14]&i[3]&!i[2]);
+
+   assign out.min = (i[27]&i[25]&i[14]&!i[13]&!i[6]&i[5]&!i[2]);
+
+   assign out.max = (i[27]&i[14]&i[13]&!i[6]&i[5]&!i[2]);
+
+   assign out.rol = (i[29]&!i[27]&!i[14]&i[12]&!i[6]&i[5]&i[4]&!i[2]);
+
+   assign out.ror = (i[29]&!i[27]&i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
+
+   assign out.bset = (!i[30]&i[29]&!i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
+
+   assign out.bclr = (i[30]&!i[29]&!i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
+
+   assign out.binv = (i[30]&i[29]&i[27]&!i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
+
+   assign out.bext = (i[30]&!i[29]&i[27]&i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
+
+   assign out.clmul = (i[27]&i[25]&!i[14]&!i[6]&i[5]&i[4]&!i[2]);
+
+   assign out.reverse = (i[27]&!i[14]&!i[12]&!i[6]&i[5]&i[4]&!i[3]&!i[2]);
+
+   assign out.sh1add = (i[29]&!i[14]&!i[12]&!i[6]&i[5]&i[4]&!i[2]);
+
+   assign out.sh2add = (i[29]&i[14]&!i[13]&!i[12]&i[5]&i[4]&!i[2]);
+
+   assign out.sh3add = (i[29]&i[14]&i[13]&!i[6]&i[5]&!i[2]);
+
+   assign out.rev8 = (i[29]&i[27]&!i[20]&i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+
+   assign out.orc_b = (!i[30]&i[27]&i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+
+   assign out.zba = (i[27]&i[12]&i[3]&!i[2]) | (i[27]&!i[14]&i[5]&i[3]&!i[2]) | (i[29]
+       &!i[12]&!i[6]&i[5]&i[4]&!i[2]);
+
+   assign out.zbb = (i[30]&i[14]&!i[12]&!i[6]&i[5]&!i[2]) | (i[29]&i[14]&!i[13]&i[12]
+       &!i[5]&i[4]&!i[2]) | (i[30]&i[13]&!i[6]&i[5]&i[4]&!i[2]) | (!i[30]
+       &i[27]&i[14]&!i[6]&i[5]&!i[2]) | (i[29]&!i[27]&!i[13]&i[12]&!i[6]
+       &i[4]&!i[2]);
+
+   assign out.zbc = (i[27]&i[25]&!i[14]&!i[6]&i[5]&i[4]&!i[2]);
+
+   assign out.zbs = (!i[29]&i[27]&i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]) | (i[27]&!i[25]
+       &!i[6]&i[5]&i[4]&!i[3]&!i[2]) | (i[27]&!i[14]&!i[13]&i[12]&!i[5]&i[4]
+       &!i[3]&!i[2]);
+
+   assign out.rs2neg = (i[30]&i[14]&!i[12]&!i[6]&i[5]&!i[2]) | (i[30]&i[13]&!i[6]&i[5]
+       &i[4]&!i[2]);
+
+   assign out.dotuw = (i[27]&i[12]&i[3]&!i[2]) | (i[27]&!i[14]&i[5]&i[3]&!i[2]) | (
+       i[29]&!i[12]&i[5]&i[3]&!i[2]);
 
 
-assign out.legal = (!i[31]&!i[30]&i[29]&i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]
-    &!i[22]&i[21]&!i[20]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]
-    &!i[10]&!i[9]&!i[8]&!i[7]&i[6]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (
-    !i[31]&!i[30]&!i[29]&i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&i[22]
-    &!i[21]&i[20]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]&!i[10]
-    &!i[9]&!i[8]&!i[7]&i[6]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]
-    &!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]
-    &!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]&!i[10]&!i[9]&!i[8]
-    &!i[7]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]
-    &!i[27]&!i[26]&!i[25]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&!i[29]
-    &!i[28]&!i[27]&!i[26]&!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&!i[3]&!i[2]
-    &i[1]&i[0]) | (!i[31]&!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&i[14]&!i[13]
-    &i[12]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]
-    &!i[27]&!i[26]&!i[6]&i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[14]&!i[13]
-    &!i[12]&i[6]&i[5]&!i[4]&!i[3]&i[1]&i[0]) | (i[14]&i[6]&i[5]&!i[4]
-    &!i[3]&!i[2]&i[1]&i[0]) | (!i[12]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (
-    !i[14]&!i[13]&i[5]&!i[4]&!i[3]&!i[2]&i[1]&i[0]) | (i[12]&i[6]&i[5]
-    &i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]
-    &!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]&!i[20]&!i[19]&!i[18]&!i[17]
-    &!i[16]&!i[15]&!i[14]&!i[13]&!i[11]&!i[10]&!i[9]&!i[8]&!i[7]&!i[6]
-    &!i[5]&!i[4]&i[3]&i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]
-    &!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[13]&!i[12]&!i[11]&!i[10]
-    &!i[9]&!i[8]&!i[7]&!i[6]&!i[5]&!i[4]&i[3]&i[2]&i[1]&i[0]) | (i[13]
-    &i[6]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[13]&!i[6]&!i[5]&!i[4]
-    &!i[3]&!i[2]&i[1]&i[0]) | (i[6]&i[5]&!i[4]&i[3]&i[2]&i[1]&i[0]) | (
-    i[13]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[14]&!i[12]&!i[6]&!i[4]
-    &!i[3]&!i[2]&i[1]&i[0]) | (!i[6]&i[4]&!i[3]&i[2]&i[1]&i[0]);
+
+   assign out.legal = (!i[31]&!i[30]&i[29]&i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]
+       &!i[22]&i[21]&!i[20]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]
+       &!i[10]&!i[9]&!i[8]&!i[7]&i[6]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (
+       !i[31]&!i[30]&!i[29]&i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&i[22]
+       &!i[21]&i[20]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]&!i[10]
+       &!i[9]&!i[8]&!i[7]&i[6]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]
+       &!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]
+       &!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]&!i[10]&!i[9]&!i[8]
+       &!i[7]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&!i[28]&!i[26]
+       &i[25]&i[24]&i[23]&!i[22]&!i[21]&!i[20]&i[14]&!i[6]&!i[5]&i[4]&!i[3]
+       &i[1]&i[0]) | (!i[31]&i[30]&i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[24]
+       &!i[23]&!i[22]&!i[21]&!i[13]&i[12]&!i[6]&i[4]&!i[2]&i[1]&i[0]) | (
+       !i[31]&!i[30]&i[29]&!i[28]&i[27]&!i[26]&!i[25]&!i[24]&!i[23]&i[22]
+       &i[21]&i[20]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&i[30]&i[29]
+       &!i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[20]&!i[13]&i[12]
+       &!i[6]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&i[29]&!i[28]&!i[26]
+       &!i[25]&!i[24]&!i[23]&!i[21]&!i[14]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (
+       !i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[14]&!i[13]&!i[12]&!i[6]
+       &i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[26]&i[25]
+       &i[12]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&!i[28]&!i[27]
+       &!i[26]&i[14]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&!i[30]
+       &!i[29]&!i[28]&!i[26]&i[25]&i[13]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (
+       !i[31]&!i[30]&!i[29]&!i[28]&!i[26]&i[25]&i[14]&!i[6]&i[5]&i[4]&!i[3]
+       &i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[13]
+       &i[12]&!i[6]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[29]&!i[28]&!i[27]
+       &!i[26]&!i[25]&i[14]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&i[29]
+       &!i[28]&i[27]&!i[26]&!i[25]&!i[14]&!i[13]&i[12]&!i[6]&!i[3]&!i[2]
+       &i[1]&i[0]) | (!i[31]&i[30]&!i[29]&!i[28]&i[27]&!i[26]&!i[25]&!i[13]
+       &i[12]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&i[29]&!i[28]&i[27]&!i[26]
+       &!i[14]&!i[6]&!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&!i[29]
+       &!i[28]&i[27]&!i[26]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[14]
+       &!i[13]&!i[12]&i[6]&i[5]&!i[4]&!i[3]&i[1]&i[0]) | (i[14]&i[6]&i[5]
+       &!i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]
+       &!i[26]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (!i[13]&i[12]&i[6]&i[5]&!i[3]
+       &!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[25]
+       &!i[24]&!i[23]&!i[22]&!i[21]&!i[20]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]
+       &!i[14]&!i[13]&!i[11]&!i[10]&!i[9]&!i[8]&!i[7]&!i[6]&!i[5]&!i[4]&i[3]
+       &i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[19]&!i[18]&!i[17]
+       &!i[16]&!i[15]&!i[14]&!i[13]&!i[12]&!i[11]&!i[10]&!i[9]&!i[8]&!i[7]
+       &!i[6]&!i[5]&!i[4]&i[3]&i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]
+       &i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]&!i[20]&!i[13]&!i[12]
+       &!i[6]&i[5]&i[4]&i[3]&!i[2]&i[1]&i[0]) | (i[13]&i[6]&i[5]&i[4]&!i[3]
+       &!i[2]&i[1]&i[0]) | (!i[31]&i[30]&!i[28]&!i[27]&!i[26]&!i[25]&i[14]
+       &!i[13]&i[12]&!i[6]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]
+       &!i[28]&!i[27]&!i[26]&i[25]&i[14]&!i[6]&i[5]&i[4]&!i[2]&i[1]&i[0]) | (
+       !i[31]&!i[30]&i[29]&!i[28]&!i[27]&!i[26]&!i[25]&i[13]&!i[12]&!i[6]
+       &i[5]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[26]
+       &!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]&i[3]&!i[2]&i[1]&i[0]) | (
+       !i[31]&!i[30]&i[29]&!i[28]&!i[27]&!i[26]&!i[25]&i[14]&!i[12]&!i[6]
+       &i[5]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&i[29]&!i[28]&!i[27]&!i[26]
+       &!i[25]&!i[13]&i[12]&!i[6]&i[5]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[29]
+       &!i[28]&!i[27]&!i[26]&!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]&!i[2]
+       &i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&i[27]&!i[26]&!i[14]&!i[13]
+       &!i[6]&!i[5]&i[4]&i[3]&!i[2]&i[1]&i[0]) | (!i[12]&!i[6]&!i[5]&!i[3]
+       &!i[2]&i[1]&i[0]) | (!i[14]&!i[6]&!i[4]&!i[3]&!i[2]&i[1]&i[0]) | (
+       i[6]&i[5]&!i[4]&i[3]&i[2]&i[1]&i[0]) | (!i[13]&!i[6]&!i[5]&!i[4]&!i[3]
+       &!i[2]&i[1]&i[0]) | (!i[14]&!i[13]&!i[12]&!i[6]&!i[5]&i[4]&!i[2]&i[1]
+       &i[0]) | (i[13]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[6]&i[4]&!i[3]
+       &i[2]&i[1]&i[0]);
 
 
 endmodule

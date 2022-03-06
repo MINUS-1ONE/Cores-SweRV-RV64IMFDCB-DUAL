@@ -32,7 +32,7 @@ module ifu_mem_ctl
    input logic                       exu_flush_final,               // Flush from the pipeline.
    input logic                       dec_tlu_flush_err_wb,          // Flush from the pipeline due to perr.
 
-   input logic [31:1]                fetch_addr_f1,                 // Fetch Address byte aligned always.      F1 stage.
+   input logic [63:1]                fetch_addr_f1,                 // Fetch Address byte aligned always.      F1 stage.
    input logic                       ifc_fetch_uncacheable_f1,      // The fetch request is uncacheable space. F1 stage
    input logic                       ifc_fetch_req_f1,              // Fetch request. Comes with the address.  F1 stage
    input logic                       ifc_fetch_req_f1_raw,          // Fetch request without some qualifications. Used for clock-gating. F1 stage
@@ -63,7 +63,7 @@ module ifu_mem_ctl
    output logic                           ifu_axi_awvalid,
    input  logic                           ifu_axi_awready,
    output logic [`RV_IFU_BUS_TAG-1:0]     ifu_axi_awid,
-   output logic [31:0]                    ifu_axi_awaddr,
+   output logic [63:0]                    ifu_axi_awaddr,
    output logic [3:0]                     ifu_axi_awregion,
    output logic [7:0]                     ifu_axi_awlen,
    output logic [2:0]                     ifu_axi_awsize,
@@ -88,7 +88,7 @@ module ifu_mem_ctl
    output logic                           ifu_axi_arvalid,
    input  logic                           ifu_axi_arready,
    output logic [`RV_IFU_BUS_TAG-1:0]     ifu_axi_arid,
-   output logic [31:0]                    ifu_axi_araddr,
+   output logic [63:0]                    ifu_axi_araddr,
    output logic [3:0]                     ifu_axi_arregion,
    output logic [7:0]                     ifu_axi_arlen,
    output logic [2:0]                     ifu_axi_arsize,
@@ -110,7 +110,7 @@ module ifu_mem_ctl
 
 
    input  logic                      dma_iccm_req,      //  dma iccm command (read or write)
-   input  logic [31:0]               dma_mem_addr,      //  dma address
+   input  logic [63:0]               dma_mem_addr,      //  dma address
    input  logic [2:0]                dma_mem_sz,        //  size
    input  logic                      dma_mem_write,     //  write
    input  logic [63:0]               dma_mem_wdata,     //  write data
@@ -122,22 +122,22 @@ module ifu_mem_ctl
 
 
 //   I$ & ITAG Ports
-   output logic [31:2]               ic_rw_addr,         // Read/Write addresss to the Icache.
+   output logic [63:2]               ic_rw_addr,         // Read/Write addresss to the Icache.
    output logic [3:0]                ic_wr_en,           // Icache write enable, when filling the Icache.
    output logic                      ic_rd_en,           // Icache read  enable.
 
 `ifdef RV_ICACHE_ECC
    output logic [83:0]               ic_wr_data,         // Data to fill to the Icache. With ECC
    input  logic [167:0]              ic_rd_data ,        // Data read from Icache. 2x64bits + parity bits. F2 stage. With ECC
-   input  logic [24:0]               ictag_debug_rd_data,// Debug icache tag.
-   output logic [41:0]               ic_debug_wr_data,   // Debug wr cache.
-   output logic [41:0]               ifu_ic_debug_rd_data,       // debug data read
+   input  logic [57:0]               ictag_debug_rd_data,// Debug icache tag.
+   output logic [74:0]               ic_debug_wr_data,   // Debug wr cache.
+   output logic [74:0]               ifu_ic_debug_rd_data,       // debug data read
 `else
    output logic [67:0]               ic_wr_data,         // Data to fill to the Icache. With Parity
    input  logic [135:0]              ic_rd_data ,        // Data read from Icache. 2x64bits + parity bits. F2 stage. With Parity
-   input  logic [20:0]               ictag_debug_rd_data,// Debug icache tag.
-   output logic [33:0]               ic_debug_wr_data,   // Debug wr cache.
-   output logic [33:0]               ifu_ic_debug_rd_data,       // debug data read
+   input  logic [52:0]               ictag_debug_rd_data,// Debug icache tag.
+   output logic [65:0]               ic_debug_wr_data,   // Debug wr cache.
+   output logic [65:0]               ifu_ic_debug_rd_data,       // debug data read
 `endif
 
    output logic [15:2]               ic_debug_addr,      // Read/Write addresss to the Icache.
@@ -210,7 +210,7 @@ module ifu_mem_ctl
 
 
 
-   logic [31:3]    ifu_ic_req_addr_f2;
+   logic [63:3]    ifu_ic_req_addr_f2;
    logic           uncacheable_miss_in ;
    logic           uncacheable_miss_ff;
 
@@ -256,7 +256,7 @@ module ifu_mem_ctl
    logic           ic_miss_under_miss_f2;
    logic           ic_act_hit_f2;
    logic           miss_pending;
-   logic [31:1]    imb_in , imb_ff  ;
+   logic [63:1]    imb_in , imb_ff  ;
    logic           flush_final_f2;
    logic           ifc_fetch_req_f2;
    logic           ifc_fetch_req_f2_raw;
@@ -268,8 +268,8 @@ module ifu_mem_ctl
    logic [2:0]     req_addr_count ;
    logic [5:3]     ic_req_addr_bits_5_3 ;
    logic [5:3]     ic_wr_addr_bits_5_3 ;
-   logic [31:1]    ifu_fetch_addr_int_f2 ;
-   logic [31:1]    ifu_ic_rw_int_addr ;
+   logic [63:1]    ifu_fetch_addr_int_f2 ;
+   logic [63:1]    ifu_ic_rw_int_addr ;
    logic           ic_crit_wd_rdy_in ;
    logic           crit_wd_byp_ok_ff ;
    logic           ic_crit_wd_rdy_ff;
@@ -293,7 +293,7 @@ module ifu_mem_ctl
    logic           reset_ic_in ;
    logic           reset_ic_ff ;
    logic [3:1]     vaddr_f2 ;
-   logic [31:1]    ifu_status_wr_addr;
+   logic [63:1]    ifu_status_wr_addr;
    logic           sel_fetch_u_miss;
    logic           sel_fetch_u_miss_ff;
    logic           sel_mb_addr ;
@@ -351,7 +351,7 @@ module ifu_mem_ctl
 
    assign ifu_axi_awvalid                        = '0;
    assign ifu_axi_awid[`RV_IFU_BUS_TAG-1:0]      = '0;
-   assign ifu_axi_awaddr[31:0]                   = '0;
+   assign ifu_axi_awaddr[63:0]                   = '0;
    assign ifu_axi_awsize[2:0]                    = '0;
    assign ifu_axi_awprot[2:0]                    = '0;
    assign ifu_axi_awcache[3:0]                   = '0;
@@ -468,7 +468,7 @@ module ifu_mem_ctl
    assign ic_wr_addr_bits_5_3[5:3]  = ifu_axi_rid_ff[2:0] ;
    // NOTE: Cacheline size is 16 bytes in this example.
    // Tag     Index  Bank Offset
-   // [31:16] [15:5] [4]  [3:0]
+   // [63:16] [15:5] [4]  [3:0]
 
 
    assign fetch_req_icache_f2   = ifc_fetch_req_f2 & ~ifc_iccm_access_f2 & ~ifc_region_acc_fault_f2;
@@ -482,7 +482,7 @@ module ifu_mem_ctl
    assign ic_hit_f2             =  ic_act_hit_f2 | ic_byp_hit_f2 | ic_iccm_hit_f2 | (ifc_region_acc_fault_f2 & ifc_fetch_req_f2 & ~((miss_state == CRIT_BYP_OK) | (miss_state == SCND_MISS)));
 
    assign uncacheable_miss_in   = sel_hold_imb ? uncacheable_miss_ff : ifc_fetch_uncacheable_f1 ;
-   assign imb_in[31:1]          = sel_hold_imb ? imb_ff[31:1] : {fetch_addr_f1[31:1]} ;
+   assign imb_in[63:1]          = sel_hold_imb ? imb_ff[63:1] : {fetch_addr_f1[63:1]} ;
    assign way_status_mb_in[2:0] = ( miss_pending) ? way_status_mb_ff[2:0] : {way_status[2:0]} ;
    assign tagv_mb_in[3:0]       = ( miss_pending) ? tagv_mb_ff[3:0]       : {ic_tag_valid[3:0]} ;
 
@@ -493,10 +493,10 @@ module ifu_mem_ctl
 
 
 
-   rvdffe #(31) ifu_fetch_addr_f2_ff (.*,
+   rvdffe #(63) ifu_fetch_addr_f2_ff (.*,
                     .en (fetch_f1_f2_c1_clken),
-                    .din ({fetch_addr_f1[31:1]}),
-                    .dout({ifu_fetch_addr_int_f2[31:1]}));
+                    .din ({fetch_addr_f1[63:1]}),
+                    .dout({ifu_fetch_addr_int_f2[63:1]}));
 
    assign vaddr_f2[3:1] = ifu_fetch_addr_int_f2[3:1] ;
 
@@ -507,7 +507,7 @@ module ifu_mem_ctl
    rvdff_fpga #(1) ifu_iccm_acc_ff     (.*, .clk(fetch_f1_f2_c1_clk), .clken(fetch_f1_f2_c1_clken), .rawclk(clk), .din(ifc_iccm_access_f1),       .dout(ifc_iccm_access_f2));
    rvdff_fpga #(1) ifu_iccm_reg_acc_ff (.*, .clk(fetch_f1_f2_c1_clk), .clken(fetch_f1_f2_c1_clken), .rawclk(clk), .din(ifc_region_acc_fault_final_f1), .dout(ifc_region_acc_fault_f2));
 
-   rvdffe #(31) imb_f2_ff       (.*, .en(fetch_f1_f2_c1_clken), .din ({imb_in[31:1]}), .dout({imb_ff[31:1]}));
+   rvdffe #(63) imb_f2_ff       (.*, .en(fetch_f1_f2_c1_clken), .din ({imb_in[63:1]}), .dout({imb_ff[63:1]}));
 
    assign ifc_fetch_req_qual_f1  = ifc_fetch_req_f1  & ~((miss_state == CRIT_WRD_RDY) & flush_final_f2) ;// & ~exu_flush_final ;
    rvdff #(1) fetch_req_f2_ff  (.*, .clk(active_clk),  .din(ifc_fetch_req_qual_f1), .dout(ifc_fetch_req_f2_raw));
@@ -515,7 +515,7 @@ module ifu_mem_ctl
    assign ifc_fetch_req_f2       = ifc_fetch_req_f2_raw & ~exu_flush_final ;
 
 
-   assign ifu_ic_req_addr_f2[31:3] = {imb_ff[31:6] , ic_req_addr_bits_5_3[5:3] };
+   assign ifu_ic_req_addr_f2[63:3] = {imb_ff[63:6] , ic_req_addr_bits_5_3[5:3] };
    assign ifu_ic_mb_empty          = ((miss_state == HIT_U_MISS) & ~(ifu_wr_en_new & last_beat)) |  ~miss_pending ;
    assign ifu_miss_state_idle      = (miss_state == IDLE) ;
 
@@ -575,15 +575,15 @@ module ifu_mem_ctl
 
 
    assign sel_mb_addr  = ((miss_pending & ifu_wr_en_new ) | reset_tag_valid_for_miss) ;
-   assign ifu_ic_rw_int_addr[31:1] = ({31{ sel_mb_addr}}  &  {imb_ff[31:6] , ic_wr_addr_bits_5_3[5:3] , imb_ff[2:1]})  |
-                                     ({31{~sel_mb_addr}}  &  fetch_addr_f1[31:1] )   ;
+   assign ifu_ic_rw_int_addr[63:1] = ({63{ sel_mb_addr}}  &  {imb_ff[63:6] , ic_wr_addr_bits_5_3[5:3] , imb_ff[2:1]})  |
+                                     ({63{~sel_mb_addr}}  &  fetch_addr_f1[63:1] )   ;
 
-   assign ifu_status_wr_addr[31:1] = ({31{ sel_mb_addr}}  &  {imb_ff[31:6] , ic_wr_addr_bits_5_3[5:3] , imb_ff[2:1]})  |
-                                     ({31{~sel_mb_addr}}  &  ifu_fetch_addr_int_f2[31:1] )   ;
+   assign ifu_status_wr_addr[63:1] = ({63{ sel_mb_addr}}  &  {imb_ff[63:6] , ic_wr_addr_bits_5_3[5:3] , imb_ff[2:1]})  |
+                                     ({63{~sel_mb_addr}}  &  ifu_fetch_addr_int_f2[63:1] )   ;
 
    rvdff #(1) sel_mb_addr_flop (.*, .clk(free_clk), .din({sel_mb_addr}), .dout({sel_mb_addr_ff}));
 
-  assign ic_rw_addr[31:2]      = ifu_ic_rw_int_addr[31:2] ;
+  assign ic_rw_addr[63:2]      = ifu_ic_rw_int_addr[63:2] ;
 
 
 genvar i ;
@@ -1036,12 +1036,12 @@ assign axi_ifu_bus_clk_en =  ifu_bus_clk_en ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    assign    ifu_axi_arvalid                 = ifc_axi_ic_req_ff2 ;
    assign    ifu_axi_arid[IFU_BUS_TAG-1:0]   = IFU_BUS_TAG'(axi_rd_addr_count[2:0]);
-   assign    ifu_axi_araddr[31:0]            = {ifu_ic_req_addr_f2[31:3],3'b0} ;
+   assign    ifu_axi_araddr[63:0]            = {ifu_ic_req_addr_f2[63:3],3'b0} ;
    assign    ifu_axi_rready                  = 1'b1;
    assign    ifu_axi_arsize[2:0]             = 3'b011;
    assign    ifu_axi_arcache[3:0]            = 4'b1111;
    assign    ifu_axi_arprot[2:0]             = 3'b100;
-   assign    ifu_axi_arregion[3:0]           = ifu_axi_araddr[31:28];
+   assign    ifu_axi_arregion[3:0]           = ifu_axi_araddr[63:60];
    assign    ifu_axi_arlen[7:0]              = '0;
    assign    ifu_axi_arburst[1:0]            = 2'b01;
    assign    ifu_axi_arqos[3:0]              = '0;
@@ -1409,9 +1409,9 @@ assign ic_debug_addr[15:02]     = dec_tlu_ic_diag_pkt.icache_dicawics[15:2] ;
 assign ic_debug_way_enc[01:00]  = dec_tlu_ic_diag_pkt.icache_dicawics[17:16] ;
 
 `ifdef RV_ICACHE_ECC
-assign ic_debug_wr_data[41:0]   = dec_tlu_ic_diag_pkt.icache_wrdata[41:0] ;
+assign ic_debug_wr_data[74:0]   = dec_tlu_ic_diag_pkt.icache_wrdata[74:0] ;
 `else
-assign ic_debug_wr_data[33:0]   = dec_tlu_ic_diag_pkt.icache_wrdata[33:0] ;
+assign ic_debug_wr_data[65:0]   = dec_tlu_ic_diag_pkt.icache_wrdata[65:0] ;
 `endif
 
 assign ic_debug_tag_array       = dec_tlu_ic_diag_pkt.icache_dicawics[18] ;
@@ -1460,34 +1460,34 @@ rvdff #(1) ifu_debug_rd_en_ff (.*,.clk(free_clk),
 
 
 `ifdef RV_ICACHE_ECC
-logic [41:0] ifu_ic_debug_rd_data_in   ;
-assign ifu_ic_debug_rd_data_in[41:0] = ( {42{ic_debug_ict_array_sel_ff   }} &  {5'b0,ictag_debug_rd_data[24:20], ictag_debug_rd_data[19:0] ,5'b0, way_status[2:0], 3'b0, ic_debug_tag_val_rd_out} ) |
-                                       ( {42{ic_debug_ic_array_sel_word0 }} &  {ic_rd_data [41:0]}  )  |
-                                       ( {42{ic_debug_ic_array_sel_word1 }} &  {ic_rd_data [83:42]} )  |
-                                       ( {42{ic_debug_ic_array_sel_word2 }} &  {ic_rd_data [125:84]})  |
-                                       ( {42{ic_debug_ic_array_sel_word3 }} &  {ic_rd_data [167:126]}) ;
+logic [74:0] ifu_ic_debug_rd_data_in   ;
+assign ifu_ic_debug_rd_data_in[74:0] = ( {75{ic_debug_ict_array_sel_ff   }} &  {5'b0, ictag_debug_rd_data[57:52], ictag_debug_rd_data[51:0] ,5'b0, way_status[2:0], 3'b0, ic_debug_tag_val_rd_out} ) |
+                                       ( {75{ic_debug_ic_array_sel_word0 }} &  {ic_rd_data[41:37], 1'b0, ic_rd_data[36:32], 32'b0, ic_rd_data[31:0]}  )  |
+                                       ( {75{ic_debug_ic_array_sel_word1 }} &  {ic_rd_data[83:79], 1'b0, ic_rd_data[78:74], 32'b0, ic_rd_data[73:42]} )  |
+                                       ( {75{ic_debug_ic_array_sel_word2 }} &  {ic_rd_data[125:121], 1'b0, ic_rd_data[120:116], 32'b0, ic_rd_data[115:84]})  |
+                                       ( {75{ic_debug_ic_array_sel_word3 }} &  {ic_rd_data[167:163], 1'b0, ic_rd_data[162:158], 32'b0, ic_rd_data[157:126]}) ;
 
-rvdffe #(42) ifu_debug_data_ff (.*,
+rvdffe #(75) ifu_debug_data_ff (.*,
                     .en (debug_data_clken),
                     .din ({
-                           ifu_ic_debug_rd_data_in[41:0]
+                           ifu_ic_debug_rd_data_in[74:0]
                           }),
                     .dout({
                            ifu_ic_debug_rd_data
                            }));
 
 `else
-logic [33:0] ifu_ic_debug_rd_data_in   ;
-assign ifu_ic_debug_rd_data_in[33:0] = ( {34{ic_debug_ict_array_sel_ff   }} &  {1'b0,ictag_debug_rd_data[20], ictag_debug_rd_data[19:0] ,5'b0, way_status[2:0], 3'b0, ic_debug_tag_val_rd_out} ) |
-                                       ( {34{ic_debug_ic_array_sel_word0 }} &  {ic_rd_data [33:0]}  )  |
-                                       ( {34{ic_debug_ic_array_sel_word1 }} &  {ic_rd_data [67:34]} )  |
-                                       ( {34{ic_debug_ic_array_sel_word2 }} &  {ic_rd_data [101:68]})  |
-                                       ( {34{ic_debug_ic_array_sel_word3 }} &  {ic_rd_data [135:102]}) ;
+logic [65:0] ifu_ic_debug_rd_data_in   ;
+assign ifu_ic_debug_rd_data_in[65:0] = ( {66{ic_debug_ict_array_sel_ff   }} &  {1'b0, ictag_debug_rd_data[52], ictag_debug_rd_data[51:0] ,5'b0, way_status[2:0], 3'b0, ic_debug_tag_val_rd_out} ) |
+                                       ( {66{ic_debug_ic_array_sel_word0 }} &  {ic_rd_data[33:32], 32'b0, ic_rd_data[31:0]}  )  |
+                                       ( {66{ic_debug_ic_array_sel_word1 }} &  {ic_rd_data[67:66], 32'b0, ic_rd_data[65:34]} )  |
+                                       ( {66{ic_debug_ic_array_sel_word2 }} &  {ic_rd_data[101:100], 32'b0, ic_rd_data [99:68]})  |
+                                       ( {66{ic_debug_ic_array_sel_word3 }} &  {ic_rd_data[135:134], 32'b0, ic_rd_data [133:102]}) ;
 
-rvdffe #(34) ifu_debug_data_ff (.*,
+rvdffe #(66) ifu_debug_data_ff (.*,
                     .en (debug_data_clken),
                     .din ({
-                           ifu_ic_debug_rd_data_in[33:0]
+                           ifu_ic_debug_rd_data_in[65:0]
                           }),
                     .dout({
                            ifu_ic_debug_rd_data
@@ -1507,14 +1507,14 @@ rvdff #(1) ifu_debug_valid_ff (.*, .clk(free_clk),
 
 // memory protection
    assign ifc_region_acc_okay           =  (~(|{`RV_INST_ACCESS_ENABLE0,`RV_INST_ACCESS_ENABLE1,`RV_INST_ACCESS_ENABLE2,`RV_INST_ACCESS_ENABLE3,`RV_INST_ACCESS_ENABLE4,`RV_INST_ACCESS_ENABLE5,`RV_INST_ACCESS_ENABLE6,`RV_INST_ACCESS_ENABLE7})) |
-                                           (`RV_INST_ACCESS_ENABLE0 & (({fetch_addr_f1[31:1],1'b0} | `RV_INST_ACCESS_MASK0) == (`RV_INST_ACCESS_ADDR0 | `RV_INST_ACCESS_MASK0))) |
-                                           (`RV_INST_ACCESS_ENABLE1 & (({fetch_addr_f1[31:1],1'b0} | `RV_INST_ACCESS_MASK1) == (`RV_INST_ACCESS_ADDR1 | `RV_INST_ACCESS_MASK1))) |
-                                           (`RV_INST_ACCESS_ENABLE2 & (({fetch_addr_f1[31:1],1'b0} | `RV_INST_ACCESS_MASK2) == (`RV_INST_ACCESS_ADDR2 | `RV_INST_ACCESS_MASK2))) |
-                                           (`RV_INST_ACCESS_ENABLE3 & (({fetch_addr_f1[31:1],1'b0} | `RV_INST_ACCESS_MASK3) == (`RV_INST_ACCESS_ADDR3 | `RV_INST_ACCESS_MASK3))) |
-                                           (`RV_INST_ACCESS_ENABLE4 & (({fetch_addr_f1[31:1],1'b0} | `RV_INST_ACCESS_MASK4) == (`RV_INST_ACCESS_ADDR4 | `RV_INST_ACCESS_MASK4))) |
-                                           (`RV_INST_ACCESS_ENABLE5 & (({fetch_addr_f1[31:1],1'b0} | `RV_INST_ACCESS_MASK5) == (`RV_INST_ACCESS_ADDR5 | `RV_INST_ACCESS_MASK5))) |
-                                           (`RV_INST_ACCESS_ENABLE6 & (({fetch_addr_f1[31:1],1'b0} | `RV_INST_ACCESS_MASK6) == (`RV_INST_ACCESS_ADDR6 | `RV_INST_ACCESS_MASK6))) |
-                                           (`RV_INST_ACCESS_ENABLE7 & (({fetch_addr_f1[31:1],1'b0} | `RV_INST_ACCESS_MASK7) == (`RV_INST_ACCESS_ADDR7 | `RV_INST_ACCESS_MASK7)));
+                                           (`RV_INST_ACCESS_ENABLE0 & (({fetch_addr_f1[63:1],1'b0} | `RV_INST_ACCESS_MASK0) == (`RV_INST_ACCESS_ADDR0 | `RV_INST_ACCESS_MASK0))) |
+                                           (`RV_INST_ACCESS_ENABLE1 & (({fetch_addr_f1[63:1],1'b0} | `RV_INST_ACCESS_MASK1) == (`RV_INST_ACCESS_ADDR1 | `RV_INST_ACCESS_MASK1))) |
+                                           (`RV_INST_ACCESS_ENABLE2 & (({fetch_addr_f1[63:1],1'b0} | `RV_INST_ACCESS_MASK2) == (`RV_INST_ACCESS_ADDR2 | `RV_INST_ACCESS_MASK2))) |
+                                           (`RV_INST_ACCESS_ENABLE3 & (({fetch_addr_f1[63:1],1'b0} | `RV_INST_ACCESS_MASK3) == (`RV_INST_ACCESS_ADDR3 | `RV_INST_ACCESS_MASK3))) |
+                                           (`RV_INST_ACCESS_ENABLE4 & (({fetch_addr_f1[63:1],1'b0} | `RV_INST_ACCESS_MASK4) == (`RV_INST_ACCESS_ADDR4 | `RV_INST_ACCESS_MASK4))) |
+                                           (`RV_INST_ACCESS_ENABLE5 & (({fetch_addr_f1[63:1],1'b0} | `RV_INST_ACCESS_MASK5) == (`RV_INST_ACCESS_ADDR5 | `RV_INST_ACCESS_MASK5))) |
+                                           (`RV_INST_ACCESS_ENABLE6 & (({fetch_addr_f1[63:1],1'b0} | `RV_INST_ACCESS_MASK6) == (`RV_INST_ACCESS_ADDR6 | `RV_INST_ACCESS_MASK6))) |
+                                           (`RV_INST_ACCESS_ENABLE7 & (({fetch_addr_f1[63:1],1'b0} | `RV_INST_ACCESS_MASK7) == (`RV_INST_ACCESS_ADDR7 | `RV_INST_ACCESS_MASK7)));
 
    assign ifc_region_acc_fault_memory   =  ~ifc_iccm_access_f1 & ~ifc_region_acc_okay & ifc_fetch_req_f1;
 

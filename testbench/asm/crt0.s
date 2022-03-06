@@ -16,6 +16,7 @@
 // startup code to support HLL programs
 
 #include "defines.h"
+#define STDOUT 0xd000000050580000
 
 .section .text.init
 .global _start
@@ -32,7 +33,8 @@ _start:
 
 .global _finish
 _finish:
-        la t0, tohost
+        //la t0, tohost
+        li t0, STDOUT
         li t1, 0xff
         sb t1, 0(t0) // DemoTB test termination
         li t1, 1

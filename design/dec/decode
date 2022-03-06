@@ -16,13 +16,13 @@ xor =     [0000000..........100.....0110011]
 xori =    [.................100.....0010011]
 
 sll =     [0000000..........001.....0110011]
-slli =    [0000000..........001.....0010011]
+slli =    [000000...........001.....0010011]
 
 sra =     [0100000..........101.....0110011]
-srai =    [0100000..........101.....0010011]
+srai =    [010000...........101.....0010011]
 
 srl  =    [0000000..........101.....0110011]
-srli =    [0000000..........101.....0010011]
+srli =    [000000...........101.....0010011]
 
 lui =     [.........................0110111]
 auipc=    [.........................0010111]
@@ -62,6 +62,105 @@ ecall  =  [00000000000000000000000001110011]
 mret   =  [00110000001000000000000001110011]
 
 wfi    =  [00010000010100000000000001110011]
+
+##################################################
+# added for RV64
+# RV64I
+lwu =     [.................110.....0000011]
+ld  =     [.................011.....0000011]
+sd =      [.................011.....0100011]
+
+addiw =   [.................000.....0011011]
+
+slliw =   [0000000..........001.....0011011]
+srliw =   [0000000..........101.....0011011]
+sraiw =   [0100000..........101.....0011011]
+
+addw  =   [0000000..........000.....0111011]
+subw  =   [0100000..........000.....0111011]
+
+sllw  =   [0000000..........001.....0111011]
+srlw  =   [0000000..........101.....0111011]
+sraw  =   [0100000..........101.....0111011]
+
+#RV64M
+mulw  =   [0000001..........000.....0111011]
+divw  =   [0000001..........100.....0111011]
+divuw =   [0000001..........101.....0111011]
+remw  =   [0000001..........110.....0111011]
+remuw =   [0000001..........111.....0111011]
+##################################################
+##################################################
+# added for RV64
+# RV64B
+
+## zba
+add_uw    =  [0000100..........000.....0111011]
+sh1add    =  [0010000..........010.....0110011]
+sh1add_uw =  [0010000..........010.....0111011]
+sh2add    =  [0010000..........100.....0110011]
+sh2add_uw =  [0010000..........100.....0111011]
+sh3add    =  [0010000..........110.....0110011]
+sh3add_uw =  [0010000..........110.....0111011]
+slli_uw   =  [000010...........001.....0011011]
+
+## zbb
+# logical with negate
+andn      =  [0100000..........111.....0110011]
+orn       =  [0100000..........110.....0110011]
+xnor      =  [0100000..........100.....0110011]
+
+# count leading/trailing zero bits
+clz       =  [011000000000.....001.....0010011]
+clzw      =  [011000000000.....001.....0011011]
+ctz       =  [011000000001.....001.....0010011]
+ctzw      =  [011000000001.....001.....0011011]
+
+# count population
+cpop      =  [011000000010.....001.....0010011]
+cpopw     =  [011000000010.....001.....0011011]
+
+# integer minimum/maximum
+min       =  [0000101..........100.....0110011]
+max       =  [0000101..........110.....0110011]
+minu      =  [0000101..........101.....0110011]
+maxu      =  [0000101..........111.....0110011]
+
+# sign-/zero-extension
+sext_b    =  [011000000100.....001.....0010011]
+sext_h    =  [011000000101.....001.....0010011]
+zext_h    =  [000010000000.....100.....0111011]
+
+# bitwise rotation
+rol       =  [0110000..........001.....0110011]
+rolw      =  [0110000..........001.....0111011]
+ror       =  [0110000..........101.....0110011]
+rori      =  [011000...........101.....0010011]
+roriw     =  [0110000..........101.....0011011]
+rorw      =  [0110000..........101.....0111011]
+
+# or combine
+orc_b     =  [001010000111.....101.....0010011]
+
+# byte reverse
+rev8      =  [011010111000.....101.....0010011]
+
+## zbc
+clmul     =  [0000101..........001.....0110011]
+clmulr    =  [0000101..........010.....0110011]
+clmulh    =  [0000101..........011.....0110011]
+
+## zbs
+bset      =  [0010100..........001.....0110011]
+bclr      =  [0100100..........001.....0110011]
+binv      =  [0110100..........001.....0110011]
+bext      =  [0100100..........101.....0110011]
+bseti     =  [001010...........001.....0010011]
+bclri     =  [010010...........001.....0010011]
+binvi     =  [011010...........001.....0010011]
+bexti     =  [010010...........101.....0010011]
+##################################################
+##################################################
 
 csrrc_ro  =  [............00000011.....1110011]
 csrrc_rw0 =  [............1....011.....1110011]
@@ -119,7 +218,7 @@ remu =       [0000001..........111.....0110011]
 
 .input
 
-rv32i = {
+rv64i = {
         i[31]
         i[30]
         i[29]
@@ -157,13 +256,16 @@ rv32i = {
 
 .output
 
-rv32i = {
+# adjust shimm5 to shimm6
+# added dword signal used in ld
+# added wpostfix signal used in all insts with W-postfix
+rv64i = {
       alu
       rs1
       rs2
       imm12
       rd
-      shimm5
+      shimm6
       imm20
       pc
       load
@@ -188,6 +290,7 @@ rv32i = {
       by
       half
       word
+      dword
       csr_read
       csr_clr
       csr_set
@@ -207,115 +310,219 @@ rv32i = {
       fence
       fence_i
       pm_alu
+      wpostfix
+
+      clz
+      ctz
+      cpop
+      sext_b
+      sext_h
+      zext_h
+      min
+      max
+      rol
+      ror
+      bset
+      bclr
+      binv
+      bext
+      clmul
+      reverse
+      sh1add
+      sh2add
+      sh3add
+      rev8
+      orc_b
+      zba
+      zbb
+      zbc
+      zbs
+      rs2neg
+      dotuw
 }
 
 .decode
 
-rv32i[mul]    = { mul rs1 rs2 rd low }
-rv32i[mulh]   = { mul rs1 rs2 rd rs1_sign rs2_sign }
-rv32i[mulhu]  = { mul rs1 rs2 rd                   }
-rv32i[mulhsu] = { mul rs1 rs2 rd rs1_sign          }
+rv64i[mul]    =  { mul rs1 rs2 rd low }
+rv64i[mulh]   =  { mul rs1 rs2 rd rs1_sign rs2_sign }
+rv64i[mulhu]  =  { mul rs1 rs2 rd                   }
+rv64i[mulhsu] =  { mul rs1 rs2 rd rs1_sign          }
 
-rv32i[div]    =  { div rs1 rs2 rd        presync postsync}
-rv32i[divu]    = { div rs1 rs2 rd unsign presync postsync}
-rv32i[rem]    =  { div rs1 rs2 rd        presync postsync rem}
-rv32i[remu]    = { div rs1 rs2 rd unsign presync postsync rem}
+rv64i[div]    =  { div rs1 rs2 rd        presync postsync}
+rv64i[divu]   =  { div rs1 rs2 rd unsign presync postsync}
+rv64i[rem]    =  { div rs1 rs2 rd        presync postsync rem}
+rv64i[remu]   =  { div rs1 rs2 rd unsign presync postsync rem}
 
-rv32i[add]   = { alu rs1 rs2   rd add pm_alu }
-rv32i[addi]  = { alu rs1 imm12 rd add pm_alu }
+rv64i[add]    =  { alu rs1 rs2   rd add pm_alu }
+rv64i[addi]   =  { alu rs1 imm12 rd add pm_alu }
 
-rv32i[sub]  =  { alu rs1 rs2   rd sub pm_alu }
+rv64i[sub]    =  { alu rs1 rs2   rd sub pm_alu }
 
-rv32i[and]   = { alu rs1 rs2   rd land pm_alu }
-rv32i[andi]  = { alu rs1 imm12 rd land pm_alu }
+rv64i[and]    =  { alu rs1 rs2   rd land pm_alu }
+rv64i[andi]   =  { alu rs1 imm12 rd land pm_alu }
 
-rv32i[or]   =  { alu rs1 rs2   rd lor pm_alu }
-rv32i[ori]  =  { alu rs1 imm12 rd lor pm_alu }
+rv64i[or]     =  { alu rs1 rs2   rd lor pm_alu }
+rv64i[ori]    =  { alu rs1 imm12 rd lor pm_alu }
 
-rv32i[xor]  =  { alu rs1 rs2   rd lxor pm_alu }
-rv32i[xori]  = { alu rs1 imm12 rd lxor pm_alu }
+rv64i[xor]    =  { alu rs1 rs2   rd lxor pm_alu }
+rv64i[xori]   =  { alu rs1 imm12 rd lxor pm_alu }
 
-rv32i[sll]  =  { alu rs1 rs2    rd sll pm_alu }
-rv32i[slli]  = { alu rs1 shimm5 rd sll pm_alu }
+rv64i[sll]    =  { alu rs1 rs2    rd sll pm_alu }
+rv64i[slli]   =  { alu rs1 shimm6 rd sll pm_alu }
 
-rv32i[sra]  =  { alu rs1 rs2    rd sra pm_alu }
-rv32i[srai]  = { alu rs1 shimm5 rd sra pm_alu }
+rv64i[sra]    =  { alu rs1 rs2    rd sra pm_alu }
+rv64i[srai]   =  { alu rs1 shimm6 rd sra pm_alu }
 
-rv32i[srl]  =  { alu rs1 rs2    rd srl pm_alu }
-rv32i[srli]  = { alu rs1 shimm5 rd srl pm_alu }
+rv64i[srl]    =  { alu rs1 rs2    rd srl pm_alu }
+rv64i[srli]   =  { alu rs1 shimm6 rd srl pm_alu }
 
-rv32i[lui]    =  { alu imm20    rd lor pm_alu }
-rv32i[auipc]  =  { alu imm20 pc rd add pm_alu }
-
-
-rv32i[slt] =     { alu rs1 rs2    rd sub slt        pm_alu }
-rv32i[sltu] =    { alu rs1 rs2    rd sub slt unsign pm_alu }
-rv32i[slti] =    { alu rs1 imm12  rd sub slt        pm_alu }
-rv32i[sltiu] =   { alu rs1 imm12  rd sub slt unsign pm_alu }
-
-rv32i[beq] =     { alu rs1 rs2 sub condbr beq }
-rv32i[bne] =     { alu rs1 rs2 sub condbr bne }
-rv32i[bge] =     { alu rs1 rs2 sub condbr bge }
-rv32i[blt] =     { alu rs1 rs2 sub condbr blt }
-rv32i[bgeu] =    { alu rs1 rs2 sub condbr bge unsign }
-rv32i[bltu] =    { alu rs1 rs2 sub condbr blt unsign }
-
-rv32i[jal] =     { alu imm20 rd pc    jal }
-rv32i[jalr] =    { alu rs1   rd imm12 jal }
-
-rv32i[lb] =      { lsu load rs1 rd by    }
-rv32i[lh] =      { lsu load rs1 rd half  }
-rv32i[lw] =      { lsu load rs1 rd word  }
-rv32i[lbu] =     { lsu load rs1 rd by   unsign  }
-rv32i[lhu] =     { lsu load rs1 rd half unsign  }
-
-rv32i[sb] =      { lsu store rs1 rs2 by   }
-rv32i[sh] =      { lsu store rs1 rs2 half }
-rv32i[sw] =      { lsu store rs1 rs2 word }
+rv64i[lui]    =  { alu imm20    rd lor pm_alu }
+rv64i[auipc]  =  { alu imm20 pc rd add pm_alu }
 
 
-rv32i[fence] =   { alu lor fence presync}
+rv64i[slt]    =  { alu rs1 rs2    rd sub slt        pm_alu }
+rv64i[sltu]   =  { alu rs1 rs2    rd sub slt unsign pm_alu }
+rv64i[slti]   =  { alu rs1 imm12  rd sub slt        pm_alu }
+rv64i[sltiu]  =  { alu rs1 imm12  rd sub slt unsign pm_alu }
+
+rv64i[beq]    =  { alu rs1 rs2 sub condbr beq }
+rv64i[bne]    =  { alu rs1 rs2 sub condbr bne }
+rv64i[bge]    =  { alu rs1 rs2 sub condbr bge }
+rv64i[blt]    =  { alu rs1 rs2 sub condbr blt }
+rv64i[bgeu]   =  { alu rs1 rs2 sub condbr bge unsign }
+rv64i[bltu]   =  { alu rs1 rs2 sub condbr blt unsign }
+
+rv64i[jal]    =  { alu imm20 rd pc    jal }
+rv64i[jalr]   =  { alu rs1   rd imm12 jal }
+
+rv64i[lb]     =  { lsu load rs1 rd by    }
+rv64i[lh]     =  { lsu load rs1 rd half  }
+rv64i[lw]     =  { lsu load rs1 rd word  }
+rv64i[lbu]    =  { lsu load rs1 rd by   unsign  }
+rv64i[lhu]    =  { lsu load rs1 rd half unsign  }
+
+rv64i[sb]     =  { lsu store rs1 rs2 by   }
+rv64i[sh]     =  { lsu store rs1 rs2 half }
+rv64i[sw]     =  { lsu store rs1 rs2 word }
+
+####################################################
+# added for RV64
+# RV64I
+rv64i[lwu]    =  { lsu load rs1 rd word unsign }
+rv64i[ld]     =  { lsu load rs1 rd dword  }
+rv64i[sd]     =  { lsu store rs1 rs2 dword }
+
+rv64i[addiw]  =  { alu rs1 imm12 rd add pm_alu wpostfix }
+
+rv64i[slliw]  =  { alu rs1 shimm6 rd sll pm_alu wpostfix }
+rv64i[srliw]  =  { alu rs1 shimm6 rd srl pm_alu wpostfix }
+rv64i[sraiw]  =  { alu rs1 shimm6 rd sra pm_alu wpostfix }
+
+rv64i[addw]   =  { alu rs1 rs2   rd add pm_alu wpostfix }
+rv64i[subw]   =  { alu rs1 rs2   rd sub pm_alu wpostfix }
+
+rv64i[sllw]   =  { alu rs1 rs2    rd sll pm_alu wpostfix }
+rv64i[srlw]   =  { alu rs1 rs2    rd srl pm_alu wpostfix }
+rv64i[sraw]   =  { alu rs1 rs2    rd sra pm_alu wpostfix }
+
+# RV64M
+rv64i[mulw]   =  { mul rs1 rs2 rd low wpostfix }
+rv64i[divw]   =  { div rs1 rs2 rd        presync postsync wpostfix }
+rv64i[divuw]  =  { div rs1 rs2 rd unsign presync postsync wpostfix }
+rv64i[remw]   =  { div rs1 rs2 rd        presync postsync rem wpostfix }
+rv64i[remuw]  =  { div rs1 rs2 rd unsign presync postsync rem wpostfix }
+
+# RV64B
+rv64i[clz]       =  { alu  zbb   rs1     rd                       clz     }
+rv64i[clzw]      =  { alu  zbb   rs1     rd        wpostfix       clz     }
+rv64i[ctz]       =  { alu  zbb   rs1     rd                       ctz     }
+rv64i[ctzw]      =  { alu  zbb   rs1     rd        wpostfix       ctz     }
+rv64i[cpop]      =  { alu  zbb   rs1     rd                       cpop    }
+rv64i[cpopw]     =  { alu  zbb   rs1     rd        wpostfix       cpop    }
+rv64i[sext_b]    =  { alu  zbb   rs1     rd                       sext_b  }
+rv64i[sext_h]    =  { alu  zbb   rs1     rd                       sext_h  }
+rv64i[zext_h]    =  { alu  zbb   rs1     rd                       zext_h  }
+rv64i[min]       =  { alu  zbb   rs1 rs2 rd                sub    min     }
+rv64i[max]       =  { alu  zbb   rs1 rs2 rd                sub    max     }
+rv64i[minu]      =  { alu  zbb   rs1 rs2 rd  unsign        sub    min     }
+rv64i[maxu]      =  { alu  zbb   rs1 rs2 rd  unsign        sub    max     }
+rv64i[andn]      =  { alu  zbb   rs1 rs2 rd  rs2neg               land    }
+rv64i[orn]       =  { alu  zbb   rs1 rs2 rd  rs2neg               lor     }
+rv64i[xnor]      =  { alu  zbb   rs1 rs2 rd  rs2neg               lxor    }
+rv64i[rol]       =  { alu  zbb   rs1 rs2 rd                       rol     }
+rv64i[rolw]      =  { alu  zbb   rs1 rs2 rd         wpostfix      rol     }
+rv64i[ror]       =  { alu  zbb   rs1 rs2 rd                       ror     }
+rv64i[rori]      =  { alu  zbb   rs1     rd         shimm6        ror     }
+rv64i[roriw]     =  { alu  zbb   rs1     rd   shimm6   wpostfix   ror     }
+rv64i[rorw]      =  { alu  zbb   rs1 rs2 rd         wpostfix      ror     }
+rv64i[bset]      =  { alu  zbs   rs1 rs2 rd                       bset    }
+rv64i[bclr]      =  { alu  zbs   rs1 rs2 rd                       bclr    }
+rv64i[binv]      =  { alu  zbs   rs1 rs2 rd                       binv    }
+rv64i[bext]      =  { alu  zbs   rs1 rs2 rd                       bext    }
+rv64i[bseti]     =  { alu  zbs   rs1     rd         shimm6        bset    }
+rv64i[bclri]     =  { alu  zbs   rs1     rd         shimm6        bclr    }
+rv64i[binvi]     =  { alu  zbs   rs1     rd         shimm6        binv    }
+rv64i[bexti]     =  { alu  zbs   rs1     rd         shimm6        bext    }
+rv64i[add_uw]    =  { alu  zba   rs1 rs2 rd         dotuw         add     }
+rv64i[sh1add]    =  { alu  zba   rs1 rs2 rd                       sh1add  }
+rv64i[sh1add_uw] =  { alu  zba   rs1 rs2 rd         dotuw         sh1add  }
+rv64i[sh2add]    =  { alu  zba   rs1 rs2 rd                       sh2add  }
+rv64i[sh2add_uw] =  { alu  zba   rs1 rs2 rd         dotuw         sh2add  }
+rv64i[sh3add]    =  { alu  zba   rs1 rs2 rd                       sh3add  }
+rv64i[sh3add_uw] =  { alu  zba   rs1 rs2 rd         dotuw         sh3add  }
+rv64i[slli_uw]   =  { alu  zba   rs1     rd   shimm6   dotuw      sll     }
+# zbc insts are use mul instead of alu
+rv64i[clmul]     =  { mul  zbc   rs1 rs2 rd         low           clmul   }
+rv64i[clmulh]    =  { mul  zbc   rs1 rs2 rd                       clmul   }
+rv64i[clmulr]    =  { mul  zbc   rs1 rs2 rd         reverse       clmul   }
+rv64i[rev8]      =  { alu  zbb   rs1     rd                       rev8    }
+rv64i[orc_b]     =  { alu  zbb   rs1     rd                       orc_b   }
+
+####################################################
+
+
+rv64i[fence]     =  { alu lor fence presync}
 
 # fence.i has fence effect in addtion to flush I$ and redirect
-rv32i[fence.i] = { alu lor fence fence_i presync postsync}
+rv64i[fence.i]   =  { alu lor fence fence_i presync postsync}
 
 # nops for now
 
-rv32i[ebreak] = {  alu rs1 imm12 rd lor ebreak postsync}
-rv32i[ecall] =  {  alu rs1 imm12 rd lor ecall  postsync}
-rv32i[mret] =   {  alu rs1 imm12 rd lor mret   postsync}
+rv64i[ebreak]    =  {  alu rs1 imm12 rd lor ebreak postsync}
+rv64i[ecall]     =  {  alu rs1 imm12 rd lor ecall  postsync}
+rv64i[mret]      =  {  alu rs1 imm12 rd lor mret   postsync}
 
-rv32i[wfi] =    {  alu rs1 imm12 rd lor pm_alu }
+rv64i[wfi]       =  {  alu rs1 imm12 rd lor pm_alu }
 
 # csr means read
 
 # csr_read - put csr on rs2 and rs1 0's
-rv32i[csrrc_ro] =        { alu rd csr_read lor }
+rv64i[csrrc_ro]       =   { alu rd csr_read lor }
 
 # put csr on rs2 and make rs1 0's into alu.  Save rs1 for csr_clr later
-rv32i[csrrc_rw{0-4}] =   { alu rd csr_read rs1 csr_clr            lor presync postsync }
+rv64i[csrrc_rw{0-4}]  =   { alu rd csr_read rs1 csr_clr            lor presync postsync }
 
-rv32i[csrrci_ro] =       { alu rd csr_read lor }
+rv64i[csrrci_ro]      =   { alu rd csr_read lor }
 
-rv32i[csrrci_rw{0-4}] =  { alu rd csr_read rs1 csr_clr   csr_imm  lor presync postsync }
+rv64i[csrrci_rw{0-4}] =   { alu rd csr_read rs1 csr_clr   csr_imm  lor presync postsync }
 
-rv32i[csrrs_ro] =        { alu rd csr_read lor }
+rv64i[csrrs_ro]       =   { alu rd csr_read lor }
 
-rv32i[csrrs_rw{0-4}] =   { alu rd csr_read rs1 csr_set            lor presync postsync }
+rv64i[csrrs_rw{0-4}]  =   { alu rd csr_read rs1 csr_set            lor presync postsync }
 
-rv32i[csrrsi_ro] =       { alu rd csr_read lor }
+rv64i[csrrsi_ro]      =   { alu rd csr_read lor }
 
-rv32i[csrrsi_rw{0-4}] =  { alu rd csr_read rs1 csr_set   csr_imm lor presync postsync }
+rv64i[csrrsi_rw{0-4}] =   { alu rd csr_read rs1 csr_set   csr_imm lor presync postsync }
 
-rv32i[csrrw{0-4}] =     { alu rd csr_read rs1 csr_write         lor presync postsync }
+rv64i[csrrw{0-4}]     =   { alu rd csr_read rs1 csr_write         lor presync postsync }
 
 
-rv32i[csrrwi{0-4}] =         { alu rd csr_read rs1 csr_write csr_imm lor presync postsync }
+rv64i[csrrwi{0-4}]    =   { alu rd csr_read rs1 csr_write csr_imm lor presync postsync }
 
 # optimize csr write only - pipelined
-rv32i[csrw] =                { alu rd rs1 csr_write           }
+rv64i[csrw]           =   { alu rd rs1 csr_write           }
 
-rv32i[csrwi]       =         { alu rd     csr_write csr_imm   }
+rv64i[csrwi]          =   { alu rd     csr_write csr_imm   }
 
 
 .end

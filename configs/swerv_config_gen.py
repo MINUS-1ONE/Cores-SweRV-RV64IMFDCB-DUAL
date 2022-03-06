@@ -33,7 +33,7 @@ class SwervConfigGenerator(Generator):
         cwd = tmp_dir
 
         env = os.environ.copy()
-        env['RV_ROOT'] = tmp_dir
+        env['RV64_ROOT'] = tmp_dir
         env['BUILD_PATH'] = build_path
         args = ['configs/swerv.config'] + self.config.get('args', [])
         rc = subprocess.call(args, cwd=cwd, env=env, stdout=devnull)

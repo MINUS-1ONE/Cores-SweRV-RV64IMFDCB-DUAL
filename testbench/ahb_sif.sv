@@ -25,7 +25,7 @@ input logic [1:0] HTRANS,
 input logic [2:0] HSIZE,
 input logic HREADY,
 input logic HRESETn,
-input logic [31:0] HADDR,
+input logic [63:0] HADDR,
 input logic [2:0] HBURST,
 
 output logic HREADYOUT,
@@ -33,14 +33,14 @@ output logic HRESP,
 output logic [63:0] HRDATA
 );
 
-parameter MAILBOX_ADDR = 32'hD0580000;
+parameter MAILBOX_ADDR = 64'hd000000050580000;
 
 logic write;
-logic [31:0] laddr, addr;
+logic [63:0] laddr, addr;
 logic [7:0] strb_lat;
 logic [63:0] rdata;
 
-bit [7:0] mem [bit[31:0]];
+bit [7:0] mem [bit[63:0]];
 bit [7:0] wscnt;
 int dws = 0;
 int iws = 0;
@@ -71,14 +71,14 @@ always @ (negedge HCLK ) begin
     if(HREADY)
         addr = HADDR;
     if (write & HREADY) begin
-        if(strb_lat[7]) mem[{laddr[31:3],3'd7}] = HWDATA[63:56];
-        if(strb_lat[6]) mem[{laddr[31:3],3'd6}] = HWDATA[55:48];
-        if(strb_lat[5]) mem[{laddr[31:3],3'd5}] = HWDATA[47:40];
-        if(strb_lat[4]) mem[{laddr[31:3],3'd4}] = HWDATA[39:32];
-        if(strb_lat[3]) mem[{laddr[31:3],3'd3}] = HWDATA[31:24];
-        if(strb_lat[2]) mem[{laddr[31:3],3'd2}] = HWDATA[23:16];
-        if(strb_lat[1]) mem[{laddr[31:3],3'd1}] = HWDATA[15:08];
-        if(strb_lat[0]) mem[{laddr[31:3],3'd0}] = HWDATA[07:00];
+        if(strb_lat[7]) mem[{laddr[63:3],3'd7}] = HWDATA[63:56];
+        if(strb_lat[6]) mem[{laddr[63:3],3'd6}] = HWDATA[55:48];
+        if(strb_lat[5]) mem[{laddr[63:3],3'd5}] = HWDATA[47:40];
+        if(strb_lat[4]) mem[{laddr[63:3],3'd4}] = HWDATA[39:32];
+        if(strb_lat[3]) mem[{laddr[63:3],3'd3}] = HWDATA[31:24];
+        if(strb_lat[2]) mem[{laddr[63:3],3'd2}] = HWDATA[23:16];
+        if(strb_lat[1]) mem[{laddr[63:3],3'd1}] = HWDATA[15:08];
+        if(strb_lat[0]) mem[{laddr[63:3],3'd0}] = HWDATA[07:00];
     end
     if(HREADY & HSEL & |HTRANS) begin
 `ifdef VERILATOR
@@ -102,7 +102,7 @@ assign HRESP = 0;
 
 always @(posedge HCLK or negedge HRESETn) begin
     if(~HRESETn) begin
-        laddr <= 32'b0;
+        laddr <= 64'b0;
         write <= 1'b0;
         rdata <= '0;
         wscnt <= 0;
@@ -112,14 +112,14 @@ always @(posedge HCLK or negedge HRESETn) begin
             laddr <= HADDR;
             write <= HWRITE & |HTRANS;
             if(|HTRANS & ~HWRITE)
-                rdata <= {mem[{addr[31:3],3'd7}],
-                          mem[{addr[31:3],3'd6}],
-                          mem[{addr[31:3],3'd5}],
-                          mem[{addr[31:3],3'd4}],
-                          mem[{addr[31:3],3'd3}],
-                          mem[{addr[31:3],3'd2}],
-                          mem[{addr[31:3],3'd1}],
-                          mem[{addr[31:3],3'd0}]};
+                rdata <= {mem[{addr[63:3],3'd7}],
+                          mem[{addr[63:3],3'd6}],
+                          mem[{addr[63:3],3'd5}],
+                          mem[{addr[63:3],3'd4}],
+                          mem[{addr[63:3],3'd3}],
+                          mem[{addr[63:3],3'd2}],
+                          mem[{addr[63:3],3'd1}],
+                          mem[{addr[63:3],3'd0}]};
             strb_lat <= strb;
         end
     end
@@ -139,7 +139,7 @@ input                   aclk,
 input                   rst_l,
 input                   arvalid,
 output reg              arready,
-input [31:0]            araddr,
+input [63:0]            araddr,
 input [TAGW-1:0]        arid,
 input [7:0]             arlen,
 input [1:0]             arburst,
@@ -154,7 +154,7 @@ output                  rlast,
 
 input                   awvalid,
 output                  awready,
-input [31:0]            awaddr,
+input [63:0]            awaddr,
 input [TAGW-1:0]        awid,
 input [7:0]             awlen,
 input [1:0]             awburst,
@@ -171,10 +171,10 @@ output reg [1:0]        bresp,
 output reg [TAGW-1:0]   bid
 );
 
-parameter MAILBOX_ADDR = 32'hD0580000;
+parameter MAILBOX_ADDR = 64'hd000000050580000;
 parameter MEM_SIZE_DW = 8192;
 
-bit [7:0] mem [bit[31:0]];
+bit [7:0] mem [bit[63:0]];
 bit [63:0] memdata;
 wire [63:0] WriteData;
 wire mailbox_write;

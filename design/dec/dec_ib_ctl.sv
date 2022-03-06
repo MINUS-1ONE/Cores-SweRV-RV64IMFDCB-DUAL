@@ -24,7 +24,7 @@ module dec_ib_ctl
    input logic                 dbg_cmd_write,  // dbg cmd is write
    input logic [1:0]           dbg_cmd_type,   // dbg type
    input logic [1:0]           dbg_cmd_size,   // 00 - 1B, 01 - 2B, 10 - 4B, 11 - reserved
-   input logic [31:0]          dbg_cmd_addr,   // expand to 31:0
+   input logic [63:0]          dbg_cmd_addr,   // expand to 63:0
 
    input logic exu_flush_final,                // all flush sources: primary/secondary alu's, trap
 
@@ -54,8 +54,8 @@ module dec_ib_ctl
    input logic [31:0]  ifu_i0_instr,           // i0 instruction from the aligner
    input logic [31:0]  ifu_i1_instr,
 
-   input logic [31:1]  ifu_i0_pc,              // i0 pc from the aligner
-   input logic [31:1] ifu_i1_pc,
+   input logic [63:1]  ifu_i0_pc,              // i0 pc from the aligner
+   input logic [63:1] ifu_i1_pc,
 
    input logic   dec_i0_decode_d,              // i0 decode
    input logic   dec_i1_decode_d,
@@ -74,8 +74,8 @@ module dec_ib_ctl
    output logic [31:0] dec_i0_instr_d,         // i0 inst at decode
    output logic [31:0] dec_i1_instr_d,         // i1 inst at decode
 
-   output logic [31:1] dec_i0_pc_d,            // i0 pc at decode
-   output logic [31:1] dec_i1_pc_d,
+   output logic [63:1] dec_i0_pc_d,            // i0 pc at decode
+   output logic [63:1] dec_i1_pc_d,
 
    output logic dec_i0_pc4_d,                  // i0 is 4B inst else 2B
    output logic dec_i1_pc4_d,
@@ -115,8 +115,8 @@ module dec_ib_ctl
    logic [31:0]  ib3_in, ib2_in, ib1_in, ib0_in;
    logic [31:0]  ib3, ib2, ib1, ib0;
 
-   logic [36:0]  pc3_in, pc2_in, pc1_in, pc0_in;
-   logic [36:0]  pc3, pc2, pc1, pc0;
+   logic [68:0]  pc3_in, pc2_in, pc1_in, pc0_in;
+   logic [68:0]  pc3, pc2, pc1, pc0;
 
    logic [15:0]  cinst3_in, cinst2_in, cinst1_in, cinst0_in;
    logic [15:0]  cinst3, cinst2, cinst1, cinst0;
@@ -237,60 +237,60 @@ module dec_ib_ctl
                             write_i0_ib0 | shift_ib1_ib0 | shift_ib2_ib0
                             };
 
-   logic [36:0]  ifu_i1_pcdata, ifu_i0_pcdata;
+   logic [68:0]  ifu_i1_pcdata, ifu_i0_pcdata;
 
-   assign ifu_i1_pcdata[36:0] = { ifu_i1_icaf_second, ifu_i1_dbecc, ifu_i1_sbecc, ifu_i1_perr, ifu_i1_icaf,
-                                  ifu_i1_pc[31:1], ifu_i1_pc4 };
-   assign ifu_i0_pcdata[36:0] = { ifu_i0_icaf_second, ifu_i0_dbecc, ifu_i0_sbecc, ifu_i0_perr, ifu_i0_icaf,
-                                  ifu_i0_pc[31:1], ifu_i0_pc4 };
+   assign ifu_i1_pcdata[68:0] = { ifu_i1_icaf_second, ifu_i1_dbecc, ifu_i1_sbecc, ifu_i1_perr, ifu_i1_icaf,
+                                  ifu_i1_pc[63:1], ifu_i1_pc4 };
+   assign ifu_i0_pcdata[68:0] = { ifu_i0_icaf_second, ifu_i0_dbecc, ifu_i0_sbecc, ifu_i0_perr, ifu_i0_icaf,
+                                  ifu_i0_pc[63:1], ifu_i0_pc4 };
 
    if (DEC_INSTBUF_DEPTH==4) begin
-      assign pc3_in[36:0] = ({37{write_i0_ib3}} & ifu_i0_pcdata[36:0]) |
-                            ({37{write_i1_ib3}} & ifu_i1_pcdata[36:0]);
+      assign pc3_in[68:0] = ({69{write_i0_ib3}} & ifu_i0_pcdata[68:0]) |
+                            ({69{write_i1_ib3}} & ifu_i1_pcdata[68:0]);
 
-      rvdffe #(37) pc3ff (.*, .en(ibwrite[3]), .din(pc3_in[36:0]), .dout(pc3[36:0]));
+      rvdffe #(69) pc3ff (.*, .en(ibwrite[3]), .din(pc3_in[68:0]), .dout(pc3[68:0]));
 
-      assign pc2_in[36:0] = ({37{write_i0_ib2}} & ifu_i0_pcdata[36:0]) |
-                            ({37{write_i1_ib2}} & ifu_i1_pcdata[36:0]) |
-                            ({37{shift_ib3_ib2}} & pc3[36:0]);
+      assign pc2_in[68:0] = ({69{write_i0_ib2}} & ifu_i0_pcdata[68:0]) |
+                            ({69{write_i1_ib2}} & ifu_i1_pcdata[68:0]) |
+                            ({69{shift_ib3_ib2}} & pc3[68:0]);
 
-      rvdffe #(37) pc2ff (.*, .en(ibwrite[2]), .din(pc2_in[36:0]), .dout(pc2[36:0]));
+      rvdffe #(69) pc2ff (.*, .en(ibwrite[2]), .din(pc2_in[68:0]), .dout(pc2[68:0]));
    end // if (DEC_INSTBUF_DEPTH==4)
    else begin
       assign pc3 = '0;
       assign pc2 = '0;
    end
 
-   assign pc1_in[36:0] = ({37{write_i0_ib1}} & ifu_i0_pcdata[36:0]) |
-                         ({37{write_i1_ib1}} & ifu_i1_pcdata[36:0]) |
-                         ({37{shift_ib2_ib1}} & pc2[36:0]) |
-                         ({37{shift_ib3_ib1}} & pc3[36:0]);
+   assign pc1_in[68:0] = ({69{write_i0_ib1}} & ifu_i0_pcdata[68:0]) |
+                         ({69{write_i1_ib1}} & ifu_i1_pcdata[68:0]) |
+                         ({69{shift_ib2_ib1}} & pc2[68:0]) |
+                         ({69{shift_ib3_ib1}} & pc3[68:0]);
 
-   rvdffe #(37) pc1ff (.*, .en(ibwrite[1]), .din(pc1_in[36:0]), .dout(pc1[36:0]));
+   rvdffe #(69) pc1ff (.*, .en(ibwrite[1]), .din(pc1_in[68:0]), .dout(pc1[68:0]));
 
 
-   assign pc0_in[36:0] = ({37{write_i0_ib0}} & ifu_i0_pcdata[36:0]) |
-                         ({37{shift_ib1_ib0}} & pc1[36:0]) |
-                         ({37{shift_ib2_ib0}} & pc2[36:0]);
+   assign pc0_in[68:0] = ({69{write_i0_ib0}} & ifu_i0_pcdata[68:0]) |
+                         ({69{shift_ib1_ib0}} & pc1[68:0]) |
+                         ({69{shift_ib2_ib0}} & pc2[68:0]);
 
-   rvdffe #(37) pc0ff (.*, .en(ibwrite[0]), .din(pc0_in[36:0]), .dout(pc0[36:0]));
+   rvdffe #(69) pc0ff (.*, .en(ibwrite[0]), .din(pc0_in[68:0]), .dout(pc0[68:0]));
 
-   assign dec_i0_icaf_second_d = pc0[36];   // icaf's can only decode as i0
+   assign dec_i0_icaf_second_d = pc0[68];   // icaf's can only decode as i0
 
-   assign dec_i1_dbecc_d = pc1[35];
-   assign dec_i0_dbecc_d = pc0[35];
+   assign dec_i1_dbecc_d = pc1[67];
+   assign dec_i0_dbecc_d = pc0[67];
 
-   assign dec_i1_sbecc_d = pc1[34];
-   assign dec_i0_sbecc_d = pc0[34];
+   assign dec_i1_sbecc_d = pc1[66];
+   assign dec_i0_sbecc_d = pc0[66];
 
-   assign dec_i1_perr_d = pc1[33];
-   assign dec_i0_perr_d = pc0[33];
+   assign dec_i1_perr_d = pc1[65];
+   assign dec_i0_perr_d = pc0[65];
 
-   assign dec_i1_icaf_d = pc1[32];
-   assign dec_i0_icaf_d = pc0[32];
+   assign dec_i1_icaf_d = pc1[64];
+   assign dec_i0_icaf_d = pc0[64];
 
-   assign dec_i1_pc_d[31:1] = pc1[31:1];
-   assign dec_i0_pc_d[31:1] = pc0[31:1];
+   assign dec_i1_pc_d[63:1] = pc1[63:1];
+   assign dec_i0_pc_d[63:1] = pc0[63:1];
 
    assign dec_i1_pc4_d = pc1[0];
    assign dec_i0_pc4_d = pc0[0];

@@ -1,0 +1,19 @@
+#=======================================================================
+# Makefrag for rv64ub tests
+#-----------------------------------------------------------------------
+
+rv64ub_sc_tests = \
+	add_uw bexti bseti clmul \
+	cpopw maxu orn rori \
+	sext_b sh2add slli_uw andn \
+	bext bset clz ctz \
+	min rev8 roriw sext_h \
+	sh2add_uw xnor bclri binvi \
+	clmulh clzw ctzw minu \
+	rol ror sh1add sh3add \
+	zext_h bclr binv clmulr \
+	cpop max orc_b rolw \
+	rorw sh1add_uw sh3add_uw
+
+rv64ub_p_tests = $(addprefix rv64ub-p-, $(rv64ub_sc_tests))
+rv64ub_v_tests = $(addprefix rv64ub-v-, $(rv64ub_sc_tests))

@@ -1,5 +1,6 @@
 #include "defines.h"
 
+// #define ITERATIONS 500
 #define ITERATIONS 1
 
 
@@ -106,8 +107,8 @@ El Dorado Hills, CA, 95762
 */
 #ifndef HAS_PRINTF
 #define HAS_PRINTF 1
-int whisperPrintf(const char* format, ...);
-#define ee_printf whisperPrintf
+#include "printf.h"
+#define ee_printf printf
 #endif
 
 /* Configuration : CORE_TICKS
@@ -147,8 +148,11 @@ typedef signed int ee_s32;
 typedef double ee_f32;
 typedef unsigned char ee_u8;
 typedef unsigned int ee_u32;
-typedef ee_u32 ee_ptr_int;
+typedef unsigned long ee_u64;
+// typedef ee_u32 ee_ptr_int;
+typedef ee_u64 ee_ptr_int;
 typedef size_t ee_size_t;
+// typedef unsigned int ee_size_t;
 /* align_mem :
         This macro is used to align an offset to point to a 32b value. It is used in the Matrix algorithm to initialize the input memory blocks.
 */
@@ -282,9 +286,11 @@ typedef ee_u32 secs_ret;
 #define MAIN_RETURN_TYPE int
 #endif
 
+ee_u64 get_minstret();
 void start_time(void);
 void stop_time(void);
 CORE_TICKS get_time(void);
+
 secs_ret time_in_secs(CORE_TICKS ticks);
 
 /* Misc useful functions */
@@ -1083,8 +1089,8 @@ MAIN_RETURN_TYPE main(int argc, char *argv[]) {
                 results[0].iterations*=1+10/divisor;
         }
         /* perform actual benchmark */
+        ee_u64 start_insts =  get_minstret();
         start_time();
-
         __asm("__perf_start:");
 
 #if (MULTITHREAD>1)
@@ -1106,6 +1112,7 @@ MAIN_RETURN_TYPE main(int argc, char *argv[]) {
         __asm("__perf_end:");
 
         stop_time();
+        ee_u64 total_insts =  get_minstret() - start_insts;
         total_time=get_time();
         /* get a function of the input to report */
         seedcrc=crc16(results[0].seed1,seedcrc);
@@ -1162,17 +1169,22 @@ MAIN_RETURN_TYPE main(int argc, char *argv[]) {
         total_errors+=check_data_types();
         /* and report results */
         ee_printf("CoreMark Size    : %u\n",(ee_u32)results[0].size);
-        ee_printf("Total ticks      : %u\n",(ee_u32)total_time);
+        ee_printf("Total ticks      : %llu\n",total_time);
+        ee_printf("Total insts      : %llu\n",total_insts);
 #if HAS_FLOAT
         ee_printf("Total time (secs): %f\n",time_in_secs(total_time));
-        if (time_in_secs(total_time) > 0)
+        if (time_in_secs(total_time) > 0) {
                 ee_printf("Iterations/Sec   : %f\n",default_num_contexts*results[0].iterations/time_in_secs(total_time));
+                ee_printf("IPC              : %f\n",total_insts/total_time);
+        }
 #else
         ee_printf("Total time (secs): %d\n",time_in_secs(total_time));
-        if (time_in_secs(total_time) > 0)
+        if (time_in_secs(total_time) > 0) {
 //              ee_printf("Iterations/Sec   : %d\n",default_num_contexts*results[0].iterations/time_in_secs(total_time));
                 ee_printf("Iterat/Sec/MHz   : %d.%02d\n",1000*default_num_contexts*results[0].iterations/time_in_secs(total_time),
                              100000*default_num_contexts*results[0].iterations/time_in_secs(total_time) % 100);
+                ee_printf("IPC              : %d.%03d\n",total_insts/total_time, 1000*total_insts/total_time % 1000);
+        }
 #endif
         if (time_in_secs(total_time) < 10) {
                 ee_printf("ERROR! Must execute for at least 10 secs for a valid result!\n");
@@ -2089,7 +2101,7 @@ static CORETIMETYPE start_time_val, stop_time_val;
         or zeroing some system parameters - e.g. setting the cpu clocks cycles to 0.
 */
 void start_time(void) {
-uint32_t mcyclel;
+uint64_t mcyclel;
         asm volatile ("csrr %0,mcycle"  : "=r" (mcyclel) );
         start_time_val = mcyclel;
 }
@@ -2100,7 +2112,7 @@ uint32_t mcyclel;
         or other system parameters - e.g. reading the current value of cpu cycles counter.
 */
 void stop_time(void) {
-uint32_t mcyclel;
+uint64_t mcyclel;
         asm volatile ("csrr %0,mcycle"  : "=r" (mcyclel) );
         stop_time_val = mcyclel;
 }
@@ -2126,6 +2138,15 @@ CORE_TICKS get_time(void) {
 secs_ret time_in_secs(CORE_TICKS ticks) {
         secs_ret retval=((secs_ret)ticks) / (secs_ret)EE_TICKS_PER_SEC;
         return retval;
+}
+/* Function: get_minstret
+        Get retired instructions numble from minstret csr
+*/
+ee_u64 get_minstret(){
+  // in RV64, mcycle csr is 64bit, and not need read mcycleh
+  ee_u64 minstret;
+  asm volatile ("csrr %0,minstret"   : "=r" (minstret)  );
+  return minstret;
 }
 
 ee_u32 default_num_contexts=1;

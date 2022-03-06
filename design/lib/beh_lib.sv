@@ -200,7 +200,7 @@ module rvoclkhdr
 
 endmodule
 
-module rvdffe #( parameter WIDTH=1, parameter OVERRIDE=0 )
+module rvdffe #( parameter WIDTH=1, parameter OVERRIDE=1 )
    (
      input  logic [WIDTH-1:0] din,
      input  logic           en,
@@ -250,29 +250,29 @@ endmodule // rvsyncss
 
 module rvlsadder
   (
-    input logic [31:0] rs1,
+    input logic [63:0] rs1,
     input logic [11:0] offset,
 
-    output logic [31:0] dout
+    output logic [63:0] dout
     );
 
    logic                cout;
    logic                sign;
 
-   logic [31:12]        rs1_inc;
-   logic [31:12]        rs1_dec;
+   logic [63:12]        rs1_inc;
+   logic [63:12]        rs1_dec;
 
    assign {cout,dout[11:0]} = {1'b0,rs1[11:0]} + {1'b0,offset[11:0]};
 
-   assign rs1_inc[31:12] = rs1[31:12] + 1;
+   assign rs1_inc[63:12] = rs1[63:12] + 1;
 
-   assign rs1_dec[31:12] = rs1[31:12] - 1;
+   assign rs1_dec[63:12] = rs1[63:12] - 1;
 
    assign sign = offset[11];
 
-   assign dout[31:12] = ({20{  sign ^~  cout}} &     rs1[31:12]) |
-                        ({20{ ~sign &   cout}}  & rs1_inc[31:12]) |
-                        ({20{  sign &  ~cout}}  & rs1_dec[31:12]);
+   assign dout[63:12] = ({52{  sign ^~  cout}} &     rs1[63:12]) |
+                        ({52{ ~sign &   cout}}  & rs1_inc[63:12]) |
+                        ({52{  sign &  ~cout}}  & rs1_dec[63:12]);
 
 endmodule // rvlsadder
 
@@ -280,34 +280,49 @@ endmodule // rvlsadder
 
 module rvbradder
   (
-    input [31:1] pc,
+    input [63:1] pc,
     input [12:1] offset,
 
-    output [31:1] dout
+    output [63:1] dout
     );
 
    logic          cout;
    logic          sign;
 
-   logic [31:13]  pc_inc;
-   logic [31:13]  pc_dec;
+   logic [63:13]  pc_inc;
+   logic [63:13]  pc_dec;
 
    assign {cout,dout[12:1]} = {1'b0,pc[12:1]} + {1'b0,offset[12:1]};
 
-   assign pc_inc[31:13] = pc[31:13] + 1;
+   assign pc_inc[63:13] = pc[63:13] + 1;
 
-   assign pc_dec[31:13] = pc[31:13] - 1;
+   assign pc_dec[63:13] = pc[63:13] - 1;
 
    assign sign = offset[12];
 
 
-   assign dout[31:13] = ({19{  sign ^~  cout}} &     pc[31:13]) |
-                        ({19{ ~sign &   cout}}  & pc_inc[31:13]) |
-                        ({19{  sign &  ~cout}}  & pc_dec[31:13]);
+   assign dout[63:13] = ({51{  sign ^~  cout}} &     pc[63:13]) |
+                        ({51{ ~sign &   cout}}  & pc_inc[63:13]) |
+                        ({51{  sign &  ~cout}}  & pc_dec[63:13]);
 
 
 endmodule // rvbradder
 
+// 3-2 compressor
+module rvcompressor_3_2 #( parameter WIDTH=64 )
+  (
+    input  logic [WIDTH-1:0] x1,
+    input  logic [WIDTH-1:0] x2,
+    input  logic [WIDTH-1:0] x3,
+    
+    output logic [WIDTH-1:0] sum,
+    output logic [WIDTH-1:0] carry
+  );
+
+    assign sum[WIDTH-1:0] = x1 ^ x2 ^ x3;
+    assign carry[WIDTH-1:0] = {(x1[WIDTH-2:0] & x2[WIDTH-2:0]) | (x1[WIDTH-2:0] & x3[WIDTH-2:0]) | (x2[WIDTH-2:0] & x3[WIDTH-2:0]), 1'b0};
+
+endmodule // 3-2 compressor
 
 // 2s complement circuit
 module rvtwoscomp #( parameter WIDTH=32 )
@@ -394,7 +409,7 @@ module rvmaskandmatch #( parameter WIDTH=32 )
 endmodule // rvmaskandmatch
 
 module rvbtb_tag_hash (
-                       input logic [31:1] pc,
+                       input logic [63:1] pc,
                        output logic [`RV_BTB_BTAG_SIZE-1:0] hash
                        );
 `ifndef RV_BTB_BTAG_FOLD
@@ -414,7 +429,7 @@ module rvbtb_tag_hash (
 endmodule
 
 module rvbtb_addr_hash (
-                        input logic [31:1] pc,
+                        input logic [63:1] pc,
                         output logic [`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] hash
                         );
 
@@ -442,9 +457,9 @@ endmodule
 
 
 // Check if the S_ADDR <= addr < E_ADDR
-module rvrangecheck  #(CCM_SADR = 32'h0,
+module rvrangecheck  #(CCM_SADR = 64'h0,
                        CCM_SIZE  = 128) (
-   input  logic [31:0]   addr,                             // Address to be checked for range
+   input  logic [63:0]   addr,                             // Address to be checked for range
    output logic          in_range,                            // S_ADDR <= start_addr < E_ADDR
    output logic          in_region
 );
@@ -452,17 +467,17 @@ module rvrangecheck  #(CCM_SADR = 32'h0,
    localparam REGION_BITS = 4;
    localparam MASK_BITS = 10 + $clog2(CCM_SIZE);
 
-   logic [31:0]          start_addr;
+   logic [63:0]          start_addr;
    logic [3:0]           region;
 
-   assign start_addr[31:0]        = CCM_SADR;
-   assign region[REGION_BITS-1:0] = start_addr[31:(32-REGION_BITS)];
+   assign start_addr[63:0]        = CCM_SADR;
+   assign region[REGION_BITS-1:0] = start_addr[63:(64-REGION_BITS)];
 
-   assign in_region = (addr[31:(32-REGION_BITS)] == region[REGION_BITS-1:0]);
+   assign in_region = (addr[63:(64-REGION_BITS)] == region[REGION_BITS-1:0]);
    if (CCM_SIZE  == 48)
-    assign in_range  = (addr[31:MASK_BITS] == start_addr[31:MASK_BITS]) & ~(&addr[MASK_BITS-1 : MASK_BITS-2]);
+    assign in_range  = (addr[63:MASK_BITS] == start_addr[63:MASK_BITS]) & ~(&addr[MASK_BITS-1 : MASK_BITS-2]);
    else
-    assign in_range  = (addr[31:MASK_BITS] == start_addr[31:MASK_BITS]);
+    assign in_range  = (addr[63:MASK_BITS] == start_addr[63:MASK_BITS]);
 
 endmodule  // rvrangechecker
 
@@ -544,5 +559,68 @@ module rvecc_decode  (
    assign dout_plus_parity[38:0] = single_ecc_error ? (error_mask[38:0] ^ din_plus_parity[38:0]) : din_plus_parity[38:0];
    assign dout[31:0]             = {dout_plus_parity[37:32], dout_plus_parity[30:16], dout_plus_parity[14:8], dout_plus_parity[6:4], dout_plus_parity[2]};
    assign ecc_out[6:0]           = {(dout_plus_parity[38] ^ (ecc_check[6:0] == 7'b1000000)), dout_plus_parity[31], dout_plus_parity[15], dout_plus_parity[7], dout_plus_parity[3], dout_plus_parity[1:0]};
+
+endmodule // rvecc_decode
+
+module rvecc_encode_64  (
+                      input [63:0] din,
+                      output [7:0] ecc_out
+                      );
+logic [6:0] ecc_out_temp;
+
+   assign ecc_out_temp[0] = din[0]^din[1]^din[3]^din[4]^din[6]^din[8]^din[10]^din[11]^din[13]^din[15]^din[17]^din[19]^din[21]^din[23]^din[25]^din[26]^din[28]^din[30]^din[32]^din[34]^din[36]^din[38]^din[40]^din[42]^din[44]^din[46]^din[48]^din[50]^din[52]^din[54]^din[56]^din[57]^din[59]^din[61]^din[63];
+   assign ecc_out_temp[1] = din[0]^din[2]^din[3]^din[5]^din[6]^din[9]^din[10]^din[12]^din[13]^din[16]^din[17]^din[20]^din[21]^din[24]^din[25]^din[27]^din[28]^din[31]^din[32]^din[35]^din[36]^din[39]^din[40]^din[43]^din[44]^din[47]^din[48]^din[51]^din[52]^din[55]^din[56]^din[58]^din[59]^din[62]^din[63];
+   assign ecc_out_temp[2] = din[1]^din[2]^din[3]^din[7]^din[8]^din[9]^din[10]^din[14]^din[15]^din[16]^din[17]^din[22]^din[23]^din[24]^din[25]^din[29]^din[30]^din[31]^din[32]^din[37]^din[38]^din[39]^din[40]^din[45]^din[46]^din[47]^din[48]^din[53]^din[54]^din[55]^din[56]^din[60]^din[61]^din[62]^din[63];
+   assign ecc_out_temp[3] = din[4]^din[5]^din[6]^din[7]^din[8]^din[9]^din[10]^din[18]^din[19]^din[20]^din[21]^din[22]^din[23]^din[24]^din[25]^din[33]^din[34]^din[35]^din[36]^din[37]^din[38]^din[39]^din[40]^din[49]^din[50]^din[51]^din[52]^din[53]^din[54]^din[55]^din[56];
+   assign ecc_out_temp[4] = din[11]^din[12]^din[13]^din[14]^din[15]^din[16]^din[17]^din[18]^din[19]^din[20]^din[21]^din[22]^din[23]^din[24]^din[25]^din[41]^din[42]^din[43]^din[44]^din[45]^din[46]^din[47]^din[48]^din[49]^din[50]^din[51]^din[52]^din[53]^din[54]^din[55]^din[56];
+   assign ecc_out_temp[5] = din[26]^din[27]^din[28]^din[29]^din[30]^din[31]^din[32]^din[33]^din[34]^din[35]^din[36]^din[37]^din[38]^din[39]^din[40]^din[41]^din[42]^din[43]^din[44]^din[45]^din[46]^din[47]^din[48]^din[49]^din[50]^din[51]^din[52]^din[53]^din[54]^din[55]^din[56];
+   assign ecc_out_temp[6] = din[57]^din[58]^din[59]^din[60]^din[61]^din[62]^din[63];
+
+   assign ecc_out[7:0] = {(^din[63:0])^(^ecc_out_temp[6:0]),ecc_out_temp[6:0]};
+
+endmodule // rvecc_encode
+
+module rvecc_decode_64  (
+                      input         en,
+                      input [63:0]  din,
+                      input [7:0]   ecc_in,
+                      input         sed_ded,    // only do detection and no correction. Used for the I$
+                      output [63:0] dout,
+                      output [7:0]  ecc_out,
+                      output        single_ecc_error,
+                      output        double_ecc_error
+
+                      );
+
+   logic [7:0]                      ecc_check;
+   logic [71:0]                     error_mask;
+   logic [71:0]                     din_plus_parity, dout_plus_parity;
+
+   // Generate the ecc bits 
+   assign ecc_check[0] = ecc_in[0]^din[0]^din[1]^din[3]^din[4]^din[6]^din[8]^din[10]^din[11]^din[13]^din[15]^din[17]^din[19]^din[21]^din[23]^din[25]^din[26]^din[28]^din[30]^din[32]^din[34]^din[36]^din[38]^din[40]^din[42]^din[44]^din[46]^din[48]^din[50]^din[52]^din[54]^din[56]^din[57]^din[59]^din[61]^din[63];
+   assign ecc_check[1] = ecc_in[1]^din[0]^din[2]^din[3]^din[5]^din[6]^din[9]^din[10]^din[12]^din[13]^din[16]^din[17]^din[20]^din[21]^din[24]^din[25]^din[27]^din[28]^din[31]^din[32]^din[35]^din[36]^din[39]^din[40]^din[43]^din[44]^din[47]^din[48]^din[51]^din[52]^din[55]^din[56]^din[58]^din[59]^din[62]^din[63];
+   assign ecc_check[2] = ecc_in[2]^din[1]^din[2]^din[3]^din[7]^din[8]^din[9]^din[10]^din[14]^din[15]^din[16]^din[17]^din[22]^din[23]^din[24]^din[25]^din[29]^din[30]^din[31]^din[32]^din[37]^din[38]^din[39]^din[40]^din[45]^din[46]^din[47]^din[48]^din[53]^din[54]^din[55]^din[56]^din[60]^din[61]^din[62]^din[63];
+   assign ecc_check[3] = ecc_in[3]^din[4]^din[5]^din[6]^din[7]^din[8]^din[9]^din[10]^din[18]^din[19]^din[20]^din[21]^din[22]^din[23]^din[24]^din[25]^din[33]^din[34]^din[35]^din[36]^din[37]^din[38]^din[39]^din[40]^din[49]^din[50]^din[51]^din[52]^din[53]^din[54]^din[55]^din[56];
+   assign ecc_check[4] = ecc_in[4]^din[11]^din[12]^din[13]^din[14]^din[15]^din[16]^din[17]^din[18]^din[19]^din[20]^din[21]^din[22]^din[23]^din[24]^din[25]^din[41]^din[42]^din[43]^din[44]^din[45]^din[46]^din[47]^din[48]^din[49]^din[50]^din[51]^din[52]^din[53]^din[54]^din[55]^din[56];
+   assign ecc_check[5] = ecc_in[5]^din[26]^din[27]^din[28]^din[29]^din[30]^din[31]^din[32]^din[33]^din[34]^din[35]^din[36]^din[37]^din[38]^din[39]^din[40]^din[41]^din[42]^din[43]^din[44]^din[45]^din[46]^din[47]^din[48]^din[49]^din[50]^din[51]^din[52]^din[53]^din[54]^din[55]^din[56];
+   assign ecc_check[6] = ecc_in[6]^din[57]^din[58]^din[59]^din[60]^din[61]^din[62]^din[63];
+
+   // This is the parity bit
+   assign ecc_check[7] = ((^din[63:0])^(^ecc_in[7:0])) & ~sed_ded;
+
+   assign single_ecc_error = en & (ecc_check[7:0] != 0) & ecc_check[7];   // this will never be on for sed_ded
+   assign double_ecc_error = en & (ecc_check[7:0] != 0) & ~ecc_check[7];  // all errors in the sed_ded case will be recorded as DE
+
+   // Generate the mask for error correctiong
+   for (genvar i=1; i<73; i++) begin
+      assign error_mask[i-1] = (ecc_check[6:0] == i);
+   end
+
+   // Generate the corrected data
+   assign din_plus_parity[71:0] = {ecc_in[7], din[63:57], ecc_in[6], din[56:26], ecc_in[5], din[25:11], ecc_in[4], din[10:4], ecc_in[3], din[3:1], ecc_in[2], din[0], ecc_in[1:0]};
+
+   assign dout_plus_parity[71:0] = single_ecc_error ? (error_mask[71:0] ^ din_plus_parity[71:0]) : din_plus_parity[71:0];
+   assign dout[63:0]             = {dout_plus_parity[70:64], dout_plus_parity[62:32], dout_plus_parity[30:16], dout_plus_parity[14:8], dout_plus_parity[6:4], dout_plus_parity[2]};
+   assign ecc_out[7:0]           = {(dout_plus_parity[71] ^ (ecc_check[7:0] == 8'b10000000)), dout_plus_parity[63], dout_plus_parity[31], dout_plus_parity[15], dout_plus_parity[7], dout_plus_parity[3], dout_plus_parity[1:0]};
 
 endmodule // rvecc_decode

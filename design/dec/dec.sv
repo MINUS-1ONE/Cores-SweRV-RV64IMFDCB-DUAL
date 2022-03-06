@@ -38,10 +38,10 @@ module dec
    output logic       dec_pause_state_cg,           // pause state for clock-gating
 
    input logic rst_l,                        // reset, active low
-   input logic [31:1] rst_vec,               // reset vector, from core pins
+   input logic [63:1] rst_vec,               // reset vector, from core pins
 
    input logic        nmi_int,               // NMI pin
-   input logic [31:1] nmi_vec,               // NMI vector, from pins
+   input logic [63:1] nmi_vec,               // NMI vector, from pins
 
    input logic  i_cpu_halt_req,              // Asynchronous Halt request to CPU
    input logic  i_cpu_run_req,               // Asynchronous Restart request to CPU
@@ -78,7 +78,7 @@ module dec
    input logic                                 lsu_nonblock_load_data_valid,     // valid nonblock load data back
    input logic                                 lsu_nonblock_load_data_error,     // nonblock load bus error
    input logic [`RV_LSU_NUM_NBLOAD_WIDTH-1:0]  lsu_nonblock_load_data_tag,       // -> corresponding tag
-   input logic [31:0]                          lsu_nonblock_load_data,           // nonblock load data
+   input logic [63:0]                          lsu_nonblock_load_data,           // nonblock load data
 
    input logic       lsu_pmu_bus_trxn,       // D side bus transaction
    input logic       lsu_pmu_bus_misaligned, // D side bus misaligned
@@ -100,7 +100,7 @@ module dec
    input logic  [1:0] dbg_cmd_size,    // size of the abstract mem access debug command
    input logic        dbg_cmd_write,   // command is a write
    input logic  [1:0] dbg_cmd_type,    // command type
-   input logic [31:0] dbg_cmd_addr,    // command address
+   input logic [63:0] dbg_cmd_addr,    // command address
    input logic  [1:0] dbg_cmd_wrdata,  // command write data, for fence/fence_i
 
 
@@ -129,26 +129,26 @@ module dec
 
    input logic         lsu_imprecise_error_load_any,   // LSU imprecise load bus error
    input logic         lsu_imprecise_error_store_any,  // LSU imprecise store bus error
-   input logic [31:0]  lsu_imprecise_error_addr_any,   // LSU imprecise bus error address
+   input logic [63:0]  lsu_imprecise_error_addr_any,   // LSU imprecise bus error address
    input logic         lsu_freeze_external_ints_dc3,   // load to side effect region
 
    input logic exu_i0_flush_lower_e4,       // slot 0 flush for mp
    input logic exu_i1_flush_lower_e4,       // slot 1 flush for mp
-   input logic [31:1] exu_i0_flush_path_e4, // slot 0 flush target for mp
-   input logic [31:1] exu_i1_flush_path_e4, // slot 1 flush target for mp
+   input logic [63:1] exu_i0_flush_path_e4, // slot 0 flush target for mp
+   input logic [63:1] exu_i1_flush_path_e4, // slot 1 flush target for mp
 
    input logic [15:0] ifu_illegal_inst,     // 16b opcode for illegal inst
 
    input logic exu_div_stall,               // stall decode for div executing
-   input logic [31:0]  exu_div_result,      // final div result
+   input logic [63:0]  exu_div_result,      // final div result
    input logic exu_div_finish,              // cycle div finishes
 
-   input logic [31:0] exu_mul_result_e3,    // 32b mul result
+   input logic [63:0] exu_mul_result_e3,    // 64b mul result
 
-   input logic [31:0] exu_csr_rs1_e1,       // rs1 for csr instruction
+   input logic [63:0] exu_csr_rs1_e1,       // rs1 for csr instruction
 
-   input logic [31:0] lsu_result_dc3,       // load result
-   input logic [31:0] lsu_result_corr_dc4, // corrected load result
+   input logic [63:0] lsu_result_dc3,       // load result
+   input logic [63:0] lsu_result_corr_dc4, // corrected load result
 
    input logic        lsu_load_stall_any,   // This is for blocking loads
    input logic        lsu_store_stall_any,  // This is for blocking stores
@@ -162,23 +162,23 @@ module dec
    input logic exu_i0_flush_final,          // slot0 flush
    input logic exu_i1_flush_final,          // slot1 flush
 
-   input logic [31:1] exu_npc_e4,           // next PC
+   input logic [63:1] exu_npc_e4,           // next PC
 
    input logic exu_flush_final,             // final flush
 
-   input logic [31:0] exu_i0_result_e1,     // alu result e1
-   input logic [31:0] exu_i1_result_e1,
+   input logic [63:0] exu_i0_result_e1,     // alu result e1
+   input logic [63:0] exu_i1_result_e1,
 
-   input logic [31:0] exu_i0_result_e4,     // alu result e4
-   input logic [31:0] exu_i1_result_e4,
+   input logic [63:0] exu_i0_result_e4,     // alu result e4
+   input logic [63:0] exu_i1_result_e4,
 
 
    input logic         ifu_i0_valid, ifu_i1_valid,    // fetch valids to instruction buffer
    input logic [31:0]  ifu_i0_instr, ifu_i1_instr,    // fetch inst's to instruction buffer
-   input logic [31:1]  ifu_i0_pc, ifu_i1_pc,          // pc's for instruction buffer
+   input logic [63:1]  ifu_i0_pc, ifu_i1_pc,          // pc's for instruction buffer
    input logic         ifu_i0_pc4, ifu_i1_pc4,        // indication of 4B or 2B for corresponding inst
-   input logic  [31:1] exu_i0_pc_e1,                  // pc's for e1 from the alu's
-   input logic  [31:1] exu_i1_pc_e1,
+   input logic  [63:1] exu_i0_pc_e1,                  // pc's for e1 from the alu's
+   input logic  [63:1] exu_i1_pc_e1,
 
    input logic mexintpend,                            // External interrupt pending
    input logic timer_int,                             // Timer interrupt pending (from pin)
@@ -191,9 +191,9 @@ module dec
    output logic [3:0] dec_tlu_meipt,                  // to PIC
 
 `ifdef RV_ICACHE_ECC
-   input logic [41:0] ifu_ic_debug_rd_data,           // diagnostic icache read data
+   input logic [74:0] ifu_ic_debug_rd_data,           // diagnostic icache read data
 `else
-   input logic [33:0] ifu_ic_debug_rd_data,           // diagnostic icache read data
+   input logic [65:0] ifu_ic_debug_rd_data,           // diagnostic icache read data
 `endif
    input logic ifu_ic_debug_rd_data_valid,            // diagnostic icache read data valid
    output cache_debug_pkt_t dec_tlu_ic_diag_pkt,      // packet of DICAWICS, DICAD0/1, DICAGO info for icache diagnostics
@@ -216,7 +216,7 @@ module dec
 
    output logic dec_debug_wdata_rs1_d,       // insert debug write data into rs1 at decode
 
-   output logic [31:0] dec_dbg_rddata,       // debug command read data
+   output logic [63:0] dec_dbg_rddata,       // debug command read data
 
    output logic dec_dbg_cmd_done,            // abstract command is done
    output logic dec_dbg_cmd_fail,            // abstract command failed (illegal reg address)
@@ -255,13 +255,13 @@ module dec
    input logic        exu_i0_br_way_e4,             // way hit or repl
 `endif
 
-   output logic  [31:0] gpr_i0_rs1_d,               // gpr rs1 data
-   output logic  [31:0] gpr_i0_rs2_d,               // gpr rs2 data
-   output logic  [31:0] gpr_i1_rs1_d,
-   output logic  [31:0] gpr_i1_rs2_d,
+   output logic  [63:0] gpr_i0_rs1_d,               // gpr rs1 data
+   output logic  [63:0] gpr_i0_rs2_d,               // gpr rs2 data
+   output logic  [63:0] gpr_i1_rs1_d,
+   output logic  [63:0] gpr_i1_rs2_d,
 
-   output logic [31:0] dec_i0_immed_d,              // immediate data
-   output logic [31:0] dec_i1_immed_d,
+   output logic [63:0] dec_i0_immed_d,              // immediate data
+   output logic [63:0] dec_i1_immed_d,
 
    output logic [12:1] dec_i0_br_immed_d,           // br immediate data
    output logic [12:1] dec_i1_br_immed_d,
@@ -275,16 +275,16 @@ module dec
    output logic          dec_i0_select_pc_d,        // select pc onto rs1 for jal's
    output logic          dec_i1_select_pc_d,
 
-   output logic [31:1] dec_i0_pc_d, dec_i1_pc_d,    // pc's at decode
+   output logic [63:1] dec_i0_pc_d, dec_i1_pc_d,    // pc's at decode
    output logic         dec_i0_rs1_bypass_en_d,     // rs1 bypass enable
    output logic         dec_i0_rs2_bypass_en_d,     // rs2 bypass enable
    output logic         dec_i1_rs1_bypass_en_d,
    output logic         dec_i1_rs2_bypass_en_d,
 
-   output logic [31:0] i0_rs1_bypass_data_d,       // rs1 bypass data
-   output logic [31:0] i0_rs2_bypass_data_d,       // rs2 bypass data
-   output logic [31:0] i1_rs1_bypass_data_d,
-   output logic [31:0] i1_rs2_bypass_data_d,
+   output logic [63:0] i0_rs1_bypass_data_d,       // rs1 bypass data
+   output logic [63:0] i0_rs2_bypass_data_d,       // rs2 bypass data
+   output logic [63:0] i1_rs1_bypass_data_d,
+   output logic [63:0] i1_rs2_bypass_data_d,
    output logic         dec_ib3_valid_d,           // ib3 buffer valid
    output logic         dec_ib2_valid_d,           // ib2 buffer valid
 
@@ -304,7 +304,7 @@ module dec
    output logic        dec_tlu_cancel_e4,          // Cancel lsu op at DC4 due to future trigger hit
 
    output logic        dec_tlu_flush_lower_wb,     // tlu flush due to late mp, exception, rfpc, or int
-   output logic [31:1] dec_tlu_flush_path_wb,      // tlu flush target
+   output logic [63:1] dec_tlu_flush_path_wb,      // tlu flush target
    output logic        dec_tlu_i0_kill_writeb_wb,  // I0 is flushed, don't writeback any results to arch state
    output logic        dec_tlu_i1_kill_writeb_wb,  // I1 is flushed, don't writeback any results to arch state
    output logic        dec_tlu_fence_i_wb,         // flush is a fence_i rfnpc, flush icache
@@ -315,29 +315,29 @@ module dec
    output logic        dec_i1_div_d,
    output logic        dec_i1_valid_e1,            // i1 valid at e1 stage
    output logic        dec_div_decode_e4,          // div at e4 stage
-   output logic [31:1] pred_correct_npc_e2,        // npc if prediction is correct at e2 stage
+   output logic [63:1] pred_correct_npc_e2,        // npc if prediction is correct at e2 stage
 
    output logic        dec_i0_rs1_bypass_en_e3,    // rs1 bypass enable e3
    output logic        dec_i0_rs2_bypass_en_e3,    // rs2 bypass enable e3
    output logic        dec_i1_rs1_bypass_en_e3,
    output logic        dec_i1_rs2_bypass_en_e3,
-   output logic [31:0] i0_rs1_bypass_data_e3,      // rs1 bypass data e3
-   output logic [31:0] i0_rs2_bypass_data_e3,      // rs2 bypass data e3
-   output logic [31:0] i1_rs1_bypass_data_e3,
-   output logic [31:0] i1_rs2_bypass_data_e3,
+   output logic [63:0] i0_rs1_bypass_data_e3,      // rs1 bypass data e3
+   output logic [63:0] i0_rs2_bypass_data_e3,      // rs2 bypass data e3
+   output logic [63:0] i1_rs1_bypass_data_e3,
+   output logic [63:0] i1_rs2_bypass_data_e3,
    output logic        dec_i0_sec_decode_e3,       // secondary decode e3
    output logic        dec_i1_sec_decode_e3,
-   output logic [31:1] dec_i0_pc_e3,               // pc at e3
-   output logic [31:1] dec_i1_pc_e3,
+   output logic [63:1] dec_i0_pc_e3,               // pc at e3
+   output logic [63:1] dec_i1_pc_e3,
 
    output logic        dec_i0_rs1_bypass_en_e2,    // rs1 bypass enable e2
    output logic        dec_i0_rs2_bypass_en_e2,    // rs2 bypass enable e2
    output logic        dec_i1_rs1_bypass_en_e2,
    output logic        dec_i1_rs2_bypass_en_e2,
-   output logic [31:0] i0_rs1_bypass_data_e2,      // rs1 bypass data e2
-   output logic [31:0] i0_rs2_bypass_data_e2,      // rs2 bypass data e2
-   output logic [31:0] i1_rs1_bypass_data_e2,
-   output logic [31:0] i1_rs2_bypass_data_e2,
+   output logic [63:0] i0_rs1_bypass_data_e2,      // rs1 bypass data e2
+   output logic [63:0] i0_rs2_bypass_data_e2,      // rs2 bypass data e2
+   output logic [63:0] i1_rs1_bypass_data_e2,
+   output logic [63:0] i1_rs2_bypass_data_e2,
 
    output br_tlu_pkt_t dec_tlu_br0_wb_pkt,         // slot 0 branch predictor update packet
    output br_tlu_pkt_t dec_tlu_br1_wb_pkt,         // slot 1 branch predictor update packet
@@ -352,17 +352,17 @@ module dec
 
    output logic dec_i0_lsu_decode_d,               // load/store decode
 
-   output logic [31:0] i0_result_e4_eff,           // alu result e4
-   output logic [31:0] i1_result_e4_eff,
+   output logic [63:0] i0_result_e4_eff,           // alu result e4
+   output logic [63:0] i1_result_e4_eff,
 
    output   logic dec_tlu_i0_valid_e4,             // slot 0 instruction is valid at e4
    output   logic dec_tlu_i1_valid_e4,             // slot 1 instruction is valid at e4, implies i0_valid_e4
 
-   output logic [31:0] i0_result_e2,               // i0 result data e2
-   output logic [31:0] dec_tlu_mrac_ff,            // CSR for memory region control
+   output logic [63:0] i0_result_e2,               // i0 result data e2
+   output logic [63:0] dec_tlu_mrac_ff,            // CSR for memory region control
 
-   output logic [31:1] dec_tlu_i0_pc_e4,           // pc e4
-   output logic [31:1] dec_tlu_i1_pc_e4,
+   output logic [63:1] dec_tlu_i0_pc_e4,           // pc e4
+   output logic [63:1] dec_tlu_i1_pc_e4,
 
    output logic [4:2] dec_i0_data_en,              // clock-gate control logic
    output logic [4:1] dec_i0_ctl_en,
@@ -441,19 +441,19 @@ module dec
 
    logic [4:0]  dec_i0_waddr_wb;
    logic        dec_i0_wen_wb;
-   logic [31:0] dec_i0_wdata_wb;
+   logic [63:0] dec_i0_wdata_wb;
 
    logic [4:0]  dec_i1_waddr_wb;
    logic        dec_i1_wen_wb;
-   logic [31:0] dec_i1_wdata_wb;
+   logic [63:0] dec_i1_wdata_wb;
 
    logic        dec_csr_wen_wb;      // csr write enable at wb
    logic [11:0] dec_csr_rdaddr_d;      // read address for csr
    logic [11:0] dec_csr_wraddr_wb;      // write address for csryes
 
-   logic [31:0] dec_csr_wrdata_wb;    // csr write data at wb
+   logic [63:0] dec_csr_wrdata_wb;    // csr write data at wb
 
-   logic [31:0] dec_csr_rddata_d;    // csr read data at wb
+   logic [63:0] dec_csr_rddata_d;    // csr read data at wb
    logic        dec_csr_legal_d;            // csr indicates legal operation
 
    logic        dec_csr_wen_unq_d;       // valid csr with write - for csr legal
@@ -510,7 +510,7 @@ module dec
    assign clk_override = dec_tlu_dec_clk_override;
 
 
-   assign dec_dbg_rddata[31:0] = dec_i0_wdata_wb[31:0];
+   assign dec_dbg_rddata[63:0] = dec_i0_wdata_wb[63:0];
 
    // Temp hookups
    assign wen_bank_id = '0;
@@ -526,13 +526,13 @@ module dec
                     .raddr2(dec_i1_rs1_d[4:0]), .rden2(dec_i1_rs1_en_d),
                     .raddr3(dec_i1_rs2_d[4:0]), .rden3(dec_i1_rs2_en_d),
 
-                    .waddr0(dec_i0_waddr_wb[4:0]),         .wen0(dec_i0_wen_wb),         .wd0(dec_i0_wdata_wb[31:0]),
-                    .waddr1(dec_i1_waddr_wb[4:0]),         .wen1(dec_i1_wen_wb),         .wd1(dec_i1_wdata_wb[31:0]),
-                    .waddr2(dec_nonblock_load_waddr[4:0]), .wen2(dec_nonblock_load_wen), .wd2(lsu_nonblock_load_data[31:0]),
+                    .waddr0(dec_i0_waddr_wb[4:0]),         .wen0(dec_i0_wen_wb),         .wd0(dec_i0_wdata_wb[63:0]),
+                    .waddr1(dec_i1_waddr_wb[4:0]),         .wen1(dec_i1_wen_wb),         .wd1(dec_i1_wdata_wb[63:0]),
+                    .waddr2(dec_nonblock_load_waddr[4:0]), .wen2(dec_nonblock_load_wen), .wd2(lsu_nonblock_load_data[63:0]),
 
                     // outputs
-                    .rd0(gpr_i0_rs1_d[31:0]), .rd1(gpr_i0_rs2_d[31:0]),
-                    .rd2(gpr_i1_rs1_d[31:0]), .rd3(gpr_i1_rs2_d[31:0])
+                    .rd0(gpr_i0_rs1_d[63:0]), .rd1(gpr_i0_rs2_d[63:0]),
+                    .rd2(gpr_i1_rs1_d[63:0]), .rd3(gpr_i1_rs2_d[63:0])
                     );
 
 // Trigger
@@ -548,18 +548,18 @@ module dec
    logic [15:0] dec_i1_cinst_d;
    logic [31:0]               dec_i0_inst_wb1;
    logic [31:0]               dec_i1_inst_wb1;
-   logic [31:1]               dec_i0_pc_wb1;
-   logic [31:1]               dec_i1_pc_wb1;
+   logic [63:1]               dec_i0_pc_wb1;
+   logic [63:1]               dec_i1_pc_wb1;
    logic dec_tlu_i1_valid_wb1, dec_tlu_i0_valid_wb1,  dec_tlu_int_valid_wb1;
    logic [4:0] dec_tlu_exc_cause_wb1;
-   logic [31:0] dec_tlu_mtval_wb1;
+   logic [63:0] dec_tlu_mtval_wb1;
 
    logic        dec_tlu_i0_exc_valid_wb1, dec_tlu_i1_exc_valid_wb1;
 
    // also need retires_p==3
 
    assign trace_rv_trace_pkt.trace_rv_i_insn_ip    = { 32'b0, dec_i1_inst_wb1[31:0], dec_i0_inst_wb1[31:0] };
-   assign trace_rv_trace_pkt.trace_rv_i_address_ip = { 32'b0, dec_i1_pc_wb1[31:1], 1'b0, dec_i0_pc_wb1[31:1], 1'b0 };
+   assign trace_rv_trace_pkt.trace_rv_i_address_ip = { 64'b0, dec_i1_pc_wb1[63:1], 1'b0, dec_i0_pc_wb1[63:1], 1'b0 };
 
    assign trace_rv_trace_pkt.trace_rv_i_valid_ip =     {dec_tlu_int_valid_wb1,   // always int
                                                     dec_tlu_i1_valid_wb1 | dec_tlu_i1_exc_valid_wb1,  // not interrupts
@@ -568,7 +568,7 @@ module dec
    assign trace_rv_trace_pkt.trace_rv_i_exception_ip = {dec_tlu_int_valid_wb1, dec_tlu_i1_exc_valid_wb1, dec_tlu_i0_exc_valid_wb1};
    assign trace_rv_trace_pkt.trace_rv_i_ecause_ip =     dec_tlu_exc_cause_wb1[4:0];  // replicate across ports
    assign trace_rv_trace_pkt.trace_rv_i_interrupt_ip = {dec_tlu_int_valid_wb1,2'b0};
-   assign trace_rv_trace_pkt.trace_rv_i_tval_ip =    dec_tlu_mtval_wb1[31:0];        // replicate across ports
+   assign trace_rv_trace_pkt.trace_rv_i_tval_ip =    dec_tlu_mtval_wb1[63:0];        // replicate across ports
 
    dec_ib_ctl instbuff (.*
                         );

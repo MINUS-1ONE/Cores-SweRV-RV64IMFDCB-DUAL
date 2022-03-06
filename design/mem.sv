@@ -50,7 +50,7 @@ module mem
 `endif
    // Icache and Itag Ports
 `ifdef RV_ICACHE_ENABLE //temp
-   input  logic [31:2]  ic_rw_addr,
+   input  logic [63:2]  ic_rw_addr,
    input  logic [3:0]   ic_tag_valid,
    input  logic [3:0]   ic_wr_en,
    input  logic         ic_rd_en,
@@ -59,10 +59,10 @@ module mem
 
 `ifdef RV_ICACHE_ECC
    input  logic [83:0]               ic_wr_data,         // Data to fill to the Icache. With ECC
-   input  logic [41:0]               ic_debug_wr_data,   // Debug wr cache.
+   input  logic [74:0]               ic_debug_wr_data,   // Debug wr cache.
 `else
    input  logic [67:0]               ic_wr_data,         // Data to fill to the Icache. With Parity
-   input  logic [33:0]               ic_debug_wr_data,   // Debug wr cache.
+   input  logic [65:0]               ic_debug_wr_data,   // Debug wr cache.
 `endif
 
 
@@ -77,10 +77,10 @@ module mem
 
 `ifdef RV_ICACHE_ECC
    output logic [167:0]              ic_rd_data ,        // Data read from Icache. 2x64bits + parity bits. F2 stage. With ECC
-   output logic [24:0]               ictag_debug_rd_data,// Debug icache tag.
+   output logic [57:0]               ictag_debug_rd_data,// Debug icache tag.
 `else
    output logic [135:0]              ic_rd_data ,        // Data read from Icache. 2x64bits + parity bits. F2 stage. With Parity
-   output logic [20:0]               ictag_debug_rd_data,// Debug icache tag.
+   output logic [52:0]               ictag_debug_rd_data,// Debug icache tag.
 `endif
 
    output logic [3:0]   ic_rd_hit,

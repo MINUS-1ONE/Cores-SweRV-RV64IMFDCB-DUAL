@@ -41,21 +41,21 @@ module ifu_ifc_ctl
    input logic dec_tlu_dbg_halted, // Core is halted
    input logic dec_tlu_pmu_fw_halted, // Core is halted
    input logic exu_flush_final, // FLush
-   input logic [31:1] exu_flush_path_final, // Flush path
+   input logic [63:1] exu_flush_path_final, // Flush path
 
    input logic ifu_bp_kill_next_f2, // kill next fetch, taken target found
-   input logic [31:1] ifu_bp_btb_target_f2, //  predicted target PC
+   input logic [63:1] ifu_bp_btb_target_f2, //  predicted target PC
 
    input logic ic_dma_active, // IC DMA active, stop fetching
    input logic ic_write_stall, // IC is writing, stop fetching
    input logic dma_iccm_stall_any, // force a stall in the fetch pipe for DMA ICCM access
 
-   input logic [31:0]  dec_tlu_mrac_ff ,   // side_effect and cacheable for each region
+   input logic [63:0]  dec_tlu_mrac_ff ,   // side_effect and cacheable for each region
 
    output logic  ifc_fetch_uncacheable_f1, // fetch to uncacheable address as determined by MRAC
 
-   output logic [31:1] ifc_fetch_addr_f1, // fetch addr F1
-   output logic [31:1] ifc_fetch_addr_f2,  // fetch addr F2
+   output logic [63:1] ifc_fetch_addr_f1, // fetch addr F1
+   output logic [63:1] ifc_fetch_addr_f2,  // fetch addr F2
 
    output logic  ifc_fetch_req_f1,  // fetch request valid F1
    output logic  ifc_fetch_req_f1_raw, // for clock-gating in mem_ctl
@@ -70,10 +70,10 @@ module ifu_ifc_ctl
    );
 
 
-   logic [31:1]  fetch_addr_bf,  miss_addr, ifc_fetch_addr_f1_raw;
-   logic [31:1]  fetch_addr_next;
-   logic [31:1]  miss_addr_ns;
-   logic [4:0]   cacheable_select;
+   logic [63:1]  fetch_addr_bf,  miss_addr, ifc_fetch_addr_f1_raw;
+   logic [63:1]  fetch_addr_next;
+   logic [63:1]  miss_addr_ns;
+   logic [5:0]   cacheable_select;
    logic [3:0]   fb_write_f1, fb_write_ns;
 
    logic         ifc_fetch_req_bf;
@@ -126,14 +126,14 @@ module ifu_ifc_ctl
    assign miss_sel_f1 = ~exu_flush_final & ~miss_sel_f2 & ~ifc_fetch_req_f1 & ifc_fetch_req_f2 & ~fetch_crit_word_d2 & ~ifu_bp_kill_next_f2;
    assign miss_sel_bf = ~miss_sel_f2 & ~miss_sel_f1 & ~miss_sel_flush;
 
-   assign miss_addr_ns[31:1] = ( ({31{miss_sel_flush}} & exu_flush_path_final[31:1]) |
-                                 ({31{miss_sel_f2}} & ifc_fetch_addr_f2[31:1]) |
-                                 ({31{miss_sel_f1}} & ifc_fetch_addr_f1[31:1]) |
-                                 ({31{miss_sel_bf}} & fetch_addr_bf[31:1]));
+   assign miss_addr_ns[63:1] = ( ({63{miss_sel_flush}} & exu_flush_path_final[63:1]) |
+                                 ({63{miss_sel_f2}} & ifc_fetch_addr_f2[63:1]) |
+                                 ({63{miss_sel_f1}} & ifc_fetch_addr_f1[63:1]) |
+                                 ({63{miss_sel_bf}} & fetch_addr_bf[63:1]));
 
 
 
-   rvdffe #(31) faddmiss_ff (.*, .en(missff_en), .din(miss_addr_ns[31:1]), .dout(miss_addr[31:1]));
+   rvdffe #(63) faddmiss_ff (.*, .en(missff_en), .din(miss_addr_ns[63:1]), .dout(miss_addr[63:1]));
 
 
    // Fetch address mux
@@ -147,13 +147,13 @@ module ifu_ifc_ctl
    assign sel_next_addr_bf = ~miss_sel_flush & ifc_fetch_req_f1;
 
 
-   assign fetch_addr_bf[31:1] = ( ({31{miss_sel_flush}} &  exu_flush_path_final[31:1]) | // FLUSH path
-                                   ({31{sel_miss_addr_bf}} & miss_addr[31:1]) | // MISS path
-                                   ({31{sel_btb_addr_bf}} & {ifu_bp_btb_target_f2[31:1]})| // BTB target
-                                   ({31{sel_last_addr_bf}} & {ifc_fetch_addr_f1[31:1]})| // Last cycle
-                                   ({31{sel_next_addr_bf}} & {fetch_addr_next[31:1]})); // SEQ path
+   assign fetch_addr_bf[63:1] = ( ({63{miss_sel_flush}} &  exu_flush_path_final[63:1]) | // FLUSH path
+                                   ({63{sel_miss_addr_bf}} & miss_addr[63:1]) | // MISS path
+                                   ({63{sel_btb_addr_bf}} & {ifu_bp_btb_target_f2[63:1]})| // BTB target
+                                   ({63{sel_last_addr_bf}} & {ifc_fetch_addr_f1[63:1]})| // Last cycle
+                                   ({63{sel_next_addr_bf}} & {fetch_addr_next[63:1]})); // SEQ path
 
-   assign {overflow_nc, fetch_addr_next[31:1]} = {({1'b0, ifc_fetch_addr_f1[31:4]} + 29'b1), 3'b0};
+   assign {overflow_nc, fetch_addr_next[63:1]} = {({1'b0, ifc_fetch_addr_f1[63:4]} + 61'b1), 3'b0};
 
    assign ifc_fetch_req_bf = (fetch_ns | fetch_crit_word) ;
    assign fetch_bf_en = (fetch_ns | fetch_crit_word);
@@ -243,11 +243,11 @@ module ifu_ifc_ctl
 
    assign ifc_fetch_req_f2 = ifc_fetch_req_f2_raw & ~exu_flush_final;
 
-   rvdffe #(31) faddrf1_ff  (.*, .en(fetch_bf_en), .din(fetch_addr_bf[31:1]), .dout(ifc_fetch_addr_f1_raw[31:1]));
-   rvdff #(31) faddrf2_ff (.*,  .clk(ifc_f2_clk), .din(ifc_fetch_addr_f1[31:1]), .dout(ifc_fetch_addr_f2[31:1]));
+   rvdffe #(63) faddrf1_ff  (.*, .en(fetch_bf_en), .din(fetch_addr_bf[63:1]), .dout(ifc_fetch_addr_f1_raw[63:1]));
+   rvdff #(63) faddrf2_ff (.*,  .clk(ifc_f2_clk), .din(ifc_fetch_addr_f1[63:1]), .dout(ifc_fetch_addr_f2[63:1]));
 
-   assign ifc_fetch_addr_f1[31:1] = ( ({31{exu_flush_final}} & exu_flush_path_final[31:1]) |
-                                      ({31{~exu_flush_final}} & ifc_fetch_addr_f1_raw[31:1]));
+   assign ifc_fetch_addr_f1[63:1] = ( ({63{exu_flush_final}} & exu_flush_path_final[63:1]) |
+                                      ({63{~exu_flush_final}} & ifc_fetch_addr_f1_raw[63:1]));
 
    rvdff #(3) iccrit_ff (.*, .clk(active_clk), .din({ic_crit_wd_rdy_mod, fetch_crit_word,    fetch_crit_word_d1}),
                                               .dout({ic_crit_wd_rdy_d1,  fetch_crit_word_d1, fetch_crit_word_d2}));
@@ -257,7 +257,7 @@ module ifu_ifc_ctl
    logic iccm_acc_in_range_f1;
    rvrangecheck #( .CCM_SADR    (`RV_ICCM_SADR),
                    .CCM_SIZE    (`RV_ICCM_SIZE) ) iccm_rangecheck (
-                                                                     .addr     ({ifc_fetch_addr_f1[31:1],1'b0}) ,
+                                                                     .addr     ({ifc_fetch_addr_f1[63:1],1'b0}) ,
                                                                      .in_range (iccm_acc_in_range_f1) ,
                                                                      .in_region(iccm_acc_in_region_f1)
                                                                      );
@@ -270,14 +270,16 @@ module ifu_ifc_ctl
                                  idle ) & ~exu_flush_final) |
                               dma_iccm_stall_any_f;
 
-   assign ifc_region_acc_fault_f1 = ~iccm_acc_in_range_f1 & iccm_acc_in_region_f1 ;
+   //assign ifc_region_acc_fault_f1 = ~iccm_acc_in_range_f1 & iccm_acc_in_region_f1 ;
+   // only for test
+   assign ifc_region_acc_fault_f1 = 1'b0 ;
  `else
    assign ifc_iccm_access_f1 = 1'b0 ;
    assign ifc_dma_access_ok  = 1'b0 ;
    assign ifc_region_acc_fault_f1  = 1'b0 ;
  `endif
 
-   assign cacheable_select[4:0]    =  {ifc_fetch_addr_f1[31:28] , 1'b0 } ;
+   assign cacheable_select[5:0]    =  {1'b0, ifc_fetch_addr_f1[63:60] , 1'b0 } ;
    assign ifc_fetch_uncacheable_f1 =  ~dec_tlu_mrac_ff[cacheable_select]  ; // bit 0 of each region description is the cacheable bit
 
 endmodule // ifu_ifc_ctl

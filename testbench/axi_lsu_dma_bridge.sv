@@ -12,7 +12,7 @@ input                   reset_l,
 // master read bus
 input                   m_arvalid,
 input [M_ID_WIDTH-1:0]  m_arid,
-input[31:0]             m_araddr,
+input[63:0]             m_araddr,
 output                  m_arready,
 
 output                  m_rvalid,
@@ -25,7 +25,7 @@ output                  m_rlast,
 // master write bus
 input                   m_awvalid,
 input [M_ID_WIDTH-1:0]  m_awid,
-input[31:0]             m_awaddr,
+input[63:0]             m_awaddr,
 output                  m_awready,
 
 input                   m_wvalid,
@@ -81,7 +81,7 @@ output                  s1_bready
 
 parameter ICCM_BASE = `RV_ICCM_BITS; // in LSBs
 localparam IDFIFOSZ = $clog2(`RV_DMA_BUF_DEPTH);
-bit[31:0] iccm_real_base_addr = `RV_ICCM_SADR ;
+bit[63:0] iccm_real_base_addr = `RV_ICCM_SADR ;
 
 wire ar_slave_select;
 wire aw_slave_select;
@@ -109,8 +109,8 @@ reg [IDFIFOSZ-1:0] bid_cnt;
 assign ar_slave_select = ar_iccm_select;
 assign aw_slave_select = aw_iccm_select;
 
-assign ar_iccm_select = m_araddr[31:ICCM_BASE] == iccm_real_base_addr[31:ICCM_BASE];
-assign aw_iccm_select = m_awaddr[31:ICCM_BASE] == iccm_real_base_addr[31:ICCM_BASE];
+assign ar_iccm_select = m_araddr[63:ICCM_BASE] == iccm_real_base_addr[63:ICCM_BASE];
+assign aw_iccm_select = m_awaddr[63:ICCM_BASE] == iccm_real_base_addr[63:ICCM_BASE];
 
 assign s0_arvalid = m_arvalid & ~ar_slave_select;
 assign s1_arvalid = m_arvalid &  ar_slave_select;

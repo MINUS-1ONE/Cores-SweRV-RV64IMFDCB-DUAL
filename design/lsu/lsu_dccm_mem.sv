@@ -55,7 +55,7 @@ module lsu_dccm_mem
 
    logic [DCCM_NUM_BANKS-1:0]         wren_bank;
    logic [DCCM_NUM_BANKS-1:0]         rden_bank;
-   logic [DCCM_NUM_BANKS-1:0] [DCCM_BITS-1:(DCCM_BANK_BITS+2)]   addr_bank;
+   logic [DCCM_NUM_BANKS-1:0] [DCCM_BITS-1:(DCCM_BANK_BITS+3)]   addr_bank;
    logic [DCCM_BITS-1:(DCCM_BANK_BITS+DCCM_WIDTH_BITS)] rd_addr_even, rd_addr_odd;
    logic                              rd_unaligned;
    logic [DCCM_NUM_BANKS-1:0] [DCCM_FDATA_WIDTH-1:0]   dccm_bank_dout;
@@ -63,7 +63,7 @@ module lsu_dccm_mem
 
    logic [DCCM_NUM_BANKS-1:0]         wren_bank_q;
    logic [DCCM_NUM_BANKS-1:0]         rden_bank_q;
-   logic [DCCM_NUM_BANKS-1:0][DCCM_BITS-1:(DCCM_BANK_BITS+2)]    addr_bank_q;
+   logic [DCCM_NUM_BANKS-1:0][DCCM_BITS-1:(DCCM_BANK_BITS+3)]    addr_bank_q;
    logic [DCCM_FDATA_WIDTH-1:0]       dccm_wr_data_q;
 
    logic [(DCCM_WIDTH_BITS+DCCM_BANK_BITS-1):DCCM_WIDTH_BITS]      dccm_rd_addr_lo_q;
@@ -100,10 +100,10 @@ module lsu_dccm_mem
 
    // 8 Banks, 16KB each (2048 x 72)
    for (genvar i=0; i<DCCM_NUM_BANKS; i++) begin: mem_bank
-      assign  wren_bank[i]        = dccm_wren & (dccm_wr_addr[2+:DCCM_BANK_BITS] == i);
-      assign  rden_bank[i]        = dccm_rden & ((dccm_rd_addr_hi[2+:DCCM_BANK_BITS] == i) | (dccm_rd_addr_lo[2+:DCCM_BANK_BITS] == i));
+      assign  wren_bank[i]        = dccm_wren & (dccm_wr_addr[3+:DCCM_BANK_BITS] == i);
+      assign  rden_bank[i]        = dccm_rden & ((dccm_rd_addr_hi[3+:DCCM_BANK_BITS] == i) | (dccm_rd_addr_lo[3+:DCCM_BANK_BITS] == i));
       assign  addr_bank[i][(DCCM_BANK_BITS+DCCM_WIDTH_BITS)+:DCCM_INDEX_BITS] = wren_bank[i] ? dccm_wr_addr[(DCCM_BANK_BITS+DCCM_WIDTH_BITS)+:DCCM_INDEX_BITS] :
-                                                                                (((dccm_rd_addr_hi[2+:DCCM_BANK_BITS] == i) & rd_unaligned) ?
+                                                                                (((dccm_rd_addr_hi[3+:DCCM_BANK_BITS] == i) & rd_unaligned) ?
                                                                                                     dccm_rd_addr_hi[(DCCM_BANK_BITS+DCCM_WIDTH_BITS)+:DCCM_INDEX_BITS] :
                                                                                                     dccm_rd_addr_lo[(DCCM_BANK_BITS+DCCM_WIDTH_BITS)+:DCCM_INDEX_BITS]);
 

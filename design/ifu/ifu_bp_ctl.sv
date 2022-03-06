@@ -35,8 +35,8 @@ module ifu_bp_ctl
 
    input logic ic_hit_f2,      // Icache hit, enables F2 address capture
 
-   input logic [31:1] ifc_fetch_addr_f1, // look up btb address
-   input logic [31:1] ifc_fetch_addr_f2, // to tgt calc
+   input logic [63:1] ifc_fetch_addr_f1, // look up btb address
+   input logic [63:1] ifc_fetch_addr_f2, // to tgt calc
    input logic ifc_fetch_req_f1,  // F1 valid
    input logic ifc_fetch_req_f2,  // F2 valid
 
@@ -59,10 +59,10 @@ module ifu_bp_ctl
    input rets_pkt_t exu_rets_e4_pkt, // EX4 rets packet
 
 `ifdef REAL_COMM_RS
-   input logic [31:1] exu_i0_pc_e1, // Used for RS computation
-   input logic [31:1] exu_i1_pc_e1, // Used for RS computation
-   input logic [31:1] dec_tlu_i0_pc_e4,  // Used for RS computation
-   input logic [31:1] dec_tlu_i1_pc_e4,  // Used for RS computation
+   input logic [63:1] exu_i0_pc_e1, // Used for RS computation
+   input logic [63:1] exu_i1_pc_e1, // Used for RS computation
+   input logic [63:1] dec_tlu_i0_pc_e4,  // Used for RS computation
+   input logic [63:1] dec_tlu_i1_pc_e4,  // Used for RS computation
 `endif
 
    input logic [`RV_BHT_GHR_RANGE] exu_mp_eghr, // execute ghr (for patching fghr)
@@ -71,7 +71,7 @@ module ifu_bp_ctl
    input logic exu_flush_upper_e2, // flush upper, either i0 or i1, cp EX1 RS to F RS
 
    output logic ifu_bp_kill_next_f2, // kill next fetch, taken target found
-   output logic [31:1] ifu_bp_btb_target_f2, //  predicted target PC
+   output logic [63:1] ifu_bp_btb_target_f2, //  predicted target PC
    output logic [7:1] ifu_bp_inst_mask_f2, // tell ic which valids to kill because of a taken branch, right justified
 
    output logic [`RV_BHT_GHR_RANGE] ifu_bp_fghr_f2, // fetch ghr
@@ -136,7 +136,7 @@ module ifu_bp_ctl
    logic [`RV_BHT_GHR_RANGE]               dec_tlu_br1_fghr_wb;
 
    logic [3:0]        use_mp_way;
-   logic [`RV_RET_STACK_SIZE-1:0][31:1] rets_out, rets_in, e1_rets_out, e1_rets_in, e4_rets_out, e4_rets_in;
+   logic [`RV_RET_STACK_SIZE-1:0][63:1] rets_out, rets_in, e1_rets_out, e1_rets_in, e4_rets_out, e4_rets_in;
    logic [`RV_RET_STACK_SIZE-1:0]       rsenable;
 
 
@@ -144,8 +144,8 @@ module ifu_bp_ctl
    logic              btb_rd_pc4_f2, btb_rd_boffset_f2,  btb_rd_call_f2, btb_rd_ret_f2;
    logic [3:1]        bp_total_branch_offset_f2;
 
-   logic [31:1]       bp_btb_target_adder_f2;
-   logic [31:1]       bp_rs_call_target_f2;
+   logic [63:1]       bp_btb_target_adder_f2;
+   logic [63:1]       bp_rs_call_target_f2;
    logic              rs_push, rs_pop, rs_hold;
    logic [`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] btb_rd_addr_f1, btb_wr_addr, btb_rd_addr_f2;
    logic [`RV_BTB_BTAG_SIZE-1:0] btb_wr_tag, fetch_rd_tag_f1, fetch_rd_tag_f2;
@@ -296,8 +296,8 @@ module ifu_bp_ctl
 
 
    // hash the incoming fetch PC, first guess at hashing algorithm
-   rvbtb_addr_hash f1hash(.pc(ifc_fetch_addr_f1[31:1]), .hash(btb_rd_addr_f1[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
-   rvbtb_addr_hash f2hash(.pc(ifc_fetch_addr_f2[31:1]), .hash(btb_rd_addr_f2[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
+   rvbtb_addr_hash f1hash(.pc(ifc_fetch_addr_f1[63:1]), .hash(btb_rd_addr_f1[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
+   rvbtb_addr_hash f2hash(.pc(ifc_fetch_addr_f2[63:1]), .hash(btb_rd_addr_f2[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
 
 
    // based on the fetch group offset(PC[3:2]) and direction bits, findfirst from fetchPC
@@ -1125,34 +1125,34 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
                                              ({3{btb_fg_crossing_f2}}));
 
 
-   logic [31:4] adder_pc_in_f2, ifc_fetch_adder_prior;
-   rvdffe #(28) faddrf2_ff (.*, .en(ifc_fetch_req_f2 & ~ifu_bp_kill_next_f2 & ic_hit_f2), .din(ifc_fetch_addr_f2[31:4]), .dout(ifc_fetch_adder_prior[31:4]));
+   logic [63:4] adder_pc_in_f2, ifc_fetch_adder_prior;
+   rvdffe #(60) faddrf2_ff (.*, .en(ifc_fetch_req_f2 & ~ifu_bp_kill_next_f2 & ic_hit_f2), .din(ifc_fetch_addr_f2[63:4]), .dout(ifc_fetch_adder_prior[63:4]));
 
    assign ifu_bp_poffset_f2[11:0] = btb_rd_tgt_f2[11:0];
 
-   assign adder_pc_in_f2[31:4] = ( ({28{ btb_fg_crossing_f2}} & ifc_fetch_adder_prior[31:4]) |
-                                   ({28{~btb_fg_crossing_f2}} & ifc_fetch_addr_f2[31:4]));
+   assign adder_pc_in_f2[63:4] = ( ({60{ btb_fg_crossing_f2}} & ifc_fetch_adder_prior[63:4]) |
+                                   ({60{~btb_fg_crossing_f2}} & ifc_fetch_addr_f2[63:4]));
 
-   rvbradder predtgt_addr (.pc({adder_pc_in_f2[31:4], bp_total_branch_offset_f2[3:1]}),
+   rvbradder predtgt_addr (.pc({adder_pc_in_f2[63:4], bp_total_branch_offset_f2[3:1]}),
                          .offset(btb_rd_tgt_f2[11:0]),
-                         .dout(bp_btb_target_adder_f2[31:1])
+                         .dout(bp_btb_target_adder_f2[63:1])
                          );
    // mux in the return stack address here for a predicted return
-   assign ifu_bp_btb_target_f2[31:1] = btb_rd_ret_f2 & ~btb_rd_call_f2 ? rets_out[0][31:1] : bp_btb_target_adder_f2[31:1];
+   assign ifu_bp_btb_target_f2[63:1] = btb_rd_ret_f2 & ~btb_rd_call_f2 ? rets_out[0][63:1] : bp_btb_target_adder_f2[63:1];
 
 
    // ----------------------------------------------------------------------
    // Return Stack
    // ----------------------------------------------------------------------
 
-   rvbradder rs_addr (.pc({adder_pc_in_f2[31:4], bp_total_branch_offset_f2[3:1]}),
+   rvbradder rs_addr (.pc({adder_pc_in_f2[63:4], bp_total_branch_offset_f2[3:1]}),
                     .offset({10'b0, btb_rd_pc4_f2, ~btb_rd_pc4_f2}),
-                    .dout(bp_rs_call_target_f2[31:1])
+                    .dout(bp_rs_call_target_f2[63:1])
                          );
 
    // Calls/Rets are always taken, so there shouldn't be a push and pop in the same fetch group
    logic rs_overpop_correct, rsoverpop_valid_ns, rsoverpop_valid_f;
-   logic [31:1] rsoverpop_ns, rsoverpop_f;
+   logic [63:1] rsoverpop_ns, rsoverpop_f;
    logic rsunderpop_valid_ns, rsunderpop_valid_f, rs_underpop_correct;
 `ifdef RS_COMMIT_EN
    assign rs_overpop_correct = rsoverpop_valid_f & exu_flush_final & ~exu_mp_ret;
@@ -1160,14 +1160,14 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
 
    assign rsunderpop_valid_ns = (rs_push | (rsunderpop_valid_f & ~(exu_i0_br_call_e4 | exu_i1_br_call_e4))) & ~exu_flush_final;
    assign rsoverpop_valid_ns = (rs_pop | (rsoverpop_valid_f & ~(exu_i0_br_ret_e4 | exu_i1_br_ret_e4))) & ~exu_flush_final;
-   assign rsoverpop_ns[31:1] = ( ({31{rs_pop}}  & rets_out[0][31:1]) |
-                                 ({31{~rs_pop}} & rsoverpop_f[31:1]) );
+   assign rsoverpop_ns[63:1] = ( ({63{rs_pop}}  & rets_out[0][63:1]) |
+                                 ({63{~rs_pop}} & rsoverpop_f[63:1]) );
 
-   rvdff #(33) retoverpop_ff (.*, .clk(active_clk), .din({rsunderpop_valid_ns, rsoverpop_valid_ns, rsoverpop_ns[31:1]}), .dout({rsunderpop_valid_f, rsoverpop_valid_f, rsoverpop_f[31:1]}));
+   rvdff #(65) retoverpop_ff (.*, .clk(active_clk), .din({rsunderpop_valid_ns, rsoverpop_valid_ns, rsoverpop_ns[63:1]}), .dout({rsunderpop_valid_f, rsoverpop_valid_f, rsoverpop_f[63:1]}));
 `else
    assign rs_overpop_correct = 1'b0;
    assign rs_underpop_correct = 1'b0;
-   assign rsoverpop_f[31:1]  = 'b0;
+   assign rsoverpop_f[63:1]  = 'b0;
 `endif // !`ifdef RS_COMMIT_EN
 
    logic e4_rs_correct;
@@ -1185,14 +1185,14 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
 
 
    // Fetch based
-   assign rets_in[0][31:1] = ( ({31{rs_overpop_correct & rs_underpop_correct}} & rsoverpop_f[31:1]) |
-                               ({31{rs_push & rs_overpop_correct}} & rsoverpop_f[31:1]) |
-                               ({31{rs_push & ~rs_overpop_correct}} & bp_rs_call_target_f2[31:1]) |
+   assign rets_in[0][63:1] = ( ({63{rs_overpop_correct & rs_underpop_correct}} & rsoverpop_f[63:1]) |
+                               ({63{rs_push & rs_overpop_correct}} & rsoverpop_f[63:1]) |
+                               ({63{rs_push & ~rs_overpop_correct}} & bp_rs_call_target_f2[63:1]) |
 `ifdef REAL_COMM_RS
-                               ({31{rs_correct}} & e1_rets_out[0][31:1]) |
-                               ({31{e4_rs_correct}} & e4_rets_out[0][31:1]) |
+                               ({63{rs_correct}} & e1_rets_out[0][63:1]) |
+                               ({63{e4_rs_correct}} & e4_rets_out[0][63:1]) |
 `endif
-                               ({31{rs_pop}}  & rets_out[1][31:1]) );
+                               ({63{rs_pop}}  & rets_out[1][63:1]) );
 
    assign rsenable[0] = ~rs_hold;
 
@@ -1201,33 +1201,33 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
       // for the last entry in the stack, we don't have a pop position
       if(i==`RV_RET_STACK_SIZE-1) begin
 `ifdef REAL_COMM_RS
-         assign rets_in[i][31:1] = ( ({31{rs_push}} & rets_out[i-1][31:1]) |
-                                     ({31{rs_correct}} & e1_rets_out[i][31:1]) |
-                                     ({31{e4_rs_correct}} & e4_rets_out[i][31:1]) );
+         assign rets_in[i][63:1] = ( ({63{rs_push}} & rets_out[i-1][63:1]) |
+                                     ({63{rs_correct}} & e1_rets_out[i][63:1]) |
+                                     ({63{e4_rs_correct}} & e4_rets_out[i][63:1]) );
 `else
-         assign rets_in[i][31:1] = rets_out[i-1][31:1];
+         assign rets_in[i][63:1] = rets_out[i-1][63:1];
 `endif
          assign rsenable[i] = rs_push | rs_correct | e4_rs_correct;
       end
       else if(i>0) begin
 `ifdef REAL_COMM_RS
-        assign rets_in[i][31:1] = ( ({31{rs_push}} & rets_out[i-1][31:1]) |
-                                    ({31{rs_pop}}  & rets_out[i+1][31:1]) |
-                                    ({31{rs_correct}} & e1_rets_out[i][31:1]) |
-                                    ({31{e4_rs_correct}} & e4_rets_out[i][31:1]) );
+        assign rets_in[i][63:1] = ( ({63{rs_push}} & rets_out[i-1][63:1]) |
+                                    ({63{rs_pop}}  & rets_out[i+1][63:1]) |
+                                    ({63{rs_correct}} & e1_rets_out[i][63:1]) |
+                                    ({63{e4_rs_correct}} & e4_rets_out[i][63:1]) );
 `else
-        assign rets_in[i][31:1] = ( ({31{rs_push}} & rets_out[i-1][31:1]) |
-                                    ({31{rs_pop}}  & rets_out[i+1][31:1]) );
+        assign rets_in[i][63:1] = ( ({63{rs_push}} & rets_out[i-1][63:1]) |
+                                    ({63{rs_pop}}  & rets_out[i+1][63:1]) );
 `endif
          assign rsenable[i] = rs_push | rs_pop | rs_correct | e4_rs_correct;
       end
-      rvdffe #(31) rets_ff (.*, .en(rsenable[i]), .din(rets_in[i][31:1]), .dout(rets_out[i][31:1]));
+      rvdffe #(63) rets_ff (.*, .en(rsenable[i]), .din(rets_in[i][63:1]), .dout(rets_out[i][63:1]));
 
    end : retstack
 
 
 `ifdef REAL_COMM_RS
-   logic [31:1] e1_rs_call0_target_f2, e1_rs_call1_target_f2, e1_rs_call_target_f2, e4_rs_call0_target_f2, e4_rs_call1_target_f2, e4_rs_call_target_f2;
+   logic [63:1] e1_rs_call0_target_f2, e1_rs_call1_target_f2, e1_rs_call_target_f2, e4_rs_call0_target_f2, e4_rs_call1_target_f2, e4_rs_call_target_f2;
    logic e1_null, e1_rs_push1, e1_rs_push2, e1_rs_pop1, e1_rs_pop2, e1_rs_hold;
    logic e4_null, e4_rs_push1, e4_rs_push2, e4_rs_pop1, e4_rs_pop2, e4_rs_hold;
    // E1 based
@@ -1239,57 +1239,57 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
    assign e1_rs_pop2 = (exu_rets_e1_pkt.pc0_ret & exu_rets_e1_pkt.pc1_ret) & ~e4_rs_correct;
    assign e1_rs_hold = (~e1_rs_push1 & ~e1_rs_push2 & ~e1_rs_pop1 & ~e1_rs_pop2 & ~e4_rs_correct);
 
-   rvbradder e1_rs_addr0 (.pc({exu_i0_pc_e1[31:1]}),
+   rvbradder e1_rs_addr0 (.pc({exu_i0_pc_e1[63:1]}),
                         .offset({10'b0, exu_rets_e1_pkt.pc0_pc4, ~exu_rets_e1_pkt.pc0_pc4}),
-                        .dout(e1_rs_call0_target_f2[31:1])
+                        .dout(e1_rs_call0_target_f2[63:1])
                         );
-   rvbradder e1_rs_addr1 (.pc({exu_i1_pc_e1[31:1]}),
+   rvbradder e1_rs_addr1 (.pc({exu_i1_pc_e1[63:1]}),
                         .offset({10'b0, exu_rets_e1_pkt.pc1_pc4, ~exu_rets_e1_pkt.pc1_pc4}),
-                        .dout(e1_rs_call1_target_f2[31:1])
+                        .dout(e1_rs_call1_target_f2[63:1])
                         );
 
-   assign e1_rs_call_target_f2[31:1] = exu_rets_e1_pkt.pc0_call ? e1_rs_call0_target_f2[31:1] : e1_rs_call1_target_f2[31:1];
+   assign e1_rs_call_target_f2[63:1] = exu_rets_e1_pkt.pc0_call ? e1_rs_call0_target_f2[63:1] : e1_rs_call1_target_f2[63:1];
 
-   assign e1_rets_in[0][31:1] = ( ({31{e1_rs_push1}} & e1_rs_call_target_f2[31:1]) |
-                                  ({31{e1_rs_push2}} & e1_rs_call1_target_f2[31:1]) |
-                                  ({31{e1_rs_pop1}}  & e1_rets_out[1][31:1]) |
-                                  ({31{e1_rs_pop2}}  & e1_rets_out[2][31:1]) |
-                                  ({31{e4_rs_correct}}  & e4_rets_out[0][31:1]) |
-                                  ({31{e1_rs_hold}}  & e1_rets_out[0][31:1]) );
+   assign e1_rets_in[0][63:1] = ( ({63{e1_rs_push1}} & e1_rs_call_target_f2[63:1]) |
+                                  ({63{e1_rs_push2}} & e1_rs_call1_target_f2[63:1]) |
+                                  ({63{e1_rs_pop1}}  & e1_rets_out[1][63:1]) |
+                                  ({63{e1_rs_pop2}}  & e1_rets_out[2][63:1]) |
+                                  ({63{e4_rs_correct}}  & e4_rets_out[0][63:1]) |
+                                  ({63{e1_rs_hold}}  & e1_rets_out[0][63:1]) );
 
-   assign e1_rets_in[1][31:1] = ( ({31{e1_rs_push1}} & e1_rets_out[0][31:1]) |
-                                  ({31{e1_rs_push2}} & e1_rs_call0_target_f2[31:1]) |
-                                  ({31{e1_rs_pop1}}  & e1_rets_out[2][31:1]) |
-                                  ({31{e1_rs_pop2}}  & e1_rets_out[3][31:1]) |
-                                  ({31{e4_rs_correct}}  & e4_rets_out[1][31:1]) |
-                                  ({31{e1_rs_hold}}  & e1_rets_out[0][31:1]) );
+   assign e1_rets_in[1][63:1] = ( ({63{e1_rs_push1}} & e1_rets_out[0][63:1]) |
+                                  ({63{e1_rs_push2}} & e1_rs_call0_target_f2[63:1]) |
+                                  ({63{e1_rs_pop1}}  & e1_rets_out[2][63:1]) |
+                                  ({63{e1_rs_pop2}}  & e1_rets_out[3][63:1]) |
+                                  ({63{e4_rs_correct}}  & e4_rets_out[1][63:1]) |
+                                  ({63{e1_rs_hold}}  & e1_rets_out[0][63:1]) );
 
 
    for (i=0; i<`RV_RET_STACK_SIZE; i++) begin : e1_retstack
 
       // for the last entry in the stack, we don't have a pop position
       if(i==`RV_RET_STACK_SIZE-1)
-        assign e1_rets_in[i][31:1] = ( ({31{e1_rs_push1}} & e1_rets_out[i-1][31:1]) |
-                                       ({31{e1_rs_push2}} & e1_rets_out[i-2][31:1]) |
-                                       ({31{e4_rs_correct}}  & e4_rets_out[i][31:1]) |
-                                       ({31{e1_rs_hold}}  & e1_rets_out[i][31:1]) );
+        assign e1_rets_in[i][63:1] = ( ({63{e1_rs_push1}} & e1_rets_out[i-1][63:1]) |
+                                       ({63{e1_rs_push2}} & e1_rets_out[i-2][63:1]) |
+                                       ({63{e4_rs_correct}}  & e4_rets_out[i][63:1]) |
+                                       ({63{e1_rs_hold}}  & e1_rets_out[i][63:1]) );
       else if(i==`RV_RET_STACK_SIZE-2)
-        assign e1_rets_in[i][31:1] = ( ({31{e1_rs_push1}} & e1_rets_out[i-1][31:1]) |
-                                       ({31{e1_rs_push2}} & e1_rets_out[i-2][31:1]) |
-                                       ({31{e1_rs_pop1}}  & e1_rets_out[i+1][31:1]) |
-                                       ({31{e4_rs_correct}} & e4_rets_out[i][31:1]) |
-                                       ({31{e1_rs_hold}}  & e1_rets_out[i][31:1]) );
+        assign e1_rets_in[i][63:1] = ( ({63{e1_rs_push1}} & e1_rets_out[i-1][63:1]) |
+                                       ({63{e1_rs_push2}} & e1_rets_out[i-2][63:1]) |
+                                       ({63{e1_rs_pop1}}  & e1_rets_out[i+1][63:1]) |
+                                       ({63{e4_rs_correct}} & e4_rets_out[i][63:1]) |
+                                       ({63{e1_rs_hold}}  & e1_rets_out[i][63:1]) );
 
       else if(i>1)
-        assign e1_rets_in[i][31:1] = ( ({31{e1_rs_push1}} & e1_rets_out[i-1][31:1]) |
-                                       ({31{e1_rs_push2}} & e1_rets_out[i-2][31:1]) |
-                                       ({31{e1_rs_pop1}}  & e1_rets_out[i+1][31:1]) |
-                                       ({31{e1_rs_pop2}}  & e1_rets_out[i+2][31:1]) |
-                                       ({31{e4_rs_correct}} & e4_rets_out[i][31:1]) |
-                                       ({31{e1_rs_hold}}  & e1_rets_out[i][31:1]) );
+        assign e1_rets_in[i][63:1] = ( ({63{e1_rs_push1}} & e1_rets_out[i-1][63:1]) |
+                                       ({63{e1_rs_push2}} & e1_rets_out[i-2][63:1]) |
+                                       ({63{e1_rs_pop1}}  & e1_rets_out[i+1][63:1]) |
+                                       ({63{e1_rs_pop2}}  & e1_rets_out[i+2][63:1]) |
+                                       ({63{e4_rs_correct}} & e4_rets_out[i][63:1]) |
+                                       ({63{e1_rs_hold}}  & e1_rets_out[i][63:1]) );
 
 
-      rvdffe #(31) e1_rets_ff (.*, .en(~e1_rs_hold), .din(e1_rets_in[i][31:1]), .dout(e1_rets_out[i][31:1]));
+      rvdffe #(63) e1_rets_ff (.*, .en(~e1_rs_hold), .din(e1_rets_in[i][63:1]), .dout(e1_rets_out[i][63:1]));
 
    end : e1_retstack
 
@@ -1301,52 +1301,52 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
    assign e4_rs_pop2 = (exu_rets_e4_pkt.pc0_ret & exu_rets_e4_pkt.pc1_ret);
    assign e4_rs_hold = (~e4_rs_push1 & ~e4_rs_push2 & ~e4_rs_pop1 & ~e4_rs_pop2);
 
-   rvbradder e4_rs_addr0 (.pc({dec_tlu_i0_pc_e4[31:1]}),
+   rvbradder e4_rs_addr0 (.pc({dec_tlu_i0_pc_e4[63:1]}),
                         .offset({10'b0, exu_rets_e4_pkt.pc0_pc4, ~exu_rets_e4_pkt.pc0_pc4}),
-                        .dout(e4_rs_call0_target_f2[31:1])
+                        .dout(e4_rs_call0_target_f2[63:1])
                         );
-   rvbradder e4_rs_addr1 (.pc({dec_tlu_i1_pc_e4[31:1]}),
+   rvbradder e4_rs_addr1 (.pc({dec_tlu_i1_pc_e4[63:1]}),
                         .offset({10'b0, exu_rets_e4_pkt.pc1_pc4, ~exu_rets_e4_pkt.pc1_pc4}),
-                        .dout(e4_rs_call1_target_f2[31:1])
+                        .dout(e4_rs_call1_target_f2[63:1])
                         );
 
-   assign e4_rs_call_target_f2[31:1] = exu_rets_e4_pkt.pc0_call ? e4_rs_call0_target_f2[31:1] : e4_rs_call1_target_f2[31:1];
+   assign e4_rs_call_target_f2[63:1] = exu_rets_e4_pkt.pc0_call ? e4_rs_call0_target_f2[63:1] : e4_rs_call1_target_f2[63:1];
 
-   assign e4_rets_in[0][31:1] = ( ({31{e4_rs_push1}} & e4_rs_call_target_f2[31:1]) |
-                                  ({31{e4_rs_push2}} & e4_rs_call1_target_f2[31:1]) |
-                                  ({31{e4_rs_pop1}}  & e4_rets_out[1][31:1]) |
-                                  ({31{e4_rs_pop2}}  & e4_rets_out[2][31:1]) |
-                                  ({31{e4_rs_hold}}  & e4_rets_out[0][31:1]) );
+   assign e4_rets_in[0][63:1] = ( ({63{e4_rs_push1}} & e4_rs_call_target_f2[63:1]) |
+                                  ({63{e4_rs_push2}} & e4_rs_call1_target_f2[63:1]) |
+                                  ({63{e4_rs_pop1}}  & e4_rets_out[1][63:1]) |
+                                  ({63{e4_rs_pop2}}  & e4_rets_out[2][63:1]) |
+                                  ({63{e4_rs_hold}}  & e4_rets_out[0][63:1]) );
 
-   assign e4_rets_in[1][31:1] = ( ({31{e4_rs_push1}} & e4_rets_out[0][31:1]) |
-                                  ({31{e4_rs_push2}} & e4_rs_call0_target_f2[31:1]) |
-                                  ({31{e4_rs_pop1}}  & e4_rets_out[2][31:1]) |
-                                  ({31{e4_rs_pop2}}  & e4_rets_out[3][31:1]) |
-                                  ({31{e4_rs_hold}}  & e4_rets_out[0][31:1]) );
+   assign e4_rets_in[1][63:1] = ( ({63{e4_rs_push1}} & e4_rets_out[0][63:1]) |
+                                  ({63{e4_rs_push2}} & e4_rs_call0_target_f2[63:1]) |
+                                  ({63{e4_rs_pop1}}  & e4_rets_out[2][63:1]) |
+                                  ({63{e4_rs_pop2}}  & e4_rets_out[3][63:1]) |
+                                  ({63{e4_rs_hold}}  & e4_rets_out[0][63:1]) );
 
 
    for (i=0; i<`RV_RET_STACK_SIZE; i++) begin : e4_retstack
 
       // for the last entry in the stack, we don't have a pop position
       if(i==`RV_RET_STACK_SIZE-1)
-        assign e4_rets_in[i][31:1] = ( ({31{e4_rs_push1}} & e4_rets_out[i-1][31:1]) |
-                                       ({31{e4_rs_push2}} & e4_rets_out[i-2][31:1]) |
-                                       ({31{e4_rs_hold}}  & e4_rets_out[i][31:1]) );
+        assign e4_rets_in[i][63:1] = ( ({63{e4_rs_push1}} & e4_rets_out[i-1][63:1]) |
+                                       ({63{e4_rs_push2}} & e4_rets_out[i-2][63:1]) |
+                                       ({63{e4_rs_hold}}  & e4_rets_out[i][63:1]) );
       else if(i==`RV_RET_STACK_SIZE-2)
-        assign e4_rets_in[i][31:1] = ( ({31{e4_rs_push1}} & e4_rets_out[i-1][31:1]) |
-                                       ({31{e4_rs_push2}} & e4_rets_out[i-2][31:1]) |
-                                       ({31{e4_rs_pop1}}  & e4_rets_out[i+1][31:1]) |
-                                       ({31{e4_rs_hold}}  & e4_rets_out[i][31:1]) );
+        assign e4_rets_in[i][63:1] = ( ({63{e4_rs_push1}} & e4_rets_out[i-1][63:1]) |
+                                       ({63{e4_rs_push2}} & e4_rets_out[i-2][63:1]) |
+                                       ({63{e4_rs_pop1}}  & e4_rets_out[i+1][63:1]) |
+                                       ({63{e4_rs_hold}}  & e4_rets_out[i][63:1]) );
 
       else if(i>1)
-        assign e4_rets_in[i][31:1] = ( ({31{e4_rs_push1}} & e4_rets_out[i-1][31:1]) |
-                                       ({31{e4_rs_push2}} & e4_rets_out[i-2][31:1]) |
-                                       ({31{e4_rs_pop1}}  & e4_rets_out[i+1][31:1]) |
-                                       ({31{e4_rs_pop2}}  & e4_rets_out[i+2][31:1]) |
-                                       ({31{e4_rs_hold}}  & e4_rets_out[i][31:1]) );
+        assign e4_rets_in[i][63:1] = ( ({63{e4_rs_push1}} & e4_rets_out[i-1][63:1]) |
+                                       ({63{e4_rs_push2}} & e4_rets_out[i-2][63:1]) |
+                                       ({63{e4_rs_pop1}}  & e4_rets_out[i+1][63:1]) |
+                                       ({63{e4_rs_pop2}}  & e4_rets_out[i+2][63:1]) |
+                                       ({63{e4_rs_hold}}  & e4_rets_out[i][63:1]) );
 
 
-      rvdffe #(31) e4_rets_ff (.*, .en(~e4_rs_hold), .din(e4_rets_in[i][31:1]), .dout(e4_rets_out[i][31:1]));
+      rvdffe #(63) e4_rets_ff (.*, .en(~e4_rs_hold), .din(e4_rets_in[i][63:1]), .dout(e4_rets_out[i][63:1]));
 
    end : e4_retstack
 
@@ -1370,7 +1370,7 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
    assign btb_valid = exu_mp_valid & ~dec_tlu_error_wb;
 
    assign btb_wr_tag[`RV_BTB_BTAG_SIZE-1:0] = exu_mp_btag[`RV_BTB_BTAG_SIZE-1:0];
-   rvbtb_tag_hash rdtagf1(.hash(fetch_rd_tag_f1[`RV_BTB_BTAG_SIZE-1:0]), .pc({ifc_fetch_addr_f1[31:4], 3'b0}));
+   rvbtb_tag_hash rdtagf1(.hash(fetch_rd_tag_f1[`RV_BTB_BTAG_SIZE-1:0]), .pc({ifc_fetch_addr_f1[63:4], 3'b0}));
    rvdff #(`RV_BTB_BTAG_SIZE) rdtagf (.*, .clk(active_clk), .din({fetch_rd_tag_f1[`RV_BTB_BTAG_SIZE-1:0]}), .dout({fetch_rd_tag_f2[`RV_BTB_BTAG_SIZE-1:0]}));
 
    assign btb_wr_data[16+`RV_BTB_BTAG_SIZE:0] = {btb_wr_tag[`RV_BTB_BTAG_SIZE-1:0], exu_mp_tgt[11:0], exu_mp_pc4, exu_mp_boffset, exu_mp_call | exu_mp_ja, exu_mp_ret | exu_mp_ja, btb_valid} ;

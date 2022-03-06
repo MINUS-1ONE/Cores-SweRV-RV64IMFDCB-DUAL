@@ -32,7 +32,7 @@ module ifu_aln_ctl
 
    input logic [7:0]  ic_access_fault_f2,             // Instruction access fault for the current fetch.
    input logic [`RV_BHT_GHR_RANGE]  ifu_bp_fghr_f2,   // fetch GHR
-   input logic [31:1] ifu_bp_btb_target_f2,           //  predicted RET target
+   input logic [63:1] ifu_bp_btb_target_f2,           //  predicted RET target
    input logic [11:0] ifu_bp_poffset_f2,              // predicted target offset
 
    input logic [7:0]  ifu_bp_hist0_f2,    // history counters for all 4 potential branches, bit 1, right justified
@@ -61,7 +61,7 @@ module ifu_aln_ctl
 
 
    input logic [7:0]   ifu_fetch_val,       // valids on a 2B boundary, right justified
-   input logic [31:1]  ifu_fetch_pc,        // starting pc of fetch
+   input logic [63:1]  ifu_fetch_pc,        // starting pc of fetch
 
 
    input logic   rst_l,
@@ -82,8 +82,8 @@ module ifu_aln_ctl
    output logic ifu_i1_dbecc,            // Instruction 1 has double bit ecc error
    output logic [31:0] ifu_i0_instr,     // Instruction 0
    output logic [31:0] ifu_i1_instr,     // Instruction 1
-   output logic [31:1] ifu_i0_pc,        // Instruction 0 PC
-   output logic [31:1] ifu_i1_pc,        // Instruction 1 PC
+   output logic [63:1] ifu_i0_pc,        // Instruction 0 PC
+   output logic [63:1] ifu_i1_pc,        // Instruction 1 PC
    output logic ifu_i0_pc4,
    output logic ifu_i1_pc4,
 
@@ -121,10 +121,10 @@ module ifu_aln_ctl
 
    logic [7:0]   sf1val, sf0val;
 
-   logic [31:1]  f2pc_in, f2pc;
-   logic [31:1]  f1pc_in, f1pc;
-   logic [31:1]  f0pc_in, f0pc;
-   logic [31:1]  sf1pc, sf0pc;
+   logic [63:1]  f2pc_in, f2pc;
+   logic [63:1]  f1pc_in, f1pc;
+   logic [63:1]  f0pc_in, f0pc;
+   logic [63:1]  sf1pc, sf0pc;
 
    logic [63:0]  aligndata;
    logic         first4B, first2B;
@@ -140,10 +140,10 @@ module ifu_aln_ctl
    logic         f2_valid, sf1_valid, sf0_valid;
 
    logic [31:0]  ifirst, isecond, ithird;
-   logic [31:1]  f0pc_plus1, f0pc_plus2, f0pc_plus3, f0pc_plus4;
-   logic [31:1]  f1pc_plus1, f1pc_plus2, f1pc_plus3;
+   logic [63:1]  f0pc_plus1, f0pc_plus2, f0pc_plus3, f0pc_plus4;
+   logic [63:1]  f1pc_plus1, f1pc_plus2, f1pc_plus3;
    logic [3:0]   alignval;
-   logic [31:1]  firstpc, secondpc, thirdpc, fourthpc;
+   logic [63:1]  firstpc, secondpc, thirdpc, fourthpc;
 
    logic [11:0]  f1poffset;
    logic [11:0]  f0poffset;
@@ -185,8 +185,8 @@ module ifu_aln_ctl
    logic         i0_ends_f1, i1_ends_f1;
    logic         i0_br_start_error, i1_br_start_error;
 
-   logic [31:1]  f1prett;
-   logic [31:1]  f0prett;
+   logic [63:1]  f1prett;
+   logic [63:1]  f0prett;
    logic [7:0]   f1dbecc;
    logic [7:0]   f0dbecc;
    logic         f1sbecc;
@@ -360,8 +360,8 @@ module ifu_aln_ctl
 
    // misc data that is associated with each fetch buffer
 
-   localparam MHI   = 45+`RV_BHT_GHR_SIZE;
-   localparam MSIZE = 46+`RV_BHT_GHR_SIZE;
+   localparam MHI   = 77+`RV_BHT_GHR_SIZE;
+   localparam MSIZE = 78+`RV_BHT_GHR_SIZE;
 
    logic [MHI:0] misc_data_in, misc2, misc1, misc0;
    logic [MHI:0] misc1eff, misc0eff;
@@ -371,7 +371,7 @@ module ifu_aln_ctl
                                   ifu_icache_fetch_f2,
                                   ic_rd_parity_final_err,
 
-                                  ifu_bp_btb_target_f2[31:1],
+                                  ifu_bp_btb_target_f2[63:1],
                                   ifu_bp_poffset_f2[11:0],
                                   ifu_bp_fghr_f2[`RV_BHT_GHR_RANGE]
                                   };
@@ -389,7 +389,7 @@ module ifu_aln_ctl
             f1icfetch,
             f1perr,
 
-            f1prett[31:1],
+            f1prett[63:1],
             f1poffset[11:0],
             f1fghr[`RV_BHT_GHR_RANGE]
             } = misc1eff[MHI:0];
@@ -399,7 +399,7 @@ module ifu_aln_ctl
             f0icfetch,
             f0perr,
 
-            f0prett[31:1],
+            f0prett[63:1],
             f0poffset[11:0],
             f0fghr[`RV_BHT_GHR_RANGE]
             } = misc0eff[MHI:0];
@@ -544,41 +544,41 @@ module ifu_aln_ctl
 
    // make this two incrementors with some logic on the lower bits
 
-   assign f0pc_plus1[31:1] = f0pc[31:1] + 31'd1;
-   assign f0pc_plus2[31:1] = f0pc[31:1] + 31'd2;
-   assign f0pc_plus3[31:1] = f0pc[31:1] + 31'd3;
-   assign f0pc_plus4[31:1] = f0pc[31:1] + 31'd4;
+   assign f0pc_plus1[63:1] = f0pc[63:1] + 63'd1;
+   assign f0pc_plus2[63:1] = f0pc[63:1] + 63'd2;
+   assign f0pc_plus3[63:1] = f0pc[63:1] + 63'd3;
+   assign f0pc_plus4[63:1] = f0pc[63:1] + 63'd4;
 
-   assign f1pc_plus1[31:1] = f1pc[31:1] + 31'd1;
-   assign f1pc_plus2[31:1] = f1pc[31:1] + 31'd2;
-   assign f1pc_plus3[31:1] = f1pc[31:1] + 31'd3;
+   assign f1pc_plus1[63:1] = f1pc[63:1] + 63'd1;
+   assign f1pc_plus2[63:1] = f1pc[63:1] + 63'd2;
+   assign f1pc_plus3[63:1] = f1pc[63:1] + 63'd3;
 
-   assign f2pc_in[31:1] = ifu_fetch_pc[31:1];
+   assign f2pc_in[63:1] = ifu_fetch_pc[63:1];
 
-   rvdffe #(31) f2pcff (.*, .en(f2_wr_en), .din(f2pc_in[31:1]), .dout(f2pc[31:1]));
+   rvdffe #(63) f2pcff (.*, .en(f2_wr_en), .din(f2pc_in[63:1]), .dout(f2pc[63:1]));
 
-   assign sf1pc[31:1] = ({31{f1_shift_2B}} & (f1pc_plus1[31:1])) |
-                        ({31{f1_shift_4B}} & (f1pc_plus2[31:1])) |
-                        ({31{f1_shift_6B}} & (f1pc_plus3[31:1])) |
-                        ({31{~f1_shift_2B&~f1_shift_4B&~f1_shift_6B}} & f1pc[31:1]);
+   assign sf1pc[63:1] = ({63{f1_shift_2B}} & (f1pc_plus1[63:1])) |
+                        ({63{f1_shift_4B}} & (f1pc_plus2[63:1])) |
+                        ({63{f1_shift_6B}} & (f1pc_plus3[63:1])) |
+                        ({63{~f1_shift_2B&~f1_shift_4B&~f1_shift_6B}} & f1pc[63:1]);
 
-   assign f1pc_in[31:1] = ({31{fetch_to_f1}} & ifu_fetch_pc[31:1]) |
-                          ({31{shift_f2_f1}} & f2pc[31:1]) |
-                          ({31{~fetch_to_f1&~shift_f2_f1}} & sf1pc[31:1]);
+   assign f1pc_in[63:1] = ({63{fetch_to_f1}} & ifu_fetch_pc[63:1]) |
+                          ({63{shift_f2_f1}} & f2pc[63:1]) |
+                          ({63{~fetch_to_f1&~shift_f2_f1}} & sf1pc[63:1]);
 
-   rvdffe #(31) f1pcff (.*, .en(f1_shift_wr_en), .din(f1pc_in[31:1]), .dout(f1pc[31:1]));
+   rvdffe #(63) f1pcff (.*, .en(f1_shift_wr_en), .din(f1pc_in[63:1]), .dout(f1pc[63:1]));
 
-   assign sf0pc[31:1] = ({31{shift_2B}} & (f0pc_plus1[31:1])) |
-                        ({31{shift_4B}} & (f0pc_plus2[31:1])) |
-                        ({31{shift_6B}} & (f0pc_plus3[31:1])) |
-                        ({31{shift_8B}} & (f0pc_plus4[31:1]));
+   assign sf0pc[63:1] = ({63{shift_2B}} & (f0pc_plus1[63:1])) |
+                        ({63{shift_4B}} & (f0pc_plus2[63:1])) |
+                        ({63{shift_6B}} & (f0pc_plus3[63:1])) |
+                        ({63{shift_8B}} & (f0pc_plus4[63:1]));
 
-   assign f0pc_in[31:1] = ({31{fetch_to_f0}} & ifu_fetch_pc[31:1]) |
-                          ({31{shift_f2_f0}} & f2pc[31:1]) |
-                          ({31{shift_f1_f0}} & sf1pc[31:1]) |
-                          ({31{~fetch_to_f0&~shift_f2_f0&~shift_f1_f0}} & sf0pc[31:1]);
+   assign f0pc_in[63:1] = ({63{fetch_to_f0}} & ifu_fetch_pc[63:1]) |
+                          ({63{shift_f2_f0}} & f2pc[63:1]) |
+                          ({63{shift_f1_f0}} & sf1pc[63:1]) |
+                          ({63{~fetch_to_f0&~shift_f2_f0&~shift_f1_f0}} & sf0pc[63:1]);
 
-   rvdffe #(31) f0pcff (.*, .en(f0_shift_wr_en), .din(f0pc_in[31:1]), .dout(f0pc[31:1]));
+   rvdffe #(63) f0pcff (.*, .en(f0_shift_wr_en), .din(f0pc_in[63:1]), .dout(f0pc[63:1]));
 
    // on flush_final all valids go to 0
 
@@ -805,19 +805,19 @@ module ifu_aln_ctl
                                  ({3{(f0val[0]&~f0val[1])}} &        {3'b111});
 
 
-   assign { secondpc[31:1],
-            thirdpc[31:1],
-            fourthpc[31:1] } =   ({3*31{(f0val[3])}}           & {f0pc_plus1[31:1], f0pc_plus2[31:1], f0pc_plus3[31:1]}) |
-                                 ({3*31{(f0val[2]&~f0val[3])}} & {f0pc_plus1[31:1], f0pc_plus2[31:1], f1pc[31:1]}) |
-                                 ({3*31{(f0val[1]&~f0val[2])}} & {f0pc_plus1[31:1], f1pc[31:1],       f1pc_plus1[31:1]})   |
-                                 ({3*31{(f0val[0]&~f0val[1])}} & {f1pc[31:1],       f1pc_plus1[31:1], f1pc_plus2[31:1]});
+   assign { secondpc[63:1],
+            thirdpc[63:1],
+            fourthpc[63:1] } =   ({3*63{(f0val[3])}}           & {f0pc_plus1[63:1], f0pc_plus2[63:1], f0pc_plus3[63:1]}) |
+                                 ({3*63{(f0val[2]&~f0val[3])}} & {f0pc_plus1[63:1], f0pc_plus2[63:1], f1pc[63:1]}) |
+                                 ({3*63{(f0val[1]&~f0val[2])}} & {f0pc_plus1[63:1], f1pc[63:1],       f1pc_plus1[63:1]})   |
+                                 ({3*63{(f0val[0]&~f0val[1])}} & {f1pc[63:1],       f1pc_plus1[63:1], f1pc_plus2[63:1]});
 
 
-   assign ifu_i0_pc[31:1] = f0pc[31:1];
+   assign ifu_i0_pc[63:1] = f0pc[63:1];
 
-   assign firstpc[31:1] = f0pc[31:1];
+   assign firstpc[63:1] = f0pc[63:1];
 
-   assign ifu_i1_pc[31:1] = (first2B) ? secondpc[31:1] : thirdpc[31:1];
+   assign ifu_i1_pc[63:1] = (first2B) ? secondpc[63:1] : thirdpc[63:1];
 
 
    assign ifu_i0_pc4 = first4B;
@@ -978,17 +978,17 @@ module ifu_aln_ctl
 
    // if you detect br does not start on instruction boundary
 
-   rvbtb_addr_hash firsthash(.pc(firstpc[31:1]), .hash(firstpc_hash[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
-   rvbtb_addr_hash secondhash(.pc(secondpc[31:1]), .hash(secondpc_hash[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
-   rvbtb_addr_hash thirdhash(.pc(thirdpc[31:1]), .hash(thirdpc_hash[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
-   rvbtb_addr_hash fourthhash(.pc(fourthpc[31:1]), .hash(fourthpc_hash[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
+   rvbtb_addr_hash firsthash(.pc(firstpc[63:1]), .hash(firstpc_hash[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
+   rvbtb_addr_hash secondhash(.pc(secondpc[63:1]), .hash(secondpc_hash[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
+   rvbtb_addr_hash thirdhash(.pc(thirdpc[63:1]), .hash(thirdpc_hash[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
+   rvbtb_addr_hash fourthhash(.pc(fourthpc[63:1]), .hash(fourthpc_hash[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]));
 
    logic [`RV_BTB_BTAG_SIZE-1:0] firstbrtag_hash, secondbrtag_hash, thirdbrtag_hash, fourthbrtag_hash;
 
-   rvbtb_tag_hash first_brhash(.pc(firstpc[31:1]), .hash(firstbrtag_hash[`RV_BTB_BTAG_SIZE-1:0]));
-   rvbtb_tag_hash second_brhash(.pc(secondpc[31:1]), .hash(secondbrtag_hash[`RV_BTB_BTAG_SIZE-1:0]));
-   rvbtb_tag_hash third_brhash(.pc(thirdpc[31:1]), .hash(thirdbrtag_hash[`RV_BTB_BTAG_SIZE-1:0]));
-   rvbtb_tag_hash fourth_brhash(.pc(fourthpc[31:1]), .hash(fourthbrtag_hash[`RV_BTB_BTAG_SIZE-1:0]));
+   rvbtb_tag_hash first_brhash(.pc(firstpc[63:1]), .hash(firstbrtag_hash[`RV_BTB_BTAG_SIZE-1:0]));
+   rvbtb_tag_hash second_brhash(.pc(secondpc[63:1]), .hash(secondbrtag_hash[`RV_BTB_BTAG_SIZE-1:0]));
+   rvbtb_tag_hash third_brhash(.pc(thirdpc[63:1]), .hash(thirdbrtag_hash[`RV_BTB_BTAG_SIZE-1:0]));
+   rvbtb_tag_hash fourth_brhash(.pc(fourthpc[63:1]), .hash(fourthbrtag_hash[`RV_BTB_BTAG_SIZE-1:0]));
 
    // start_indexing - you want pc to be based on where the end of branch is prediction
    // normal indexing pc based that's incorrect now for pc4 cases it's pc4 + 2
@@ -1026,7 +1026,7 @@ module ifu_aln_ctl
 
       i0_brp.fghr[`RV_BHT_GHR_RANGE] = (i0_ends_f1) ? f1fghr[`RV_BHT_GHR_RANGE] : f0fghr[`RV_BHT_GHR_RANGE];
 
-      i0_brp.prett[31:1] = (i0_ends_f1) ? f1prett[31:1] : f0prett[31:1];
+      i0_brp.prett[63:1] = (i0_ends_f1) ? f1prett[63:1] : f0prett[63:1];
 
       i0_brp.br_start_error = i0_br_start_error;
 
@@ -1097,7 +1097,7 @@ module ifu_aln_ctl
 
       i1_brp.fghr[`RV_BHT_GHR_RANGE] = (i1_ends_f1) ? f1fghr[`RV_BHT_GHR_RANGE] : f0fghr[`RV_BHT_GHR_RANGE];
 
-      i1_brp.prett[31:1] = (i1_ends_f1) ? f1prett[31:1] : f0prett[31:1];
+      i1_brp.prett[63:1] = (i1_ends_f1) ? f1prett[63:1] : f0prett[63:1];
 
       i1_brp.br_start_error = i1_br_start_error;
 

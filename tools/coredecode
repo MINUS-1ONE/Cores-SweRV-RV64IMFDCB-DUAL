@@ -28,8 +28,8 @@ GetOptions ('legal'  => \$legal,
 if (!defined($in))  { die("must define -in=input"); }
 if (!defined($out)) { $out="${in}.out"; }
 
-if ($in eq "decode")       { $view="rv32i";  }
-elsif ($in eq "cdecode")   { $view="rv32c";  }
+if ($in eq "decode")       { $view="rv64i";  }
+elsif ($in eq "cdecode")   { $view="rv64c";  }
 elsif ($in eq "csrdecode") { $view="csr";  }
 
 if (defined($in)) { printf("in=$in\n"); }
