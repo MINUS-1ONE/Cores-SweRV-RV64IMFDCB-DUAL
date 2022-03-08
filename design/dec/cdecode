@@ -181,6 +181,18 @@ c.ldsp3 =        [011....1......10]
 c.ldsp4 =        [011.....1.....10]
 
 c.sdsp =        [111...........10]
+
+# RV32FC/RV32DC/RV64FC/RV64DC
+# RV32 only
+c.flw =         [011...........00]
+c.flwsp =       [011...........10]
+c.fsw =         [111...........00]
+c.fswsp =       [111...........10]
+# RV32/RV64
+c.fld =         [001...........00]
+c.fldsp =       [001...........10]
+c.fsd =         [101...........00]
+c.fsdsp =       [101...........10]
 ####################################
 
 .input
@@ -340,5 +352,17 @@ rv64c[c.ldsp{0-4}] =    { rdrd rs1eq2 uldspimm8_3                    o[13] o[12]
 rv64c[c.sdsp] =         { rs2rs2 rs1eq2  usdspimm8_3                 o[13] o[12]            o[5]      o[1] o[0] }
 ####################################
 
+# RV32FC/RV32DC/RV64FC/RV64DC
+# RV32 only
+rv64c[c.flw] =          { rs2prd rdprs1 ulwimm6_2 o[13] o[2] o[1] o[0] }
+rv64c[c.flwsp] =        { rdrd  rs1eq2 ulwspimm7_2  o[13] o[2] o[1] o[0] }
+rv64c[c.fsw] =          { rdprs1 rs2prs2 uswimm6_2    o[13]  o[5] o[2] o[1] o[0] }
+rv64c[c.fswsp] =        { rs2rs2 rs1eq2  uswspimm7_2  o[13]  o[5] o[2] o[1] o[0] }
+# RV32/RV64
+rv64c[c.fld] =          { rs2prd rdprs1 uldimm7_3 o[13] o[12] o[2] o[1] o[0] }
+rv64c[c.fldsp] =        { rdrd  rs1eq2 uldspimm8_3  o[13] o[12] o[2] o[1] o[0] }
+rv64c[c.fsd] =          { rdprs1 rs2prs2 usdimm7_3    o[13] o[12] o[5] o[2] o[1] o[0] }
+rv64c[c.fsdsp] =        { rs2rs2 rs1eq2  usdspimm8_3  o[13] o[12] o[5] o[2] o[1] o[0] }
+####################################
 
 .end

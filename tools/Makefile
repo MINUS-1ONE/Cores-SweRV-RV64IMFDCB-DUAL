@@ -47,7 +47,7 @@ RIVIERA = riviera
 #GCC_PREFIX = $(GCC_PATH)/riscv64-unknown-elf
 
 #64bit riscv gcc 10.2.0 from Sifive
-GCC_PATH = /home/chisel/MySoftware/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin
+GCC_PATH = /home/riscv/tools/riscv-tools/SIFive-riscv-tools/2020.12/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin
 GCC_PREFIX = $(GCC_PATH)/riscv64-unknown-elf
 
 #32bit riscv gcc 9.2.0
@@ -153,7 +153,8 @@ vcs-build: ${TBFILES} ${BUILD_DIR}/defines.h
 		 ${VCS_DEBUG_PLUS} \
 		 -l vcs_compile.log \
 		 +vcs+initreg+random \
-		 -timescale=1ns/1ns
+		 -LDFLAGS -Wl,--no-as-needed
+		 -timescale=1ns/1ns \
 	touch vcs-build
 
 irun-build: ${TBFILES} ${BUILD_DIR}/defines.h
