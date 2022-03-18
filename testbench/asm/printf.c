@@ -54,33 +54,33 @@
 // 'ftoa' conversion buffer size, this must be big enough to hold one converted
 // float number including padded zeros (dynamically created on stack)
 // default: 32 byte
-// #ifndef PRINTF_FTOA_BUFFER_SIZE
-// #define PRINTF_FTOA_BUFFER_SIZE    32U
-// #endif
+#ifndef PRINTF_FTOA_BUFFER_SIZE
+#define PRINTF_FTOA_BUFFER_SIZE    32U
+#endif
 
 // support for the floating point type (%f)
 // default: activated
-// #ifndef PRINTF_DISABLE_SUPPORT_FLOAT
-// #define PRINTF_SUPPORT_FLOAT
-// #endif
+#ifndef PRINTF_DISABLE_SUPPORT_FLOAT
+#define PRINTF_SUPPORT_FLOAT
+#endif
 
 // support for exponential floating point notation (%e/%g)
 // default: activated
-// #ifndef PRINTF_DISABLE_SUPPORT_EXPONENTIAL
-// #define PRINTF_SUPPORT_EXPONENTIAL
-// #endif
+#ifndef PRINTF_DISABLE_SUPPORT_EXPONENTIAL
+#define PRINTF_SUPPORT_EXPONENTIAL
+#endif
 
 // define the default floating point precision
 // default: 6 digits
-// #ifndef PRINTF_DEFAULT_FLOAT_PRECISION
-// #define PRINTF_DEFAULT_FLOAT_PRECISION  6U
-// #endif
+#ifndef PRINTF_DEFAULT_FLOAT_PRECISION
+#define PRINTF_DEFAULT_FLOAT_PRECISION  6U
+#endif
 
 // define the largest float suitable to print with %f
 // default: 1e9
-// #ifndef PRINTF_MAX_FLOAT
-// #define PRINTF_MAX_FLOAT  1e9
-// #endif
+#ifndef PRINTF_MAX_FLOAT
+#define PRINTF_MAX_FLOAT  1e9
+#endif
 
 // support for the long long types (%llu or %p)
 // default: activated

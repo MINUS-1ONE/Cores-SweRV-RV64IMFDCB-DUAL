@@ -63,6 +63,76 @@ mret   =  [00110000001000000000000001110011]
 
 wfi    =  [00010000010100000000000001110011]
 
+# RV32F
+flw  =       [.................010.....0000111]
+fsw  =       [.................010.....0100111]
+fmv_s_x  =   [111100000000.....000.....1010011]
+fcvt_s_w  =  [110100000000.............1010011]
+fcvt_s_wu  = [110100000001.............1010011]
+fmv_x_s  =   [111000000000.....000.....1010011]
+fclass_s  =  [111000000000.....001.....1010011]
+fcvt_w_s  =  [110000000000.............1010011]
+fcvt_wu_s  = [110000000001.............1010011]
+feq_s  =     [1010000..........010.....1010011]
+flt_s  =     [1010000..........001.....1010011]
+fle_s  =     [1010000..........000.....1010011]
+fsgnj_s  =   [0010000..........000.....1010011]
+fsgnjn_s  =  [0010000..........001.....1010011]
+fsgnjx_s  =  [0010000..........010.....1010011]
+fmin_s  =    [0010100..........000.....1010011]
+fmax_s  =    [0010100..........001.....1010011]
+fadd_s  =    [0000000..................1010011]
+fsub_s  =    [0000100..................1010011]
+fmul_s  =    [0001000..................1010011]
+fmadd_s  =   [.....00..................1000011]
+fmsub_s  =   [.....00..................1000111]
+fnmadd_s  =  [.....00..................1001111]
+fnmsub_s  =  [.....00..................1001011]
+fdiv_s  =    [0001100..................1010011]
+fsqrt_s  =   [010110000000.............1010011]
+
+# RV64F
+fcvt_l_s =   [110000000010.............1010011]
+fcvt_lu_s =  [110000000011.............1010011]
+fcvt_s_l =   [110100000010.............1010011]
+fcvt_s_lu =  [110100000011.............1010011]
+
+# RV32D
+fld  =       [.................011.....0000111]
+fsd  =       [.................011.....0100111]
+fcvt_d_w  =  [110100100000.............1010011]
+fcvt_d_wu  = [110100100001.............1010011]
+fclass_d  =  [111000100000.....001.....1010011]
+fcvt_w_d  =  [110000100000.............1010011]
+fcvt_wu_d  = [110000100001.............1010011]
+fcvt_s_d =   [010000000001.............1010011]
+fcvt_d_s =   [010000100000.............1010011]
+feq_d  =     [1010001..........010.....1010011]
+flt_d  =     [1010001..........001.....1010011]
+fle_d  =     [1010001..........000.....1010011]
+fsgnj_d  =   [0010001..........000.....1010011]
+fsgnjn_d  =  [0010001..........001.....1010011]
+fsgnjx_d  =  [0010001..........010.....1010011]
+fmin_d  =    [0010101..........000.....1010011]
+fmax_d  =    [0010101..........001.....1010011]
+fadd_d  =    [0000001..................1010011]
+fsub_d  =    [0000101..................1010011]
+fmul_d  =    [0001001..................1010011]
+fmadd_d  =   [.....01..................1000011]
+fmsub_d  =   [.....01..................1000111]
+fnmadd_d  =  [.....01..................1001111]
+fnmsub_d  =  [.....01..................1001011]
+fdiv_d  =    [0001101..................1010011]
+fsqrt_d  =   [010110100000.............1010011]
+
+# RV64D
+fcvt_l_d =   [110000100010.............1010011]
+fcvt_lu_d =  [110000100011.............1010011]
+fmv_x_d =    [111000100000.....000.....1010011]
+fmv_d_x =    [111100100000.....000.....1010011]
+fcvt_d_l =   [110100100010.............1010011]
+fcvt_d_lu =  [110100100011.............1010011]
+
 ##################################################
 # added for RV64
 # RV64I
@@ -312,6 +382,42 @@ rv64i = {
       pm_alu
       wpostfix
 
+      fpu
+      frs1
+      frs2
+      frs3
+      frd
+      fflags
+      fp64
+      long
+      sign
+      fp_to_int
+      int_to_fp
+      fp_to_fp
+      fma
+      fmin
+      fmax
+      fsgnj
+      fsgnjn
+      fsgnjx
+      fcvt
+      fs
+      fl
+      fclass
+      feq
+      flt
+      fle
+      fmv
+      fadd
+      fsub
+      fmul
+      fmadd
+      fmsub
+      fnmadd
+      fnmsub
+      fdiv
+      fsqrt
+
       clz
       ctz
       cpop
@@ -431,6 +537,77 @@ rv64i[divw]   =  { div rs1 rs2 rd        presync postsync wpostfix }
 rv64i[divuw]  =  { div rs1 rs2 rd unsign presync postsync wpostfix }
 rv64i[remw]   =  { div rs1 rs2 rd        presync postsync rem wpostfix }
 rv64i[remuw]  =  { div rs1 rs2 rd unsign presync postsync rem wpostfix }
+
+# RV32F
+rv64i[flw]        =  { fpu fl lsu load word rs1 frd }
+rv64i[fsw]        =  { fpu fs lsu store word rs1 frs2 }
+rv64i[fmv_s_x]    =  { fpu fmv int_to_fp rs1 frd }
+rv64i[fcvt_s_w]   =  { fpu fcvt int_to_fp sign rs1 frd fflags }
+rv64i[fcvt_s_wu]  =  { fpu fcvt int_to_fp rs1 frd fflags }
+rv64i[fmv_x_s]    =  { fpu fmv fp_to_int rd frs1}
+rv64i[fclass_s]   =  { fpu fclass fp_to_int frs1 rd }
+rv64i[fcvt_w_s]   =  { fpu fcvt fp_to_int sign frs1 rd fflags }
+rv64i[fcvt_wu_s]  =  { fpu fcvt fp_to_int frs1 rd fflags }
+rv64i[feq_s]      =  { fpu feq fp_to_int frs1 frs2 rd fflags }
+rv64i[flt_s]      =  { fpu flt fp_to_int frs1 frs2 rd fflags }
+rv64i[fle_s]      =  { fpu fle fp_to_int frs1 frs2 rd fflags }
+rv64i[fsgnj_s]    =  { fpu fsgnj fp_to_fp frs1 frs2 frd fflags }
+rv64i[fsgnjn_s]   =  { fpu fsgnjn fp_to_fp frs1 frs2 frd fflags }
+rv64i[fsgnjx_s]   =  { fpu fsgnjx fp_to_fp frs1 frs2 frd fflags }
+rv64i[fmin_s]     =  { fpu fmin fp_to_fp frs1 frs2 frd fflags }
+rv64i[fmax_s]     =  { fpu fmax fp_to_fp frs1 frs2 frd fflags }
+rv64i[fadd_s]     =  { fpu fma fadd frs1 frs2 frd fflags }
+rv64i[fsub_s]     =  { fpu fma fsub frs1 frs2 frd fflags }
+rv64i[fmul_s]     =  { fpu fma fmul frs1 frs2 frd fflags }
+rv64i[fmadd_s]    =  { fpu fma fmadd frs1 frs2 frs3 frd fflags }
+rv64i[fmsub_s]    =  { fpu fma fmsub frs1 frs2 frs3 frd fflags }
+rv64i[fnmadd_s]   =  { fpu fma fnmadd frs1 frs2 frs3 frd fflags }
+rv64i[fnmsub_s]   =  { fpu fma fnmsub frs1 frs2 frs3 frd fflags }
+rv64i[fdiv_s]     =  { fpu fdiv presync postsync frs1 frs2 frd fflags }
+rv64i[fsqrt_s]    =  { fpu fsqrt presync postsync frs1 frd fflags }
+
+# RV64F
+rv64i[fcvt_l_s]   =  { fpu fcvt fp_to_int long sign frs1 rd fflags}
+rv64i[fcvt_lu_s]  =  { fpu fcvt fp_to_int long frs1 rd fflags }
+rv64i[fcvt_s_l]   =  { fpu fcvt int_to_fp long sign rs1 frd fflags }
+rv64i[fcvt_s_lu]  =  { fpu fcvt int_to_fp long rs1 frd fflags }
+
+# RV32D
+rv64i[fld]        =  { fpu fp64 fl lsu load dword rs1 frd }
+rv64i[fsd]        =  { fpu fp64 fs lsu store dword rs1 frs2 }
+rv64i[fcvt_d_w]   =  { fpu fp64 fcvt int_to_fp sign rs1 frd fflags }
+rv64i[fcvt_d_wu]  =  { fpu fp64 fcvt int_to_fp rs1 frd fflags }
+rv64i[fclass_d]   =  { fpu fp64 fclass fp_to_int frs1 rd }
+rv64i[fcvt_w_d]   =  { fpu fp64 fcvt fp_to_int sign frs1 rd fflags }
+rv64i[fcvt_wu_d]  =  { fpu fp64 fcvt fp_to_int frs1 rd fflags }
+# Here fp64 indicate whether the destination operand is FP64.
+rv64i[fcvt_s_d]   =  { fpu      fcvt fp_to_fp frs1 frd fflags }
+rv64i[fcvt_d_s]   =  { fpu fp64 fcvt fp_to_fp frs1 frd fflags }
+rv64i[feq_d]      =  { fpu fp64 feq fp_to_int frs1 frs2 rd fflags }
+rv64i[flt_d]      =  { fpu fp64 flt fp_to_int frs1 frs2 rd fflags }
+rv64i[fle_d]      =  { fpu fp64 fle fp_to_int frs1 frs2 rd fflags }
+rv64i[fsgnj_d]    =  { fpu fp64 fsgnj fp_to_fp frs1 frs2 frd fflags }
+rv64i[fsgnjn_d]   =  { fpu fp64 fsgnjn fp_to_fp frs1 frs2 frd fflags }
+rv64i[fsgnjx_d]   =  { fpu fp64 fsgnjx fp_to_fp frs1 frs2 frd fflags }
+rv64i[fmin_d]     =  { fpu fp64 fmin fp_to_fp frs1 frs2 frd fflags }
+rv64i[fmax_d]     =  { fpu fp64 fmax fp_to_fp frs1 frs2 frd fflags }
+rv64i[fadd_d]     =  { fpu fp64 fma fadd frs1 frs2 frd fflags }
+rv64i[fsub_d]     =  { fpu fp64 fma fsub frs1 frs2 frd fflags }
+rv64i[fmul_d]     =  { fpu fp64 fma fmul frs1 frs2 frd fflags }
+rv64i[fmadd_d]    =  { fpu fp64 fma fmadd frs1 frs2 frs3 frd fflags }
+rv64i[fmsub_d]    =  { fpu fp64 fma fmsub frs1 frs2 frs3 frd fflags }
+rv64i[fnmadd_d]   =  { fpu fp64 fma fnmadd frs1 frs2 frs3 frd fflags }
+rv64i[fnmsub_d]   =  { fpu fp64 fma fnmsub frs1 frs2 frs3 frd fflags }
+rv64i[fdiv_d]     =  { fpu fp64 fdiv presync postsync frs1 frs2 frd fflags }
+rv64i[fsqrt_d]    =  { fpu fp64 fsqrt presync postsync frs1 frd fflags }
+
+# RV64D
+rv64i[fcvt_l_d]   =  { fpu fp64 fcvt fp_to_int long sign frs1 rd fflags }
+rv64i[fcvt_lu_d]  =  { fpu fp64 fcvt fp_to_int long frs1 rd fflags}
+rv64i[fmv_x_d]    =  { fpu fp64 fmv fp_to_int frs1 rd}
+rv64i[fmv_d_x]    =  { fpu fp64 fmv int_to_fp rs1 frd}
+rv64i[fcvt_d_l]   =  { fpu fp64 fcvt int_to_fp long sign rs1 frd fflags}
+rv64i[fcvt_d_lu]  =  { fpu fp64 fcvt int_to_fp long rs1 frd fflags}
 
 # RV64B
 rv64i[clz]       =  { alu  zbb   rs1     rd                       clz     }

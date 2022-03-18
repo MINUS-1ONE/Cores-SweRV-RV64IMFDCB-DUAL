@@ -1,5 +1,7 @@
+`include "HardFloat_consts.vi"
+
 module INTtoFP (
-	input logic [63:0] in1,  // integer rs1 input
+	input logic [63:0] in_rs1,  // integer rs1 input
 
 	input logic [2:0] in_rm,    // rounding mode
 	
@@ -7,7 +9,7 @@ module INTtoFP (
     // {fcvt, fmv, sign, long}
 	input logic [3:0] ctrl_code,
 
-    output logic [64:0] out_data,  // rec format output data
+    output logic [64:0] out_rec_fn_data,  // rec format output data
 	output logic [4:0]  out_exc    // exception flags	
 );
 	logic fcvt;
@@ -35,14 +37,14 @@ module INTtoFP (
 	// FMV.W.X
 	fNToRecFN#(.expWidth(8), .sigWidth(24)) fmv_w_x
 	(
-		.in(in1[31:0]),
+		.in(in_rs1[31:0]),
 		.out(fmv_w_x_data)
 	);
 
 	// FMV.D.X
 	fNToRecFN#(.expWidth(11), .sigWidth(53)) fmv_d_x
 	(
-		.in(in1[63:0]),
+		.in(in_rs1[63:0]),
 		.out(fmv_d_x_data)
 	);
 
@@ -53,7 +55,7 @@ module INTtoFP (
 	(
 		.control(`flControl_tininessAfterRounding), 
 		.signedIn(sign), 
-		.in(in1[31:0]), 
+		.in(in_rs1[31:0]), 
 		.roundingMode(in_rm), 
 		.out(fcvt_s_w_data), 
 		.exceptionFlags(fcvt_s_w_exc)
@@ -64,7 +66,7 @@ module INTtoFP (
 	(
 		.control(`flControl_tininessAfterRounding), 
 		.signedIn(sign), 
-		.in(in1[63:0]), 
+		.in(in_rs1[63:0]), 
 		.roundingMode(in_rm), 
 		.out(fcvt_s_l_data), 
 		.exceptionFlags(fcvt_s_l_exc)
@@ -75,7 +77,7 @@ module INTtoFP (
 	(
 		.control(`flControl_tininessAfterRounding), 
 		.signedIn(sign), 
-		.in(in1[31:0]), 
+		.in(in_rs1[31:0]), 
 		.roundingMode(in_rm), 
 		.out(fcvt_d_w_data), 
 		.exceptionFlags(fcvt_d_w_exc)
@@ -86,7 +88,7 @@ module INTtoFP (
 	(
 		.control(`flControl_tininessAfterRounding), 
 		.signedIn(sign), 
-		.in(in1[63:0]), 
+		.in(in_rs1[63:0]), 
 		.roundingMode(in_rm), 
 		.out(fcvt_d_l_data), 
 		.exceptionFlags(fcvt_d_l_exc)
@@ -97,7 +99,7 @@ module INTtoFP (
 	assign fcvt_exc  = fp64 ? (long ? fcvt_d_l_exc : fcvt_d_w_exc) : 
 							  (long ? fcvt_s_l_exc : fcvt_s_w_exc);
 
-	assign out_data = ({65{fcvt}} & fcvt_data) | ({65{fmv}} & fmv_data);
-	assign out_exc  = ({5{fcvt}} & fcvt_exc) | ({5{fmv}} & 5'b0);
+	assign out_rec_fn_data = ({65{fcvt}} & fcvt_data) | ({65{fmv}} & fmv_data);
+	assign out_exc         = ({5{fcvt}} & fcvt_exc) | ({5{fmv}} & 5'b0);
 
 endmodule

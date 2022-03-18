@@ -385,6 +385,69 @@ module swerv
 
 `include "global.h"
 
+   //************fpu related connect signal start***************
+   fpu_pkt_t fpu_d;
+
+   logic [63:0] dec_frs1_d;
+   logic [63:0] dec_frs2_d;
+   logic [63:0] dec_frs3_d;
+   
+   logic [63:0] dec_frd_wdata_wb;
+   logic dec_frd_fp64_wb;
+   logic [64:0] dec_frd_rec_fn_wdata_wb;
+
+   logic [64:0] fpu_fmisc_rec_fn_result_e1;
+   logic [63:0] fpu_int_result_e1;
+   logic [4:0] fpu_fmisc_exc_e1;
+   
+   logic [64:0] fpu_fma_rec_fn_result_e3;
+   logic [4:0] fpu_fma_exc_e3;
+
+   // fdiv_sqrt signal
+   logic fpu_fdiv_fsqrt_stall;
+   logic fpu_fdiv_fsqrt_finish;
+   logic [64:0] fpu_fdiv_fsqrt_rec_fn_data;
+   logic [4:0] fpu_fdiv_fsqrt_exc;
+   logic fpu_fdiv_fsqrt_valid_e1;
+   
+   // float bypass port
+   logic dec_i0_frs1_bypass_en_d;
+   logic dec_i0_frs2_bypass_en_d;
+   logic dec_i0_frs3_bypass_en_d;
+   logic dec_i0_frs1_bypass_fp64_d;
+   logic dec_i0_frs2_bypass_fp64_d;
+   logic dec_i0_frs3_bypass_fp64_d;
+   logic [64:0] dec_i0_frs1_bypass_rec_fn_data_d;
+   logic [64:0] dec_i0_frs2_bypass_rec_fn_data_d;
+   logic [64:0] dec_i0_frs3_bypass_rec_fn_data_d;
+
+   logic dec_i1_frs1_bypass_en_d;
+   logic dec_i1_frs2_bypass_en_d;
+   logic dec_i1_frs3_bypass_en_d;
+   logic dec_i1_frs1_bypass_fp64_d;
+   logic dec_i1_frs2_bypass_fp64_d;
+   logic dec_i1_frs3_bypass_fp64_d;
+   logic [64:0] dec_i1_frs1_bypass_rec_fn_data_d;
+   logic [64:0] dec_i1_frs2_bypass_rec_fn_data_d;
+   logic [64:0] dec_i1_frs3_bypass_rec_fn_data_d;
+   
+   logic [63:0] dec_i0_frs2_bypass_data_d;
+   logic [63:0] dec_i1_frs2_bypass_data_d;
+
+   logic fpu_decode_i0_d;
+   logic fpu_decode_i1_d;
+
+   logic [64:0] lsu_rec_fn_result_dc3;
+   logic lsu_fp64_e3;
+
+   //************fpu related connect signal end*****************
+
+   logic [63:0] dec_i0_rs2_mux;
+   logic [63:0] dec_i1_rs2_mux;
+
+   logic [63:0] exu_lsu_bypass_data_mux_i0;
+   logic [63:0] exu_lsu_bypass_data_mux_i1;
+
 
 
 // for the testbench
@@ -1008,6 +1071,13 @@ module swerv
    logic        mhwakeup;
 
    logic        dec_tlu_claim_ack_wb;
+
+   fpu fpu
+   (
+      .clk(clk),
+      .rst_l(core_rst_l),
+      .*
+   );
 
    dec dec (
             .dbg_cmd_wrdata(dbg_cmd_wrdata[1:0]),

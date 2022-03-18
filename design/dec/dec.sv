@@ -398,6 +398,67 @@ module dec
    output logic  dec_tlu_dccm_clk_override,          // override DCCM clock domain gating
    output logic  dec_tlu_icm_clk_override,           // override ICCM clock domain gating
 
+   //************fpu related connect signal start***************
+   output fpu_pkt_t     fpu_d,     // float inst signal pkt
+
+   output logic [63:0] dec_frs1_d, 
+   output logic [63:0] dec_frs2_d, 
+   output logic [63:0] dec_frs3_d, 
+   
+   input logic [63:0] dec_frd_wdata_wb, 
+   output logic dec_frd_fp64_wb,
+   output logic [64:0] dec_frd_rec_fn_wdata_wb,
+
+   input logic [64:0] fpu_fmisc_rec_fn_result_e1, 
+   input logic [63:0] fpu_int_result_e1, 
+   input logic [4:0] fpu_fmisc_exc_e1, 
+   
+   input logic [64:0] fpu_fma_rec_fn_result_e3, 
+   input logic [4:0] fpu_fma_exc_e3,
+
+   // fdiv_sqrt signal
+   input logic fpu_fdiv_fsqrt_stall, 
+   input logic fpu_fdiv_fsqrt_finish,  // include flush control
+   input logic [64:0] fpu_fdiv_fsqrt_rec_fn_data,  
+   input logic [4:0] fpu_fdiv_fsqrt_exc, 
+   
+   // float bypass port
+   output logic dec_i0_frs1_bypass_en_d,
+   output logic dec_i0_frs2_bypass_en_d,
+   output logic dec_i0_frs3_bypass_en_d,
+   output logic dec_i0_frs1_bypass_fp64_d,
+   output logic dec_i0_frs2_bypass_fp64_d,
+   output logic dec_i0_frs3_bypass_fp64_d,
+   output logic [64:0] dec_i0_frs1_bypass_rec_fn_data_d,
+   output logic [64:0] dec_i0_frs2_bypass_rec_fn_data_d,
+   output logic [64:0] dec_i0_frs3_bypass_rec_fn_data_d,
+
+   output logic dec_i1_frs1_bypass_en_d,
+   output logic dec_i1_frs2_bypass_en_d,
+   output logic dec_i1_frs3_bypass_en_d,
+   output logic dec_i1_frs1_bypass_fp64_d,
+   output logic dec_i1_frs2_bypass_fp64_d,
+   output logic dec_i1_frs3_bypass_fp64_d,
+   output logic [64:0] dec_i1_frs1_bypass_rec_fn_data_d,
+   output logic [64:0] dec_i1_frs2_bypass_rec_fn_data_d,
+   output logic [64:0] dec_i1_frs3_bypass_rec_fn_data_d,
+   
+   input logic [63:0] dec_i0_frs2_bypass_data_d,
+   input logic [63:0] dec_i1_frs2_bypass_data_d,
+
+   output logic fpu_decode_i0_d, 
+   output logic fpu_decode_i1_d,
+
+   input logic [64:0] lsu_rec_fn_result_dc3,
+   output lsu_fp64_e3,
+
+   //************fpu related connect signal end*****************
+
+   output logic [63:0] dec_i0_rs2_mux,
+   output logic [63:0] dec_i1_rs2_mux,
+   output logic [63:0] exu_lsu_bypass_data_mux_i0,
+   output logic [63:0] exu_lsu_bypass_data_mux_i1,
+
    input  logic        scan_mode
 
    );
@@ -507,6 +568,30 @@ module dec
    br_pkt_t dec_i0_brp;
    br_pkt_t dec_i1_brp;
 
+   //******FPUsignal defination*************
+   // FPGR signal
+   logic [4:0] dec_frs1_raddr;
+   logic dec_frs1_ren; 
+
+   logic [4:0] dec_frs2_raddr;
+   logic dec_frs2_ren;
+
+   logic [4:0] dec_frs3_raddr;
+   logic dec_frs3_ren;
+
+   logic [4:0] dec_frd_waddr_wb; 
+   logic dec_frd_wen_wb; 
+   
+   // FCSR control signal
+   logic [2:0] dec_tlu_frm_rounding_mode;
+
+   logic [4:0] f_flags_i0_e4;
+   logic [4:0] f_flags_i1_e4;
+   logic fflgas_i0_valid_e4;
+   logic fflgas_i1_valid_e4;
+
+   //*****************************************
+
    assign clk_override = dec_tlu_dec_clk_override;
 
 
@@ -534,6 +619,41 @@ module dec
                     .rd0(gpr_i0_rs1_d[63:0]), .rd1(gpr_i0_rs2_d[63:0]),
                     .rd2(gpr_i1_rs1_d[63:0]), .rd3(gpr_i1_rs2_d[63:0])
                     );
+
+   //*********** FGPR *********************************
+   dec_fgpr_ctl fpgr (
+                 .clk(clk), .rst_l(rst_l), .scan_mode(scan_mode), 
+                 // inputs
+                 .raddr0(dec_frs1_raddr[4:0]),
+                 .rden0(dec_frs1_ren),
+                 .raddr1(dec_frs2_raddr[4:0]),
+                 .rden1(dec_frs2_ren),
+                 .raddr2(dec_frs3_raddr[4:0]),
+                 .rden2(dec_frs3_ren),
+                 .raddr3(5'b0), .rden3(1'b0),
+                 .raddr4(5'b0), .rden4(1'b0),
+                 .raddr5(5'b0), .rden5(1'b0),
+
+                 .waddr0(dec_frd_waddr_wb[4:0]),
+                 .wen0(dec_frd_wen_wb),
+                 .wd0(dec_frd_wdata_wb[63:0]),
+                 .waddr1(5'b0), .wen1(1'b0), .wd1(64'b0),
+                 .waddr2(5'b0), .wen2(1'b0), .wd2(64'b0),
+
+                 // outputs
+                 .rd0(dec_frs1_d[63:0]),
+                 .rd1(dec_frs2_d[63:0]),
+                 .rd2(dec_frs3_d[63:0]),
+                 .rd3(), 
+                 .rd4(), 
+                 .rd5()
+                 );
+
+   assign dec_i0_rs2_mux[63:0] = fpu_decode_i0_d ? dec_frs2_d[63:0] : gpr_i0_rs2_d[63:0];
+   assign dec_i1_rs2_mux[63:0] = fpu_decode_i1_d ? dec_frs2_d[63:0] : gpr_i1_rs2_d[63:0];
+   
+   assign exu_lsu_bypass_data_mux_i0[63:0] = fpu_decode_i0_d ? dec_i0_frs2_bypass_data_d[63:0] : i0_rs2_bypass_data_d[63:0];
+   assign exu_lsu_bypass_data_mux_i1[63:0] = fpu_decode_i1_d ? dec_i1_frs2_bypass_data_d[63:0] : i1_rs2_bypass_data_d[63:0];
 
 // Trigger
 

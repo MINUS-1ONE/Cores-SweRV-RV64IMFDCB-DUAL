@@ -178,6 +178,27 @@ typedef struct packed {
                        logic [1:0] i1rs2bype2;
                        logic [6:0] i1rs1bype3;
                        logic [6:0] i1rs2bype3;
+                       //*******FPU related modify begin******
+                       logic i0_fpu;
+                       logic i0_wr_frd;
+                       logic [4:0] i0_frd;
+                       logic i0_fp_to_int;
+                       logic i0_int_to_fp;
+                       logic i0_fp_to_fp;
+                       logic i0_fma;
+                       logic fdiv_fsqrt;
+                       logic i0_fl;
+                       logic i0_fs;
+                       logic i1_fpu;
+                       logic i1_wr_frd;
+                       logic [4:0] i1_frd;
+                       logic i1_fp_to_int;
+                       logic i1_int_to_fp; 
+                       logic i1_fp_to_fp; 
+                       logic i1_fma;
+                       logic i1_fl;
+                       logic i1_fs;
+                       //*******FPU related modify end******
                        } dest_pkt_t;
 
 typedef struct packed {
@@ -185,12 +206,25 @@ typedef struct packed {
                        logic load;
                        logic sec;
                        logic alu;
+                       //*******FPU related modify begin******
+                       logic fp_to_int;
+                       logic int_to_fp;
+                       logic fp_to_fp;                       
+                       logic fma;
+                       logic fl;
+                       //*******FPU related modify end******
                        } class_pkt_t;
 
 typedef struct packed {
                        logic [4:0] rs1;
                        logic [4:0] rs2;
                        logic [4:0] rd;
+                       //*******FPU related modify begin******
+                       logic [4:0] frs1;
+                       logic [4:0] frs2;
+                       logic [4:0] frs3;
+                       logic [4:0] frd;
+                       //*******FPU related modify begin******
                        } reg_pkt_t;
 
 
@@ -257,6 +291,10 @@ typedef struct packed {
                        logic [1:0] store_data_bypass_e4_c1;
                        logic [1:0] store_data_bypass_e4_c2;
                        logic [1:0] store_data_bypass_e4_c3;
+                       //*******FPU related modify begin******
+                       logic fs_data_bypass_c1;
+                       logic fs_data_bypass_c2;
+                       //*******FPU related modify end******
                        logic valid;
                        } lsu_pkt_t;
 
@@ -323,6 +361,44 @@ typedef struct packed {
                         logic pm_alu;
                         logic legal;
                         logic wpostfix;  //for all insts with W-postfix in RV64IM
+
+                        //*******FPU related modify begin******
+                        logic fpu;
+                        logic frs1; // Need read frs1
+                        logic frs2; // Need read frs2
+                        logic frs3; // Need read frs3
+                        logic frd; // Need write back result to FGPRs
+                        logic fflags; // Need write FFLAGS CSR
+                        logic fp64;
+                        logic long;
+                        logic sign;
+                        logic fp_to_int;
+                        logic int_to_fp;
+                        logic fp_to_fp;
+                        logic fma;
+                        logic fmin;
+                        logic fmax;
+                        logic fsgnj;
+                        logic fsgnjn;
+                        logic fsgnjx;
+                        logic fcvt;
+                        logic fs;
+                        logic fl;
+                        logic fclass;
+                        logic feq;
+                        logic flt;
+                        logic fle;
+                        logic fmv;
+                        logic fadd;
+                        logic fsub;
+                        logic fmul;
+                        logic fmadd;
+                        logic fmsub;
+                        logic fnmadd;
+                        logic fnmsub;
+                        logic fdiv;
+                        logic fsqrt;
+                        //*******FPU related modify end******
 
                         //for rvb decode
                         logic clz;
@@ -401,5 +477,44 @@ typedef struct packed {
                         logic         icache_wr_valid;
             } cache_debug_pkt_t;
 
+//******************************************
+//*************FPU TYPE START***************
+//******************************************
+typedef struct packed {
+                        logic valid;
+                        logic fp_to_int;
+                        logic int_to_fp;
+                        logic fp_to_fp;
+                        logic fma;
+                        logic fp64;
+                        logic long;
+                        logic sign;
+                        logic fmin;
+                        logic fmax;
+                        logic fsgnj;
+                        logic fsgnjn;
+                        logic fsgnjx;
+                        logic fcvt;
+                        logic fs;
+                        logic fl;
+                        logic fclass;
+                        logic feq;
+                        logic flt;
+                        logic fle;
+                        logic fmv;
+                        logic fadd;
+                        logic fsub;
+                        logic fmul;
+                        logic fmadd;
+                        logic fmsub;
+                        logic fnmadd;
+                        logic fnmsub;
+                        logic fdiv;
+                        logic fsqrt;
+                        logic [2:0] rm;
+                      } fpu_pkt_t;
+//******************************************
+//*************FPU TYPE END*****************
+//******************************************
 
 endpackage // swerv_types

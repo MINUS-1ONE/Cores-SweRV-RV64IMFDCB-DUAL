@@ -36,12 +36,12 @@ default: all
 # Build rules
 #--------------------------------------------------------------------
 
-RISCV_PREFIX ?= /opt64/MySoftware/riscv/bin/riscv64-unknown-elf-
+RISCV_PREFIX ?= /home/riscv/tools/riscv-tools/SIFive-riscv-tools/2020.12/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin/riscv64-unknown-elf-
 RISCV_GCC ?= $(RISCV_PREFIX)gcc
 RISCV_GCC_OPTS ?= -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles
 RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data
 RISCV_OBJCOPY ?= $(RISCV_PREFIX)objcopy
-RISCV_SIM ?= /opt64/MySoftware/riscv-isa-sim/build/spike
+RISCV_SIM ?= /home/riscv/tools/riscv-tools/riscv-isa-sim/build/spike
 
 vpath %.S $(src_dir)
 
@@ -99,8 +99,8 @@ $(eval $(call compile_template,rv64ub,-march=rv64g_zba_zbb_zbc_zbs -mabi=lp64))
 $(eval $(call compile_template,rv64uc,-march=rv64g -mabi=lp64))
 $(eval $(call compile_template,rv64um,-march=rv64g -mabi=lp64))
 #$(eval $(call compile_template,rv64ua,-march=rv64g -mabi=lp64))
-#$(eval $(call compile_template,rv64uf,-march=rv64g -mabi=lp64))
-#$(eval $(call compile_template,rv64ud,-march=rv64g -mabi=lp64))
+$(eval $(call compile_template,rv64uf,-march=rv64g -mabi=lp64))
+$(eval $(call compile_template,rv64ud,-march=rv64g -mabi=lp64))
 #$(eval $(call compile_template,rv64uzfh,-march=rv64g_zfh -mabi=lp64))
 #$(eval $(call compile_template,rv64si,-march=rv64g -mabi=lp64))
 #$(eval $(call compile_template,rv64ssvnapot,-march=rv64g -mabi=lp64))

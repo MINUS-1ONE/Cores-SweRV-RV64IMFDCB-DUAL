@@ -1,2 +1,2 @@
 OFILES = crt0.o printf.o whetstone.o
-ABI = -mabi=ilp32f -march=rv32imf
+ABI = -mabi=lp64d -march=rv64imfdc

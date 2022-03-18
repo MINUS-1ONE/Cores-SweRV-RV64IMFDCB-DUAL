@@ -1,5 +1,5 @@
-prefix          := /opt64/WorkSpace/SweRV/Cores-SweRV-64bit/testbench/riscv-tests/build
-abs_top_src_dir := /opt64/WorkSpace/SweRV/Cores-SweRV-64bit/testbench/riscv-tests
+prefix          := ${RV64_ROOT}/testbench/riscv-tests/build
+abs_top_src_dir := ${RV64_ROOT}/testbench/riscv-tests
 XLEN            := 64
 target_alias    := 
 ifeq ($(target_alias),)

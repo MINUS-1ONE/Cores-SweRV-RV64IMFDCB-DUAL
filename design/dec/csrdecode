@@ -75,6 +75,11 @@ csr_mitcnt1 =       [011111010101]
 #csr_perfvh =        [001100101...]
 #csr_perfvi =        [00110011....]
 
+# for F/D Extension
+csr_fflags =        [000000000001]
+csr_frm =           [000000000010]
+csr_fcsr =          [000000000011]
+
 .input
 csr = {
         dec_csr_rdaddr_d[11]
@@ -154,6 +159,10 @@ csr = {
         csr_dicad1
         csr_dicago
 
+        csr_fflags
+        csr_frm  
+        csr_fcsr
+
         presync
         postsync
 }
@@ -222,6 +231,10 @@ csr[ csr_mitb0     ] = {  csr_mitb0     }
 csr[ csr_mitb1     ] = {  csr_mitb1     }
 csr[ csr_mitcnt0   ] = {  csr_mitcnt0   }
 csr[ csr_mitcnt1   ] = {  csr_mitcnt1   }
+
+csr[ csr_fflags    ] = { csr_fflags presync postsync }
+csr[ csr_frm       ] = { csr_frm presync postsync  }
+csr[ csr_fcsr      ] = { csr_fcsr presync postsync  }
 
 #csr[ csr_perfva    ] = { valid_only }
 #csr[ csr_perfvb    ] = { valid_only }

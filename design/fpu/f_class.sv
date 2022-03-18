@@ -41,9 +41,9 @@ module f_class (
 
 	assign isNaN = &code[2:0];
 
-	assign isSNaN = isNaN & ((fp64 & !rec_fn[52]) | (!fp64 & !rec_fn[22]));
+	assign isSNaN = isNaN & ((fp64 & !rec_fn[51]) | (!fp64 & !rec_fn[22]));
 
-	assign isQNaN = isNaN && ((fp64 & rec_fn[52]) | (!fp64 & rec_fn[22]));
+	assign isQNaN = isNaN && ((fp64 & rec_fn[51]) | (!fp64 & rec_fn[22]));
 
 	assign class_out = { isQNaN, isSNaN, isInf && !sign, isNormal && !sign,
                     	 isSubnormal && !sign, isZero && !sign, isZero && sign,

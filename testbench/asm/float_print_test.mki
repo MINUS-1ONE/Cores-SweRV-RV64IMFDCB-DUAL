@@ -1,0 +1,2 @@
+OFILES = crt0.o printf.o float_print_test.o
+ABI = -mabi=lp64d -march=rv64imfdc

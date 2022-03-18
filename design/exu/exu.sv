@@ -203,7 +203,21 @@ module exu
    output logic exu_pmu_i0_pc4,                                        // to PMU - I0 E4 PC
    output logic exu_pmu_i1_br_misp,                                    // to PMU - I1 E4 branch mispredict
    output logic exu_pmu_i1_br_ataken,                                  // to PMU - I1 E4 taken
-   output logic exu_pmu_i1_pc4                                         // to PMU - I1 E4 PC
+   output logic exu_pmu_i1_pc4,                                        // to PMU - I1 E4 PC
+
+   //******FPU related signal*********************
+   input logic dec_i0_frs2_bypass_en_d,
+   input logic dec_i1_frs2_bypass_en_d,
+
+   input logic [63:0] dec_i0_rs2_mux,
+   input logic [63:0] dec_i1_rs2_mux,
+   
+   input logic [63:0] exu_lsu_bypass_data_mux_i0,
+   input logic [63:0] exu_lsu_bypass_data_mux_i1,
+
+   input logic fpu_fdiv_fsqrt_finish,  // include flush control
+   input logic fpu_fdiv_fsqrt_valid_e1
+   //******FPU related signal*********************
 
    );
 
@@ -271,6 +285,10 @@ module exu
    logic        div_finish_early;
    logic        freeze;
 
+   //***********FPU related signal defination************
+   logic i0_store_bypass_en_d;
+   logic i1_store_bypass_en_d;
+   //***********FPU related signal defination************
 
    alu_pkt_t i0_ap_e1, i0_ap_e2, i0_ap_e3, i0_ap_e4;
    alu_pkt_t i1_ap_e1, i1_ap_e2, i1_ap_e3, i1_ap_e4;
@@ -300,10 +318,13 @@ module exu
                                  ({64{  dec_i0_rs1_bypass_en_d &  dec_i0_lsu_d               }} & i0_rs1_bypass_data_d[63:0]) |
                                  ({64{  dec_i1_rs1_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & i1_rs1_bypass_data_d[63:0]);
 
-   assign exu_lsu_rs2_d[63:0]  = ({64{ ~dec_i0_rs2_bypass_en_d &  dec_i0_lsu_d               }} & gpr_i0_rs2_d[63:0]        ) |
-                                 ({64{ ~dec_i1_rs2_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & gpr_i1_rs2_d[63:0]        ) |
-                                 ({64{  dec_i0_rs2_bypass_en_d &  dec_i0_lsu_d               }} & i0_rs2_bypass_data_d[63:0]) |
-                                 ({64{  dec_i1_rs2_bypass_en_d & ~dec_i0_lsu_d & dec_i1_lsu_d}} & i1_rs2_bypass_data_d[63:0]);
+   assign i0_store_bypass_en_d = dec_i0_rs2_bypass_en_d | dec_i0_frs2_bypass_en_d;
+   assign i1_store_bypass_en_d = dec_i1_rs2_bypass_en_d | dec_i1_frs2_bypass_en_d;
+
+   assign exu_lsu_rs2_d[63:0]  = ({64{ ~i0_store_bypass_en_d   &  dec_i0_lsu_d               }} & dec_i0_rs2_mux[63:0]              ) |
+                                 ({64{ ~i1_store_bypass_en_d   & ~dec_i0_lsu_d & dec_i1_lsu_d}} & dec_i1_rs2_mux[63:0]              ) |
+                                 ({64{  i0_store_bypass_en_d   &  dec_i0_lsu_d               }} & exu_lsu_bypass_data_mux_i0[63:0]) |
+                                 ({64{  i1_store_bypass_en_d   & ~dec_i0_lsu_d & dec_i1_lsu_d}} & exu_lsu_bypass_data_mux_i1[63:0]);
 
    assign mul_rs1_d[63:0]      = ({64{ ~dec_i0_rs1_bypass_en_d &  dec_i0_mul_d               }} & gpr_i0_rs1_d[63:0]        ) |
                                  ({64{ ~dec_i1_rs1_bypass_en_d & ~dec_i0_mul_d & dec_i1_mul_d}} & gpr_i1_rs1_d[63:0]        ) |
@@ -390,12 +411,14 @@ module exu
    predict_pkt_t i0_predict_p_e1, i0_predict_p_e4;
    predict_pkt_t i1_predict_p_e1, i1_predict_p_e4;
 
-   assign exu_pmu_i0_br_misp   = i0_predict_p_e4.misp   & ~exu_div_finish;  // qual with divide
-   assign exu_pmu_i0_br_ataken = i0_predict_p_e4.ataken & ~exu_div_finish;  // qual with divide
-   assign exu_pmu_i0_pc4       = i0_predict_p_e4.pc4 | exu_div_finish;      // divides are always 4B
+   // ***************FPU related modify*************************************************
+   assign exu_pmu_i0_br_misp   = i0_predict_p_e4.misp   & ~exu_div_finish & ~fpu_fdiv_fsqrt_finish;  // qual with divide
+   assign exu_pmu_i0_br_ataken = i0_predict_p_e4.ataken & ~exu_div_finish & ~fpu_fdiv_fsqrt_finish;  // qual with divide
+   assign exu_pmu_i0_pc4       = i0_predict_p_e4.pc4 | exu_div_finish | fpu_fdiv_fsqrt_finish;      // divides are always 4B
    assign exu_pmu_i1_br_misp   = i1_predict_p_e4.misp;
    assign exu_pmu_i1_br_ataken = i1_predict_p_e4.ataken;
    assign exu_pmu_i1_pc4       = i1_predict_p_e4.pc4;
+   // ***************FPU related modify*************************************************
 
 
    exu_alu_ctl i0_alu_e1 (.*,
@@ -828,12 +851,12 @@ module exu
                                              ((i0_pred_correct_e4_eff) ? pred_correct_npc_e4[63:1] : i0_flush_path_e4_eff[63:1]);
 
 
-   assign exu_npc_e4[63:1] = (div_finish_early) ? exu_i0_flush_path_e1[63:1] :
-                             (exu_div_finish)   ? div_npc[63:1]              :
-                                                  npc_e4[63:1];
+   assign exu_npc_e4[63:1] = (div_finish_early)                         ? exu_i0_flush_path_e1[63:1] :
+                             (exu_div_finish | fpu_fdiv_fsqrt_finish)   ? div_npc[63:1]              :
+                                                                          npc_e4[63:1];
 
    // remember the npc of the divide
-   rvdffe #(63) npc_any_ff (.*, .en(div_valid_e1), .din(exu_i0_flush_path_e1[63:1]),    .dout(div_npc[63:1]));
+   rvdffe #(63) npc_any_ff (.*, .en(div_valid_e1 | fpu_fdiv_fsqrt_valid_e1), .din(exu_i0_flush_path_e1[63:1]),    .dout(div_npc[63:1]));
 
 
 endmodule // exu

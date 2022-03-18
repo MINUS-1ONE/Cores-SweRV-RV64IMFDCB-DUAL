@@ -175,6 +175,11 @@ module lsu_lsc_ctl
    lsu_pkt_t           dma_pkt_d;
    lsu_pkt_t           lsu_pkt_dc1_in, lsu_pkt_dc2_in, lsu_pkt_dc3_in, lsu_pkt_dc4_in, lsu_pkt_dc5_in;
 
+   //*****************FPU realated signal defination***********************
+   logic sel_load_data_dc1;
+   logic sel_load_data_dc2;
+   //*****************FPU realated signal defination***********************
+   
    // Premux the rs1/offset for dma
    assign lsu_rs1_d[63:0] = dma_dccm_req ? dma_mem_addr[63:0] : exu_lsu_rs1_d[63:0];
    assign lsu_offset_d[11:0] = dec_lsu_offset_d[11:0] & ~{12{dma_dccm_req}};
@@ -299,16 +304,20 @@ module lsu_lsc_ctl
    assign dma_mem_wdata_shifted[63:0] = dma_mem_wdata[63:0] >> {dma_mem_addr[2:0], 3'b000};   // Shift the dma data to lower bits to make it consistent to lsu stores
    assign store_data_d[63:0] = dma_dccm_req ? dma_mem_wdata_shifted[63:0] : exu_lsu_rs2_d[63:0];
 
+   //****************************FPU realted modify****************************************
+   assign sel_load_data_dc1 = lsu_pkt_dc1.store_data_bypass_c1 | lsu_pkt_dc1.fs_data_bypass_c1;
    // 改为64位
-   assign store_data_dc2_in[63:0] = (lsu_pkt_dc1.store_data_bypass_c1) ? lsu_result_dc3[63:0] :
+   assign store_data_dc2_in[63:0] = (sel_load_data_dc1)                      ? lsu_result_dc3[63:0] :
                                     (lsu_pkt_dc1.store_data_bypass_e4_c1[1]) ? i1_result_e4_eff[63:0] :
                                     (lsu_pkt_dc1.store_data_bypass_e4_c1[0]) ? i0_result_e4_eff[63:0] : store_data_dc1[63:0];
 
    // 改为64位
+   assign sel_load_data_dc2 = lsu_pkt_dc2.store_data_bypass_c2 | lsu_pkt_dc2.fs_data_bypass_c2;
    assign store_data_dc2[63:0] = (lsu_pkt_dc2.store_data_bypass_i0_e2_c2) ? i0_result_e2[63:0]     :
-                                 (lsu_pkt_dc2.store_data_bypass_c2)       ? lsu_result_dc3[63:0]   :
+                                 (sel_load_data_dc2)                      ? lsu_result_dc3[63:0]   :
                                  (lsu_pkt_dc2.store_data_bypass_e4_c2[1]) ? i1_result_e4_eff[63:0] :
                                  (lsu_pkt_dc2.store_data_bypass_e4_c2[0]) ? i0_result_e4_eff[63:0] : store_data_pre_dc2[63:0];
+   //****************************FPU realted modify****************************************
 
    // 改为64位
    assign store_data_dc3[63:0] = (picm_mask_data_dc3[63:0] | {64{~addr_in_pic_dc3}}) &

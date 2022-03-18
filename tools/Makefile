@@ -22,7 +22,7 @@ $(error env var RV64_ROOT does not point to a valid dir! Exiting!)
 endif
 
 TEST_CFLAGS = -g -O3 -funroll-all-loops -nostdlib
-ABI = -mabi=lp64 -march=rv64im
+ABI = -mabi=lp64d -march=rv64imfdc
 #ABI = -mabi=lp64 -march=rv64imc
 
 # Allow snapshot override
@@ -153,8 +153,9 @@ vcs-build: ${TBFILES} ${BUILD_DIR}/defines.h
 		 ${VCS_DEBUG_PLUS} \
 		 -l vcs_compile.log \
 		 +vcs+initreg+random \
-		 -LDFLAGS -Wl,--no-as-needed
-		 -timescale=1ns/1ns \
+		 -LDFLAGS -Wl,--no-as-needed \
+		 -top tb_top \
+		 -timescale=1ns/1ns
 	touch vcs-build
 
 irun-build: ${TBFILES} ${BUILD_DIR}/defines.h
@@ -233,12 +234,14 @@ ifneq (,$(wildcard $(TEST_DIR)/$(TEST).makefile))
 program.hex:
 	$(MAKE) -f $(TEST_DIR)/$(TEST).makefile
 else
-program.hex: $(OFILES) $(LINK)
-	@echo Building $(TEST)
-	$(GCC_PREFIX)-gcc $(ABI) -Wl,-Map=$(TEST).map -lgcc -T$(LINK) -o $(TEST).exe $(OFILES) -nostartfiles  $(TEST_LIBS)
-	$(GCC_PREFIX)-objcopy -O verilog $(TEST).exe program.hex
-	$(GCC_PREFIX)-objdump -S $(TEST).exe > $(TEST).dis
-	@echo Completed building $(TEST)
+program.hex:
+	cp ${HEX_DIR}/$(TEST).hex program.hex
+# program.hex: $(OFILES) $(LINK)
+# 	@echo Building $(TEST)
+# 	$(GCC_PREFIX)-gcc $(ABI) -Wl,-Map=$(TEST).map -lgcc -T$(LINK) -o $(TEST).exe $(OFILES) -nostartfiles  $(TEST_LIBS)
+# 	$(GCC_PREFIX)-objcopy -O verilog $(TEST).exe program.hex
+# 	$(GCC_PREFIX)-objdump -S $(TEST).exe > $(TEST).dis
+# 	@echo Completed building $(TEST)
 
 %.o : %.s ${BUILD_DIR}/defines.h
 	$(GCC_PREFIX)-cpp -I${BUILD_DIR}  $<  > $*.cpp.s

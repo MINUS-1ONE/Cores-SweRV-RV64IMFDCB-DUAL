@@ -276,11 +276,83 @@ module dec_decode_ctl
 
    output logic       dec_i0_load_e4,          // pipe down if load is i0 or not in case of lsu_freeze
 
+   //************fpu related connect signal start***************
+   output fpu_pkt_t     fpu_d,     // float inst signal pkt
+   
+   // FPGR interconnect signal
+   output logic [4:0] dec_frs1_raddr,
+   output logic dec_frs1_ren, 
+
+   output logic [4:0] dec_frs2_raddr,
+   output logic dec_frs2_ren,
+
+   output logic [4:0] dec_frs3_raddr,
+   output logic dec_frs3_ren,
+
+   output logic [4:0] dec_frd_waddr_wb, 
+   output logic dec_frd_wen_wb,
+
+   output logic dec_frd_fp64_wb,
+   output logic [64:0] dec_frd_rec_fn_wdata_wb,
+
+   input logic [64:0] fpu_fmisc_rec_fn_result_e1, 
+   input logic [63:0] fpu_int_result_e1, 
+   input logic [4:0] fpu_fmisc_exc_e1, 
+   
+   input logic [64:0] fpu_fma_rec_fn_result_e3, 
+   input logic [4:0] fpu_fma_exc_e3,
+
+   // control signal DEC<-> TLU
+   // FCSR control rounding mode
+   input logic [2:0] dec_tlu_frm_rounding_mode,
+
+   // fdiv_sqrt signal
+   input logic fpu_fdiv_fsqrt_stall, 
+   input logic fpu_fdiv_fsqrt_finish,  // include flush control
+   input logic [64:0] fpu_fdiv_fsqrt_rec_fn_data,  
+   input logic [4:0] fpu_fdiv_fsqrt_exc, 
+   
+   // float bypass port
+   output logic dec_i0_frs1_bypass_en_d,
+   output logic dec_i0_frs2_bypass_en_d,
+   output logic dec_i0_frs3_bypass_en_d,
+   output logic dec_i0_frs1_bypass_fp64_d,
+   output logic dec_i0_frs2_bypass_fp64_d,
+   output logic dec_i0_frs3_bypass_fp64_d,
+   output logic [64:0] dec_i0_frs1_bypass_rec_fn_data_d,
+   output logic [64:0] dec_i0_frs2_bypass_rec_fn_data_d,
+   output logic [64:0] dec_i0_frs3_bypass_rec_fn_data_d,
+
+   output logic dec_i1_frs1_bypass_en_d,
+   output logic dec_i1_frs2_bypass_en_d,
+   output logic dec_i1_frs3_bypass_en_d,
+   output logic dec_i1_frs1_bypass_fp64_d,
+   output logic dec_i1_frs2_bypass_fp64_d,
+   output logic dec_i1_frs3_bypass_fp64_d,
+   output logic [64:0] dec_i1_frs1_bypass_rec_fn_data_d,
+   output logic [64:0] dec_i1_frs2_bypass_rec_fn_data_d,
+   output logic [64:0] dec_i1_frs3_bypass_rec_fn_data_d,
+
+   output logic [4:0] f_flags_i0_e4,
+   output logic [4:0] f_flags_i1_e4,
+   output logic fflgas_i0_valid_e4,
+   output logic fflgas_i1_valid_e4,
+
+   output logic fpu_decode_i0_d, 
+   output logic fpu_decode_i1_d,
+
+   input logic [64:0] lsu_rec_fn_result_dc3,
+   output lsu_fp64_e3,
+
+   //************fpu related connect signal end*****************
+
    input  logic        scan_mode
    );
 
 
-
+   //*********float decode signal*********
+   fpu_pkt_t i0_fdp;
+   fpu_pkt_t i1_fdp;
 
    dec_pkt_t i0_dp_raw, i0_dp;
    dec_pkt_t i1_dp_raw, i1_dp;
@@ -580,6 +652,209 @@ module dec_decode_ctl
    dest_pkt_t  dd, e1d, e2d, e3d, e4d, wbd;
    dest_pkt_t e1d_in, e2d_in, e3d_in, e4d_in;
 
+   //**************FPU related signal defination*****************
+   logic fpu_decode_d;
+   
+   logic i0_sel_dyn_rm;
+   logic [2:0] dynamic_rm;
+   logic [2:0] i0_static_rm;
+
+   logic i0_frd_en_d, i1_frd_en_d;
+   logic [4:0] i0_frd_d, i1_frd_d;
+
+   logic i0_result_fp64_e1, i0_result_fp64_e2, i0_result_fp64_e3, i0_result_fp64_e4, i0_result_fp64_wb;
+   logic i1_result_fp64_e1, i1_result_fp64_e2, i1_result_fp64_e3, i1_result_fp64_e4, i1_result_fp64_wb;
+
+   logic [64:0] i0_float_rec_fn_result_e1;
+   logic [64:0] i0_float_rec_fn_result_e2;
+   logic [64:0] i0_float_rec_fn_result_e3;
+   logic [64:0] i0_float_rec_fn_result_e4;
+   logic [64:0] i0_float_rec_fn_result_wb;
+   logic i0_float_sel_e1;
+
+   logic [4:0] i0_float_exc_e1;
+   logic [4:0] i0_float_exc_e2;
+   logic [4:0] i0_float_exc_e3;
+   logic [4:0] i0_float_exc_e4;
+
+   logic load_float_e2;
+
+   logic [64:0] i0_float_rec_fn_result_e3_final;
+   logic [64:0] i0_float_rec_fn_result_e4_final;
+
+   logic preysync_fdiv_fsqrt;
+
+   logic fdiv_fsqrt_stall;
+   logic fpu_fdiv_fsqrt_stall_f1;
+   logic fpu_fdiv_fsqrt_stall_f2;
+   logic fdiv_fsqrt_wen_wb;
+
+   logic i0_fdiv_fsqrt_legal_decode_d; 
+   logic [4:0] fdiv_fsqrt_waddr_wb;
+
+   logic [63:1] fdiv_fsqrt_pc;
+   logic [3:0] fdiv_fsqrt_trigger;
+   logic [31:0] fdiv_fsqrt_inst;
+   logic fdiv_fsqrt_fp64;
+
+   // decode出来的fflags信号好像没有用到
+
+   logic [64:0] i0_frs1_bypass_rec_fn_data_d;
+   logic [64:0] i0_frs2_bypass_rec_fn_data_d;
+   logic [64:0] i0_frs3_bypass_rec_fn_data_d;
+   logic [64:0] i1_frs1_bypass_rec_fn_data_d;
+   logic [64:0] i1_frs2_bypass_rec_fn_data_d;
+   logic [64:0] i1_frs3_bypass_rec_fn_data_d;
+
+   logic i0_illegal_rm;
+   logic i0_static_rm_illeagl;
+   logic i0_dynamic_rm_illeagl;
+
+   logic i0_frs1_depend_i0_e1;
+   logic i0_frs1_depend_i0_e2;
+   logic i0_frs1_depend_i0_e3;
+   logic i0_frs1_depend_i0_e4;
+   logic i0_frs1_depend_i0_wb;
+
+   logic i0_frs2_depend_i0_e1;
+   logic i0_frs2_depend_i0_e2;
+   logic i0_frs2_depend_i0_e3;
+   logic i0_frs2_depend_i0_e4;
+   logic i0_frs2_depend_i0_wb;
+
+   logic i0_frs3_depend_i0_e1;
+   logic i0_frs3_depend_i0_e2;
+   logic i0_frs3_depend_i0_e3;
+   logic i0_frs3_depend_i0_e4;
+   logic i0_frs3_depend_i0_wb;
+
+   class_pkt_t i0_frs1_class_d, i0_frs2_class_d, i0_frs3_class_d;
+   logic [3:0]  i0_frs1_depth_d, i0_frs2_depth_d, i0_frs3_depth_d;
+   logic [9:0] i0_frs1bypass, i0_frs2bypass, i0_frs3bypass;
+
+   logic i0_fma_block_d;
+   logic i0_fl_block_d;
+
+   logic i0_frs1_match_e1;
+   logic i0_frs1_match_e2;
+   logic i0_frs2_match_e1;
+   logic i0_frs2_match_e2;
+   logic i0_frs3_match_e1;
+   logic i0_frs3_match_e2;
+   logic i0_frs1_match_e1_e2;
+   logic i0_frs2_match_e1_e2;
+   logic i0_frs3_match_e1_e2;
+
+   logic fs_data_bypass_c1;
+   logic fs_data_bypass_c2;
+
+   logic fs_dec_i0, fs_dec_i1;
+
+   logic i1_sel_dyn_rm;
+   logic [2:0] i1_static_rm;
+   logic i1_static_rm_illeagl;
+   logic i1_dynamic_rm_illeagl;
+   logic i1_illegal_rm;
+   logic i1_leagl;
+
+   logic [64:0] i1_float_rec_fn_result_e1;
+   logic [64:0] i1_float_rec_fn_result_e2;
+   logic [64:0] i1_float_rec_fn_result_e3;
+   logic [64:0] i1_float_rec_fn_result_e4;
+   logic [64:0] i1_float_rec_fn_result_wb;
+   logic i1_float_sel_e1;
+
+   logic [64:0] i1_float_rec_fn_result_e3_final;
+   logic [64:0] i1_float_rec_fn_result_e4_final;
+
+   logic [4:0] i1_float_exc_e1;
+   logic [4:0] i1_float_exc_e2;
+   logic [4:0] i1_float_exc_e3;
+   logic [4:0] i1_float_exc_e4;
+
+   logic [4:0] i1_float_exc_e3_final;
+
+   logic i0_frs1_depend_i1_e1; 
+   logic i0_frs1_depend_i1_e2; 
+   logic i0_frs1_depend_i1_e3; 
+   logic i0_frs1_depend_i1_e4; 
+   logic i0_frs1_depend_i1_wb;
+
+   logic i0_frs2_depend_i1_e1;
+   logic i0_frs2_depend_i1_e2;
+   logic i0_frs2_depend_i1_e3;
+   logic i0_frs2_depend_i1_e4;
+   logic i0_frs2_depend_i1_wb;
+
+   logic i0_frs3_depend_i1_e1;
+   logic i0_frs3_depend_i1_e2;
+   logic i0_frs3_depend_i1_e3;
+   logic i0_frs3_depend_i1_e4;
+   logic i0_frs3_depend_i1_wb;
+
+   logic i1_frs1_depend_i0_e1; 
+   logic i1_frs1_depend_i0_e2; 
+   logic i1_frs1_depend_i0_e3; 
+   logic i1_frs1_depend_i0_e4; 
+   logic i1_frs1_depend_i0_wb;
+
+   logic i1_frs2_depend_i0_e1;
+   logic i1_frs2_depend_i0_e2;
+   logic i1_frs2_depend_i0_e3;
+   logic i1_frs2_depend_i0_e4;
+   logic i1_frs2_depend_i0_wb;
+
+   logic i1_frs3_depend_i0_e1;
+   logic i1_frs3_depend_i0_e2;
+   logic i1_frs3_depend_i0_e3;
+   logic i1_frs3_depend_i0_e4;
+   logic i1_frs3_depend_i0_wb;
+
+   logic i1_frs1_depend_i1_e1; 
+   logic i1_frs1_depend_i1_e2; 
+   logic i1_frs1_depend_i1_e3; 
+   logic i1_frs1_depend_i1_e4; 
+   logic i1_frs1_depend_i1_wb;
+
+   logic i1_frs2_depend_i1_e1;
+   logic i1_frs2_depend_i1_e2;
+   logic i1_frs2_depend_i1_e3;
+   logic i1_frs2_depend_i1_e4;
+   logic i1_frs2_depend_i1_wb;
+
+   logic i1_frs3_depend_i1_e1;
+   logic i1_frs3_depend_i1_e2;
+   logic i1_frs3_depend_i1_e3;
+   logic i1_frs3_depend_i1_e4;
+   logic i1_frs3_depend_i1_wb;
+
+   class_pkt_t i1_frs1_class_d, i1_frs2_class_d, i1_frs3_class_d;
+   logic [3:0]  i1_frs1_depth_d, i1_frs2_depth_d, i1_frs3_depth_d;
+   logic [9:0] i1_frs1bypass, i1_frs2bypass, i1_frs3bypass;
+
+   logic i1_frs1_match_e1;
+   logic i1_frs1_match_e2;
+   logic i1_frs2_match_e1;
+   logic i1_frs2_match_e2;
+   logic i1_frs3_match_e1;
+   logic i1_frs3_match_e2;
+   logic i1_frs1_match_e1_e2;
+   logic i1_frs2_match_e1_e2;
+   logic i1_frs3_match_e1_e2;
+   logic i1_fma_block_d;
+   logic i1_fl_block_d;
+
+   logic fpu_structure_block_d;
+
+   logic [64:0] i0_result_e1_pass, i1_result_e1_pass;
+   logic [64:0] i0_result_e2_pass, i1_result_e2_pass;
+   logic [64:0] i0_result_e3_pass_raw, i1_result_e3_pass_raw;
+   logic [64:0] i0_result_e3_pass, i1_result_e3_pass;
+   logic [64:0] i0_result_e4_pass_raw, i1_result_e4_pass_raw;
+   logic [64:0] i0_result_e4_pass, i1_result_e4_pass;
+   logic [64:0] i0_result_wb_pass_raw, i1_result_wb_pass_raw;
+   //**************FPU related signal defination*****************
+
 
    assign freeze = lsu_freeze_dc3;
 
@@ -687,6 +962,90 @@ module dec_decode_ctl
       end
 
    end
+
+   //***********float inst error handle start********
+   // if inst_error | br_error -> i0_dp.fpu = 0 -> i0_fdp = 0
+   // or legal integer inst -> i0_dp.fpu = 0  -> i0_fdp = 0
+   always_comb begin
+      if (!i0_dp.fpu) begin
+         i0_fdp = '0;
+      end
+      else begin
+         i0_fdp.valid     = 1'b1;
+         i0_fdp.fp_to_int = i0_dp.fp_to_int;
+         i0_fdp.int_to_fp = i0_dp.int_to_fp;
+         i0_fdp.fp_to_fp  = i0_dp.fp_to_fp;
+         i0_fdp.fma       = i0_dp.fma;
+         i0_fdp.fp64      = i0_dp.fp64;
+         i0_fdp.long      = i0_dp.long;
+         i0_fdp.sign      = i0_dp.sign;
+         i0_fdp.fmin      = i0_dp.fmin;
+         i0_fdp.fmax      = i0_dp.fmax;
+         i0_fdp.fsgnj     = i0_dp.fsgnj;
+         i0_fdp.fsgnjn    = i0_dp.fsgnjn;
+         i0_fdp.fsgnjx    = i0_dp.fsgnjx;
+         i0_fdp.fcvt      = i0_dp.fcvt;
+         i0_fdp.fs        = i0_dp.fs;
+         i0_fdp.fl        = i0_dp.fl;
+         i0_fdp.fclass    = i0_dp.fclass;
+         i0_fdp.feq       = i0_dp.feq;
+         i0_fdp.flt       = i0_dp.flt;
+         i0_fdp.fle       = i0_dp.fle;
+         i0_fdp.fmv       = i0_dp.fmv;
+         i0_fdp.fadd      = i0_dp.fadd;
+         i0_fdp.fsub      = i0_dp.fsub;
+         i0_fdp.fmul      = i0_dp.fmul;
+         i0_fdp.fmadd     = i0_dp.fmadd;
+         i0_fdp.fmsub     = i0_dp.fmsub;
+         i0_fdp.fnmadd    = i0_dp.fnmadd;
+         i0_fdp.fnmsub    = i0_dp.fnmsub;
+         i0_fdp.fdiv      = i0_dp.fdiv;
+         i0_fdp.fsqrt     = i0_dp.fsqrt;
+         i0_fdp.rm        = i0_sel_dyn_rm ? dynamic_rm : i0_static_rm;
+      end
+   end
+   
+   // i1 as well
+   always_comb begin
+      if (!i1_dp.fpu) begin
+         i1_fdp = '0;
+      end
+      else begin
+         i1_fdp.valid     = 1'b1;
+         i1_fdp.fp_to_int = i1_dp.fp_to_int;
+         i1_fdp.int_to_fp = i1_dp.int_to_fp;
+         i1_fdp.fp_to_fp  = i1_dp.fp_to_fp;
+         i1_fdp.fma       = i1_dp.fma;
+         i1_fdp.fp64      = i1_dp.fp64;
+         i1_fdp.long      = i1_dp.long;
+         i1_fdp.sign      = i1_dp.sign;
+         i1_fdp.fmin      = i1_dp.fmin;
+         i1_fdp.fmax      = i1_dp.fmax;
+         i1_fdp.fsgnj     = i1_dp.fsgnj;
+         i1_fdp.fsgnjn    = i1_dp.fsgnjn;
+         i1_fdp.fsgnjx    = i1_dp.fsgnjx;
+         i1_fdp.fcvt      = i1_dp.fcvt;
+         i1_fdp.fs        = i1_dp.fs;
+         i1_fdp.fl        = i1_dp.fl;
+         i1_fdp.fclass    = i1_dp.fclass;
+         i1_fdp.feq       = i1_dp.feq;
+         i1_fdp.flt       = i1_dp.flt;
+         i1_fdp.fle       = i1_dp.fle;
+         i1_fdp.fmv       = i1_dp.fmv;
+         i1_fdp.fadd      = i1_dp.fadd;
+         i1_fdp.fsub      = i1_dp.fsub;
+         i1_fdp.fmul      = i1_dp.fmul;
+         i1_fdp.fmadd     = i1_dp.fmadd;
+         i1_fdp.fmsub     = i1_dp.fmsub;
+         i1_fdp.fnmadd    = i1_dp.fnmadd;
+         i1_fdp.fnmsub    = i1_dp.fnmsub;
+         i1_fdp.fdiv      = i1_dp.fdiv;
+         i1_fdp.fsqrt     = i1_dp.fsqrt;
+         i1_fdp.rm        = i1_sel_dyn_rm ? dynamic_rm : i1_static_rm;
+      end
+   end
+   
+   //***********float inst error handle end********
 
    assign flush_lower_wb = dec_tlu_flush_lower_wb;
 
@@ -966,7 +1325,16 @@ end : cam_array
                          .dout(depend_load_same_cycle_e2)
                          );
 
-   assign dec_nonblock_load_freeze_dc2 = depend_load_e2_d | depend_load_e2_e1 | depend_load_same_cycle_e2;
+   //***************FPU related modify*******************************
+   assign load_float_e2 = (e2d.i0_fpu & e2d.i0_fl) | 
+                          (e2d.i1_fpu & e2d.i1_fl);
+
+   assign dec_nonblock_load_freeze_dc2 = depend_load_e2_d |
+                                         depend_load_e2_e1 |
+                                         depend_load_same_cycle_e2 | 
+                                         load_float_e2;
+
+   //***************FPU related modify*******************************
 
 
 // don't writeback a nonblock load
@@ -1167,6 +1535,11 @@ end : cam_array
 
    assign lsu_p.unsign = (i0_dp.lsu) ? i0_dp.unsign : i1_dp.unsign;
 
+   //********FPU bypass modify addtion******************
+   assign lsu_p.fs_data_bypass_c1 = fs_data_bypass_c1;
+   assign lsu_p.fs_data_bypass_c2 = fs_data_bypass_c2;
+   //********FPU bypass modify addtion******************
+
    // defined register packet
 
 
@@ -1174,19 +1547,33 @@ end : cam_array
    assign i0r.rs1[4:0] = i0[19:15];
    assign i0r.rs2[4:0] = i0[24:20];
    assign i0r.rd[4:0] = i0[11:7];
+   //*********i0 FPGR modify addtion******************
+   assign i0r.frs1[4:0] = i0[19:15];
+   assign i0r.frs2[4:0] = i0[24:20];
+   assign i0r.frs3[4:0] = i0[31:27];
+   assign i0r.frd[4:0]  = i0[11:7];
+   //*********i0 FPGR modify addtion******************
 
    assign i1r.rs1[4:0] = i1[19:15];
    assign i1r.rs2[4:0] = i1[24:20];
    assign i1r.rd[4:0] = i1[11:7];
+   //*********i1 FPGR modify addtion******************
+   assign i1r.frs1[4:0] = i1[19:15];
+   assign i1r.frs2[4:0] = i1[24:20];
+   assign i1r.frs3[4:0] = i1[31:27];
+   assign i1r.frd[4:0]  = i1[11:7];
+   //*********i1 FPGR modify addtion******************
 
 
    assign dec_i0_rs1_en_d = i0_dp.rs1 & (i0r.rs1[4:0] != 5'd0);  // if rs1_en=0 then read will be all 0's
    assign dec_i0_rs2_en_d = i0_dp.rs2 & (i0r.rs2[4:0] != 5'd0);
    assign i0_rd_en_d =  i0_dp.rd & (i0r.rd[4:0] != 5'd0);
+   assign i0_frd_en_d = i0_dp.frd;
 
    assign dec_i0_rs1_d[4:0] = i0r.rs1[4:0];
    assign dec_i0_rs2_d[4:0] = i0r.rs2[4:0];
    assign i0_rd_d[4:0] = i0r.rd[4:0];
+   assign i0_frd_d[4:0] = i0r.frd[4:0];
 
 
    assign i0_jalimm20 = i0_dp.jal & i0_dp.imm20;   // jal
@@ -1308,10 +1695,12 @@ end : cam_array
    assign dec_i1_rs1_en_d = i1_dp.rs1 & (i1r.rs1[4:0] != 5'd0);
    assign dec_i1_rs2_en_d = i1_dp.rs2 & (i1r.rs2[4:0] != 5'd0);
    assign i1_rd_en_d =  i1_dp.rd & (i1r.rd[4:0] != 5'd0);
+   assign i1_frd_en_d = i1_dp.frd;
 
    assign dec_i1_rs1_d[4:0] = i1r.rs1[4:0];
    assign dec_i1_rs2_d[4:0] = i1r.rs2[4:0];
    assign i1_rd_d[4:0] = i1r.rd[4:0];
+   assign i1_frd_d[4:0] = i1r.frd[4:0];
 
 
    assign dec_i1_immed_d[63:0] = ({64{i1_dp.imm12}} &   { {52{i1[31]}},i1[31:20] }) |
@@ -1374,9 +1763,14 @@ end : cam_array
 
    // lets make ebreak, ecall, mret postsync, so break sync into pre and post
 
+   //*************************FPU related modify**********************************
+   //optimize fdiv_sqrt preysync
    assign presync_stall = (i0_presync & prior_inflight_eff);
 
-   assign prior_inflight_eff = (i0_dp.div) ? prior_inflight_e1e3 : prior_inflight;
+   assign preysync_fdiv_fsqrt = i0_dp.fdiv | i0_dp.fsqrt;
+
+   assign prior_inflight_eff = (i0_dp.div | preysync_fdiv_fsqrt) ? prior_inflight_e1e3 : prior_inflight;
+   //*************************FPU related modify**********************************
 
    // to TLU to set dma_stall
    assign dec_fence_pending = (i0_valid_d & i0_dp.fence) | debug_fence;
@@ -1394,6 +1788,10 @@ end : cam_array
                        i0_store_stall_d |
                        i0_load_stall_d |
                        i0_secondary_stall_d |  // for performance, dont make i0 secondary if i1 not alu and depends on i0
+                       //*******FPU related modify******
+                       i0_fl_block_d |  //stall 2 cycle for flw dependency
+                       i0_fma_block_d | //stall 2 cycle for fma dependency
+                       //*******FPU related modify******
                        i0_secondary_block_d;
 
    assign i1_block_d = leak1_i1_stall |
@@ -1417,6 +1815,11 @@ end : cam_array
                        i1_mul2_block_d |
                        i1_load_stall_d |  // prior stores
                        i1_secondary_block_d | // secondary alu data not ready and op is not alu
+                       //*******FPU related modify******
+                       fpu_structure_block_d | 
+                       i1_fl_block_d  |
+                       i1_fma_block_d |
+                       //*******FPU related modify******
                        dec_tlu_dual_issue_disable; // dual issue is disabled
 
    // all legals go here
@@ -1432,7 +1835,10 @@ end : cam_array
    assign any_csr_d = i0_dp.csr_read | i0_csr_write;
 
 
-   assign i0_legal = i0_dp.legal & (~any_csr_d | dec_csr_legal_d);
+   //***************************FPU related modify*******************************
+   // include illegal rounding mode
+   assign i0_legal = i0_dp.legal & (~any_csr_d | dec_csr_legal_d) & ~i0_illegal_rm;
+   //***************************FPU related modify*******************************
 
    // illegal inst handling
 
@@ -1459,7 +1865,9 @@ end : cam_array
 
    // only decode i1 if legal and i0 not illegal - csr's cant decode as i1
    //
-   assign dec_i1_decode_d = i0_legal_decode_d & i1_valid_d & i1_dp.legal & ~i1_block_d & ~freeze;
+   assign i1_leagl = i1_dp.legal & ~i1_illegal_rm;
+
+   assign dec_i1_decode_d = i0_legal_decode_d & i1_valid_d & i1_leagl & ~i1_block_d & ~freeze;
 
    assign dec_ib0_valid_eff_d = i0_valid_d & ~dec_i0_decode_d;
    assign dec_ib1_valid_eff_d = i1_valid_d & ~dec_i1_decode_d;
@@ -1478,14 +1886,18 @@ end : cam_array
 
    // illegals will postsync
    // jal's will flush, so postsync
+   //******************************FPU related modify************************************
+   // optimize fdiv_sqrt postsync stall
    assign ps_stall_in =  (dec_i0_decode_d & (i0_jal | (i0_postsync) | ~i0_legal))  |
                          (dec_i1_decode_d &  i1_jal ) |
-                         ((ps_stall & prior_inflight_e1e4) & ~div_wen_wb);
+                         ((ps_stall & prior_inflight_e1e4) & ~div_wen_wb & ~fdiv_fsqrt_wen_wb);
 
 
     rvdffs #(1) postsync_stallff (.*, .clk(free_clk), .en(~freeze), .din(ps_stall_in), .dout(ps_stall));
-
-   assign postsync_stall = (ps_stall | div_stall);
+   
+   // add fdiv_sqrt_stall
+   assign postsync_stall = (ps_stall | div_stall | fdiv_fsqrt_stall);
+   //******************************FPU related modify************************************
 
 
 
@@ -1989,7 +2401,10 @@ end : cam_array
    assign dec_div_decode_e4 = e4d.i0div;
 
 
-   assign dec_tlu_i0_valid_e4 = (e4d.i0valid & ~e4d.i0div & ~flush_lower_wb) | exu_div_finish;
+   //*************************FPU related modify*********************************
+   // add fdiv_sqrt oop valid
+   assign dec_tlu_i0_valid_e4 = (e4d.i0valid & ~e4d.i0div & ~e4d.fdiv_fsqrt & ~flush_lower_wb) | exu_div_finish | fpu_fdiv_fsqrt_finish;
+   //*************************FPU related modify*********************************
    assign dec_tlu_i1_valid_e4 = e4d.i1valid & ~flush_lower_wb;
 
 
@@ -2009,7 +2424,10 @@ end : cam_array
    assign dt.pmu_divide = 1'b0;
    assign dt.pmu_lsu_misaligned = 1'b0;
 
-   assign dt.i0trigger[3:0] = dec_i0_trigger_match_d[3:0] & {4{dec_i0_decode_d & ~i0_div_decode_d}};
+   //*******************************FPU related modify********************************
+   // add cancel trigger when fdiv_sqrt legal decoded
+   assign dt.i0trigger[3:0] = dec_i0_trigger_match_d[3:0] & {4{dec_i0_decode_d & ~i0_div_decode_d & ~i0_fdiv_fsqrt_legal_decode_d}};
+   //*******************************FPU related modify********************************
    assign dt.i1trigger[3:0] = dec_i1_trigger_match_d[3:0] & {4{dec_i1_decode_d}};
 
 
@@ -2058,15 +2476,17 @@ end : cam_array
 // these signals pipe down in the event of a freeze at dc3, needed by trap to compute triggers for a load
    rvdffe #(9) e4_trigger_ff   (.*, .en(freeze_e3), .din({e3d.i0load,e3t.i0trigger[3:0],e3t.i1trigger[3:0]}), .dout({e4d_i0load,e4t_i0trigger[3:0],e4t_i1trigger[3:0]}));
 
+   //*******************************FPU related modify********************************
+   // add fdiv_sqrt oop finish valid
    always_comb begin
 
-      if (exu_div_finish)    // wipe data for exu_div_finish - safer
+      if (exu_div_finish | fpu_fdiv_fsqrt_finish)    // wipe data for exu_div_finish - safer
         dec_tlu_packet_e4 = '0;
       else
         dec_tlu_packet_e4 = e4t;
 
-      dec_tlu_packet_e4.legal = e4t.legal | exu_div_finish;
-      dec_tlu_packet_e4.i0trigger[3:0] = (exu_div_finish) ? div_trigger[3:0] : e4t.i0trigger[3:0];
+      dec_tlu_packet_e4.legal = e4t.legal | exu_div_finish | fpu_fdiv_fsqrt_finish;
+      dec_tlu_packet_e4.i0trigger[3:0] = exu_div_finish ? div_trigger[3:0] : fpu_fdiv_fsqrt_finish ? fdiv_fsqrt_trigger[3:0] : e4t.i0trigger[3:0];
 
       dec_tlu_packet_e4.pmu_divide = exu_div_finish;
 
@@ -2076,6 +2496,7 @@ end : cam_array
       end
 
    end
+   //*******************************FPU related modify********************************
 
    assign dec_i0_load_e4 = e4d_i0load;
 
@@ -2092,6 +2513,13 @@ end : cam_array
    assign i0_dc.load  = i0_dp.load & i0_legal_decode_d;
    assign i0_dc.sec = i0_dp.alu &  i0_secondary_d & i0_legal_decode_d;
    assign i0_dc.alu = i0_dp.alu & ~i0_secondary_d & i0_legal_decode_d;
+   //***************************FPU related modify*******************************
+   assign i0_dc.fp_to_int = i0_dp.fp_to_int & i0_legal_decode_d;
+   assign i0_dc.int_to_fp = i0_dp.int_to_fp & i0_legal_decode_d;
+   assign i0_dc.fp_to_fp  = i0_dp.fp_to_fp & i0_legal_decode_d;
+   assign i0_dc.fma       = i0_dp.fma & i0_legal_decode_d;
+   assign i0_dc.fl        = i0_dp.fl & i0_legal_decode_d;
+   //***************************FPU related modify*******************************
 
    rvdffs #( $bits(class_pkt_t) ) i0_e1c_ff (.*, .en(i0_e1_ctl_en), .clk(active_clk), .din(i0_dc),   .dout(i0_e1c));
    rvdffs #( $bits(class_pkt_t) ) i0_e2c_ff (.*, .en(i0_e2_ctl_en), .clk(active_clk), .din(i0_e1c),  .dout(i0_e2c));
@@ -2108,6 +2536,13 @@ end : cam_array
    assign i1_dc.load  = i1_dp.load & dec_i1_decode_d;
    assign i1_dc.sec = i1_dp.alu &  i1_secondary_d & dec_i1_decode_d;
    assign i1_dc.alu = i1_dp.alu & ~i1_secondary_d & dec_i1_decode_d;
+   //***************************FPU related modify*******************************
+   assign i1_dc.fp_to_int = i1_dp.fp_to_int & dec_i1_decode_d;
+   assign i1_dc.int_to_fp = i1_dp.int_to_fp & dec_i1_decode_d;
+   assign i1_dc.fp_to_fp  = i1_dp.fp_to_fp & dec_i1_decode_d;
+   assign i1_dc.fma       = i1_dp.fma & dec_i1_decode_d;
+   assign i1_dc.fl        = i1_dp.fl & dec_i1_decode_d;
+   //***************************FPU related modify*******************************
 
    rvdffs #( $bits(class_pkt_t) ) i1_e1c_ff (.*, .en(i0_e1_ctl_en), .clk(active_clk), .din(i1_dc),   .dout(i1_e1c));
    rvdffs #( $bits(class_pkt_t) ) i1_e2c_ff (.*, .en(i0_e2_ctl_en), .clk(active_clk), .din(i1_e1c),  .dout(i1_e2c));
@@ -2142,6 +2577,28 @@ end : cam_array
    assign dd.csrwen = dec_csr_wen_unq_d & i0_legal_decode_d;
    assign dd.csrwonly = i0_csr_write_only_d & dec_i0_decode_d;
    assign dd.csrwaddr[11:0] = i0[31:20];    // csr write address for rd==0 case
+   //***********dest pkt dd FPU related modify********************************
+   assign dd.i0_fpu = fpu_decode_i0_d;
+   assign dd.i0_wr_frd = i0_frd_en_d & i0_legal_decode_d;
+   assign dd.i0_frd[4:0] = i0r.frd[4:0];
+   assign dd.i0_fp_to_int = i0_dp.fp_to_int & i0_legal_decode_d;
+   assign dd.i0_int_to_fp = i0_dp.int_to_fp & i0_legal_decode_d;
+   assign dd.i0_fp_to_fp = i0_dp.fp_to_fp & i0_legal_decode_d;
+   assign dd.i0_fma = i0_dp.fma & i0_legal_decode_d;
+   assign dd.fdiv_fsqrt = (i0_dp.fdiv | i0_dp.fsqrt) & i0_legal_decode_d;
+   assign dd.i0_fl = i0_dp.fl & i0_legal_decode_d;
+   assign dd.i0_fs = i0_dp.fs & i0_legal_decode_d;
+   // i1 dd
+   assign dd.i1_fpu = fpu_decode_i1_d;
+   assign dd.i1_wr_frd = i1_frd_en_d & dec_i1_decode_d;
+   assign dd.i1_frd[4:0] = i1r.frd[4:0];
+   assign dd.i1_fp_to_int = i1_dp.fp_to_int & dec_i1_decode_d;   
+   assign dd.i1_int_to_fp = i1_dp.int_to_fp & dec_i1_decode_d;
+   assign dd.i1_fp_to_fp = i1_dp.fp_to_fp & dec_i1_decode_d;
+   assign dd.i1_fma = i1_dp.fma & dec_i1_decode_d;
+   assign dd.i1_fl = i1_dp.fl & dec_i1_decode_d;
+   assign dd.i1_fs = i1_dp.fs & dec_i1_decode_d;
+   //***********dest pkt dd FPU related modify********************************
 
 
    assign i0_pipe_en[5] = dec_i0_decode_d;
@@ -2200,6 +2657,14 @@ end : cam_array
       e1d_in.i1valid = e1d.i1valid & ~flush_final_e3;
       e1d_in.i0secondary = e1d.i0secondary & ~flush_final_e3;
       e1d_in.i1secondary = e1d.i1secondary & ~flush_final_e3;
+      //***********dest pkt e1d FPU related modify***************
+      // i0 e1d
+      e1d_in.i0_fpu    = e1d.i0_fpu    & ~flush_final_e3;
+      e1d_in.i0_wr_frd = e1d.i0_wr_frd & ~flush_final_e3;  
+      // i1 e1d
+      e1d_in.i1_fpu    = e1d.i1_fpu    & ~flush_final_e3;
+      e1d_in.i1_wr_frd = e1d.i1_wr_frd & ~flush_final_e3;  
+      //***********dest pkt e1d FPU related modify***************
    end
 
    assign dec_i1_valid_e1 = e1d.i1valid;
@@ -2216,6 +2681,14 @@ end : cam_array
       e2d_in.i1valid = e2d.i1valid & ~flush_final_e3 & ~flush_lower_wb;
       e2d_in.i0secondary = e2d.i0secondary & ~flush_final_e3 & ~flush_lower_wb;
       e2d_in.i1secondary = e2d.i1secondary & ~flush_final_e3 & ~flush_lower_wb;
+      //***********dest pkt e2d FPU related modify***************
+      // i0 e2d
+      e2d_in.i0_fpu    = e2d.i0_fpu    & ~flush_final_e3 & ~flush_lower_wb;
+      e2d_in.i0_wr_frd = e2d.i0_wr_frd & ~flush_final_e3 & ~flush_lower_wb;  
+      // i1 e2d
+      e2d_in.i1_fpu    = e2d.i1_fpu    & ~flush_final_e3 & ~flush_lower_wb;
+      e2d_in.i1_wr_frd = e2d.i1_wr_frd & ~flush_final_e3 & ~flush_lower_wb;  
+      //***********dest pkt e2d FPU related modify***************
    end
 
    rvdffe #( $bits(dest_pkt_t) ) e3ff (.*, .en(i0_e3_ctl_en), .din(e2d_in), .dout(e3d));
@@ -2232,6 +2705,14 @@ end : cam_array
       e3d_in.i1valid = e3d.i1valid & ~i0_flush_final_e3 & ~flush_lower_wb;
 
       e3d_in.i1secondary = e3d.i1secondary & ~i0_flush_final_e3 & ~flush_lower_wb;
+      //***********dest pkt e3d FPU related modify***************
+      // i0 e3d
+      e3d_in.i0_fpu    = e3d.i0_fpu    & ~flush_lower_wb;
+      e3d_in.i0_wr_frd = e3d.i0_wr_frd & ~flush_lower_wb;  
+      // i1 e3d
+      e3d_in.i1_fpu    = e3d.i1_fpu    & ~i0_flush_final_e3 & ~flush_lower_wb;
+      e3d_in.i1_wr_frd = e3d.i1_wr_frd & ~i0_flush_final_e3 & ~flush_lower_wb;
+      //***********dest pkt e2d FPU related modify***************
 
       if (freeze) e3d_in = '0;
 
@@ -2245,9 +2726,10 @@ end : cam_array
 
    rvdffe #( $bits(dest_pkt_t) ) e4ff (.*, .en(i0_e4_ctl_en), .din(e3d_in), .dout(e4d));
 
+   //****************************dest pkt e4d FPU related modify**************************************
    always_comb begin
 
-      if (exu_div_finish)    // wipe data for exu_div_finish - bug where csr_wen was set for fast divide
+      if (exu_div_finish | fpu_fdiv_fsqrt_finish)    // wipe data for exu_div_finish - bug where csr_wen was set for fast divide
         e4d_in = '0;
       else
         e4d_in = e4d;
@@ -2256,20 +2738,29 @@ end : cam_array
       e4d_in.i0rd[4:0] = (exu_div_finish) ? div_waddr_wb[4:0] : e4d.i0rd[4:0];
 
       e4d_in.i0v = (e4d.i0v         & ~e4d.i0div & ~flush_lower_wb) | (exu_div_finish & div_waddr_wb[4:0]!=5'b0);
-      e4d_in.i0valid = (e4d.i0valid              & ~flush_lower_wb) | exu_div_finish;
+      e4d_in.i0valid = (e4d.i0valid              & ~flush_lower_wb) | exu_div_finish | fpu_fdiv_fsqrt_finish;
       // qual the following with div finish; necessary for divides with early exit
-      e4d_in.i0secondary = e4d.i0secondary & ~flush_lower_wb & ~exu_div_finish;
-      e4d_in.i0load = e4d.i0load & ~flush_lower_wb & ~exu_div_finish;
-      e4d_in.i0store = e4d.i0store & ~flush_lower_wb & ~exu_div_finish;
+      e4d_in.i0secondary = e4d.i0secondary & ~flush_lower_wb & ~exu_div_finish &  ~fpu_fdiv_fsqrt_finish;
+      e4d_in.i0load = e4d.i0load & ~flush_lower_wb & ~exu_div_finish & ~fpu_fdiv_fsqrt_finish;
+      e4d_in.i0store = e4d.i0store & ~flush_lower_wb & ~exu_div_finish & ~fpu_fdiv_fsqrt_finish;
 
       e4d_in.i1v = e4d.i1v         & ~flush_lower_wb;
       e4d_in.i1valid = e4d.i1valid & ~flush_lower_wb;
       e4d_in.i1secondary = e3d.i1secondary & ~flush_lower_wb;
 
+      // i0 e4d
+      e4d_in.i0_fpu = ( e4d.i0_fpu & ~e4d.fdiv_fsqrt & ~flush_lower_wb ) | fpu_fdiv_fsqrt_finish;
+      e4d_in.i0_wr_frd = (e4d.i0_wr_frd         & ~e4d.fdiv_fsqrt & ~flush_lower_wb) | fpu_fdiv_fsqrt_finish;
+      e4d_in.i0_frd[4:0] = (fpu_fdiv_fsqrt_finish) ? fdiv_fsqrt_waddr_wb[4:0] : e4d.i0_frd[4:0];
+
+      // i1 e4d
+      // fdiv_fsqrt will not issue to I1 pipe
+      e4d_in.i1_fpu    = e4d.i1_fpu    & ~flush_lower_wb;
+      e4d_in.i1_wr_frd = e4d.i1_wr_frd & ~flush_lower_wb;
    end
 
 
-   rvdffe #( $bits(dest_pkt_t) ) wbff (.*, .en(i0_wb_ctl_en | exu_div_finish | div_wen_wb), .din(e4d_in), .dout(wbd));
+   rvdffe #( $bits(dest_pkt_t) ) wbff (.*, .en(i0_wb_ctl_en | exu_div_finish | fpu_fdiv_fsqrt_finish | div_wen_wb | fdiv_fsqrt_wen_wb), .din(e4d_in), .dout(wbd));
 
    assign dec_i0_waddr_wb[4:0] = wbd.i0rd[4:0];
 
@@ -2304,41 +2795,110 @@ end : cam_array
 
    // active_clk -> used for clockgating for wb stage ctl logic
    rvdff  #(1) divwbff (.*, .clk(active_clk), .din(exu_div_finish), .dout(div_wen_wb));
+   
+   // fpu_fdiv_fsqrt_finish -> fdiv_fsqrt_wen_wb
+   rvdff  #(1) fdiv_fsqrt_wbff (.*, .clk(active_clk), .din(fpu_fdiv_fsqrt_finish), .dout(fdiv_fsqrt_wen_wb));
+   
+   rvdffe #(1) fdiv_fsqrt_fp64ff (.*, .en(i0_fdiv_fsqrt_legal_decode_d), .din(i0_dp.fp64), .dout(fdiv_fsqrt_fp64));
 
+   rvdffe #(63) fdiv_fsqrt_pcff (.*, .en(i0_fdiv_fsqrt_legal_decode_d), .din(dec_i0_pc_d[63:1]), .dout(fdiv_fsqrt_pc[63:1]));
 
-   assign i0_result_e1[63:0] = exu_i0_result_e1[63:0];
-   assign i1_result_e1[63:0] = exu_i1_result_e1[63:0];
+   rvdffs #(4) fdiv_fsqrt_triggerff (.*, .en(i0_fdiv_fsqrt_legal_decode_d), .clk(active_clk), .din(dec_i0_trigger_match_d[3:0]), .dout(fdiv_fsqrt_trigger[3:0]));
+
+   rvdffs #(5) fdiv_fsqrt_wbaddrff (.*, .en(i0_fdiv_fsqrt_legal_decode_d), .clk(active_clk), .din(i0r.frd[4:0]), .dout(fdiv_fsqrt_waddr_wb[4:0]));
+
+   //**********FPU related modify************************************************************
+   //****************************result pipeline*********************************************
+   // int result part e1
+   assign i0_result_e1[63:0] = (e1d.i0v & e1d.i0_fp_to_int & ~e1d.i0_fs) ? fpu_int_result_e1[63:0] : exu_i0_result_e1[63:0];
+   assign i1_result_e1[63:0] = (e1d.i1v & e1d.i1_fp_to_int & ~e1d.i1_fs) ? fpu_int_result_e1[63:0] : exu_i1_result_e1[63:0];
+
+   // float result part e1
+   assign i0_float_sel_e1 = (e1d.i0_int_to_fp | e1d.i0_fp_to_fp) & e1d.i0_wr_frd;
+   assign i0_float_rec_fn_result_e1[64:0] = i0_float_sel_e1 ? fpu_fmisc_rec_fn_result_e1[64:0] : 65'b0;
+
+   assign i1_float_sel_e1 = (e1d.i1_int_to_fp | e1d.i1_fp_to_fp) & e1d.i1_wr_frd;
+   assign i1_float_rec_fn_result_e1[64:0] = i1_float_sel_e1 ? fpu_fmisc_rec_fn_result_e1[64:0] : 65'b0;
+
+   // result MUX e1
+   assign i0_result_e1_pass[64:0] = e1d.i0_wr_frd ? i0_float_rec_fn_result_e1[64:0] : {1'b0, i0_result_e1[63:0]};
+   assign i1_result_e1_pass[64:0] = e1d.i1_wr_frd ? i1_float_rec_fn_result_e1[64:0] : {1'b0, i1_result_e1[63:0]};
 
    // pipe the results down the pipe
-   rvdffe #(64) i0e2resultff (.*, .en(i0_e2_data_en), .din(i0_result_e1[63:0]), .dout(i0_result_e2[63:0]));
-   rvdffe #(64) i1e2resultff (.*, .en(i1_e2_data_en), .din(i1_result_e1[63:0]), .dout(i1_result_e2[63:0]));
+   rvdffe #(65) i0e2resultff (.*, .en(i0_e2_data_en), .din(i0_result_e1_pass[64:0]), .dout(i0_result_e2_pass[64:0]));
+   rvdffe #(65) i1e2resultff (.*, .en(i1_e2_data_en), .din(i1_result_e1_pass[64:0]), .dout(i1_result_e2_pass[64:0]));
 
-   rvdffe #(64) i0e3resultff (.*, .en(i0_e3_data_en), .din(i0_result_e2[63:0]), .dout(i0_result_e3[63:0]));
-   rvdffe #(64) i1e3resultff (.*, .en(i1_e3_data_en), .din(i1_result_e2[63:0]), .dout(i1_result_e3[63:0]));
+   // int result part e2
+   assign i0_result_e2[63:0] = i0_result_e2_pass[63:0];
+   assign i1_result_e2[63:0] = i1_result_e2_pass[63:0];
+
+   // float result part e1
+   assign i0_float_rec_fn_result_e2[64:0] = i0_result_e2_pass[64:0];
+   assign i1_float_rec_fn_result_e2[64:0] = i1_result_e2_pass[64:0];
+   
+   rvdffe #(65) i0e3resultff (.*, .en(i0_e3_data_en), .din(i0_result_e2_pass[64:0]), .dout(i0_result_e3_pass_raw[64:0]));
+   rvdffe #(65) i1e3resultff (.*, .en(i1_e3_data_en), .din(i1_result_e2_pass[64:0]), .dout(i1_result_e3_pass_raw[64:0]));
 
 
 
-   assign i0_result_e3_final[63:0] = (e3d.i0v & e3d.i0load) ? lsu_result_dc3[63:0] : (e3d.i0v & e3d.i0mul) ? exu_mul_result_e3[63:0] : i0_result_e3[63:0];
+   // int result part e3
+   assign i0_result_e3_final[63:0] = (e3d.i0v & e3d.i0load) ? lsu_result_dc3[63:0] :
+                                     (e3d.i0v & e3d.i0mul) ? exu_mul_result_e3[63:0] :
+                                                             i0_result_e3_pass_raw[63:0];
 
-   assign i1_result_e3_final[63:0] = (e3d.i1v & e3d.i1load) ? lsu_result_dc3[63:0] : (e3d.i1v & e3d.i1mul) ? exu_mul_result_e3[63:0] : i1_result_e3[63:0];
+   assign i1_result_e3_final[63:0] = (e3d.i1v & e3d.i1load) ? lsu_result_dc3[63:0] :
+                                      (e3d.i1v & e3d.i1mul) ? exu_mul_result_e3[63:0] :
+                                                              i1_result_e3_pass_raw[63:0];
 
+   // float result part e3
+   assign i0_float_rec_fn_result_e3_final[64:0] = (e3d.i0_fma & e3d.i0_wr_frd) ? fpu_fma_rec_fn_result_e3[64:0] :
+                                                  (e3d.i0_fl  & e3d.i0_wr_frd) ? lsu_rec_fn_result_dc3[64:0] :
+                                                                                 i0_result_e3_pass_raw[64:0];
 
+   assign i1_float_rec_fn_result_e3_final[64:0] = (e3d.i1_fma & e3d.i1_wr_frd) ? fpu_fma_rec_fn_result_e3[64:0] :
+                                                  (e3d.i1_fl  & e3d.i1_wr_frd) ? lsu_rec_fn_result_dc3[64:0] :
+                                                                                 i1_result_e3_pass_raw[64:0];
+   // result MUX e3
+   assign i0_result_e3_pass[64:0] = e3d.i0_wr_frd ? i0_float_rec_fn_result_e3_final[64:0] : {1'b0, i0_result_e3_final[63:0]};
+   assign i1_result_e3_pass[64:0] = e3d.i1_wr_frd ? i1_float_rec_fn_result_e3_final[64:0] : {1'b0, i1_result_e3_final[63:0]};
 
-   rvdffe #(64) i0e4resultff (.*, .en(i0_e4_data_en), .din(i0_result_e3_final[63:0]), .dout(i0_result_e4[63:0]));
-   rvdffe #(64) i1e4resultff (.*, .en(i1_e4_data_en), .din(i1_result_e3_final[63:0]), .dout(i1_result_e4[63:0]));
+   rvdffe #(65) i0e4resultff (.*, .en(i0_e4_data_en), .din(i0_result_e3_pass[64:0]), .dout(i0_result_e4_pass_raw[64:0]));
+   rvdffe #(65) i1e4resultff (.*, .en(i1_e4_data_en), .din(i1_result_e3_pass[64:0]), .dout(i1_result_e4_pass_raw[64:0]));
 
-   assign i0_result_e4_final[63:0] =
-                                     (          e4d.i0secondary) ? exu_i0_result_e4[63:0] : (e4d.i0v & e4d.i0load) ? lsu_result_corr_dc4[63:0] : i0_result_e4[63:0];
+   // int result part e4
+   assign i0_result_e4_final[63:0] = (          e4d.i0secondary) ? exu_i0_result_e4[63:0] :
+                                     (e4d.i0v & e4d.i0load) ? lsu_result_corr_dc4[63:0] :
+                                                              i0_result_e4_pass_raw[63:0];
 
-   assign i1_result_e4_final[63:0] =
-                                     (e4d.i1v & e4d.i1secondary) ? exu_i1_result_e4[63:0] : (e4d.i1v & e4d.i1load) ? lsu_result_corr_dc4[63:0] :i1_result_e4[63:0];
+   assign i1_result_e4_final[63:0] = (e4d.i1v & e4d.i1secondary) ? exu_i1_result_e4[63:0] :
+                                     (e4d.i1v & e4d.i1load) ? lsu_result_corr_dc4[63:0] :
+                                                              i1_result_e4_pass_raw[63:0];
 
-   rvdffe #(64) i0wbresultff (.*, .en(i0_wb_data_en), .din(i0_result_e4_final[63:0]), .dout(i0_result_wb_raw[63:0]));
-   rvdffe #(64) i1wbresultff (.*, .en(i1_wb_data_en), .din(i1_result_e4_final[63:0]), .dout(i1_result_wb_raw[63:0]));
+   // float result part e4
+   assign i0_float_rec_fn_result_e4_final[64:0] = (fpu_fdiv_fsqrt_finish) ? fpu_fdiv_fsqrt_rec_fn_data[64:0] :
+                                                                            i0_result_e4_pass_raw[64:0];
 
-   assign i0_result_wb[63:0] = (div_wen_wb) ? exu_div_result[63:0] : i0_result_wb_raw[63:0];
+   assign i1_float_rec_fn_result_e4_final[64:0] = i1_result_e4_pass_raw[64:0];
 
-   assign i1_result_wb[63:0] = i1_result_wb_raw[63:0];
+   // result MUX e4
+   assign i0_result_e4_pass[64:0] = ( e4d.i0_wr_frd | fpu_fdiv_fsqrt_finish) ? i0_float_rec_fn_result_e4_final[64:0] :
+                                                                           {1'b0, i0_result_e4_final[63:0]};
+   
+   assign i1_result_e4_pass[64:0] = e4d.i1_wr_frd ? i1_float_rec_fn_result_e4_final[64:0] : {1'b0, i1_result_e4_final[63:0]};
+
+   rvdffe #(65) i0wbresultff (.*, .en(i0_wb_data_en | fpu_fdiv_fsqrt_finish),
+                                  .din(i0_result_e4_pass[64:0]), .dout(i0_result_wb_pass_raw[64:0]));
+
+   rvdffe #(65) i1wbresultff (.*, .en(i1_wb_data_en), .din(i1_result_e4_pass[64:0]), .dout(i1_result_wb_pass_raw[64:0]));
+
+   // int result part wb
+   assign i0_result_wb[63:0] = (div_wen_wb) ? exu_div_result[63:0] : i0_result_wb_pass_raw[63:0];
+   assign i1_result_wb[63:0] = i1_result_wb_pass_raw[63:0];
+
+   // float result part wb
+   assign i0_float_rec_fn_result_wb[64:0] = i0_result_wb_pass_raw[64:0];
+   assign i1_float_rec_fn_result_wb[64:0] = i1_result_wb_pass_raw[64:0];
+   //****************************result pipeline*********************************************
 
 
    rvdffe #(12) e1brpcff (.*, .en(i0_e1_data_en), .din(last_br_immed_d[12:1] ), .dout(last_br_immed_e1[12:1]));
@@ -2349,6 +2909,7 @@ end : cam_array
 // trace stuff
 
    rvdffe #(32) divinstff   (.*, .en(i0_div_decode_d), .din(i0_inst_d[31:0]), .dout(div_inst[31:0]));
+   rvdffe #(32) fdiv_fsqrt_instff   (.*, .en(i0_fdiv_fsqrt_legal_decode_d), .din(i0_inst_d[31:0]), .dout(fdiv_fsqrt_inst[31:0]));
 
    assign i0_inst_d[31:0] = (dec_i0_pc4_d) ? i0[31:0] : {16'b0, dec_i0_cinst_d[15:0] };
 
@@ -2356,8 +2917,8 @@ end : cam_array
    rvdffe #(32) i0e2instff  (.*, .en(i0_e2_data_en), .din(i0_inst_e1[31:0]), .dout(i0_inst_e2[31:0]));
    rvdffe #(32) i0e3instff  (.*, .en(i0_e3_data_en), .din(i0_inst_e2[31:0]), .dout(i0_inst_e3[31:0]));
    rvdffe #(32) i0e4instff  (.*, .en(i0_e4_data_en), .din(i0_inst_e3[31:0]), .dout(i0_inst_e4[31:0]));
-   rvdffe #(32) i0wbinstff  (.*, .en(i0_wb_data_en | exu_div_finish), .din( (exu_div_finish) ? div_inst[31:0] : i0_inst_e4[31:0]), .dout(i0_inst_wb[31:0]));
-   rvdffe #(32) i0wb1instff (.*, .en(i0_wb1_data_en | div_wen_wb),    .din(i0_inst_wb[31:0]),                                      .dout(i0_inst_wb1[31:0]));
+   rvdffe #(32) i0wbinstff  (.*, .en(i0_wb_data_en | exu_div_finish | fpu_fdiv_fsqrt_finish), .din( (exu_div_finish) ? div_inst[31:0] : fpu_fdiv_fsqrt_finish ? fdiv_fsqrt_inst[31:0] : i0_inst_e4[31:0]), .dout(i0_inst_wb[31:0]));
+   rvdffe #(32) i0wb1instff (.*, .en(i0_wb1_data_en | div_wen_wb | fdiv_fsqrt_wen_wb),    .din(i0_inst_wb[31:0]),                                      .dout(i0_inst_wb1[31:0]));
 
    assign i1_inst_d[31:0] = (dec_i1_pc4_d) ? i1[31:0] : {16'b0, dec_i1_cinst_d[15:0] };
 
@@ -2372,8 +2933,8 @@ end : cam_array
    assign dec_i1_inst_wb1[31:0] = i1_inst_wb1[31:0];
 
 
-   rvdffe #(63) i0wbpcff  (.*, .en(i0_wb_data_en | exu_div_finish), .din(dec_tlu_i0_pc_e4[63:1]), .dout(i0_pc_wb[63:1]));
-   rvdffe #(63) i0wb1pcff (.*, .en(i0_wb1_data_en | div_wen_wb),    .din(i0_pc_wb[63:1]),         .dout(i0_pc_wb1[63:1]));
+   rvdffe #(63) i0wbpcff  (.*, .en(i0_wb_data_en | exu_div_finish | fpu_fdiv_fsqrt_finish), .din(dec_tlu_i0_pc_e4[63:1]), .dout(i0_pc_wb[63:1]));
+   rvdffe #(63) i0wb1pcff (.*, .en(i0_wb1_data_en | div_wen_wb | fdiv_fsqrt_wen_wb),    .din(i0_pc_wb[63:1]),         .dout(i0_pc_wb1[63:1]));
 
    rvdffe #(63) i1wb1pcff (.*, .en(i1_wb1_data_en),.din(i1_pc_wb[63:1]),         .dout(i1_pc_wb1[63:1]));
 
@@ -2396,7 +2957,7 @@ end : cam_array
    assign dec_i1_pc_e3[63:1] = i1_pc_e3[63:1];
 
 
-   assign dec_tlu_i0_pc_e4[63:1] = (exu_div_finish) ? div_pc[63:1] : i0_pc_e4[63:1];
+   assign dec_tlu_i0_pc_e4[63:1] = exu_div_finish ? div_pc[63:1] : fpu_fdiv_fsqrt_finish ? fdiv_fsqrt_pc[63:1] : i0_pc_e4[63:1];
    assign dec_tlu_i1_pc_e4[63:1] = i1_pc_e4[63:1];
 
    // generate the correct npc for correct br predictions
@@ -2422,52 +2983,52 @@ end : cam_array
 
 
 
-   assign i0_rs1bypass[9:0] = {   i0_rs1_depth_d[3:0] == 4'd1  &  i0_rs1_class_d.alu,
-                                  i0_rs1_depth_d[3:0] == 4'd2  &  i0_rs1_class_d.alu,
-                                  i0_rs1_depth_d[3:0] == 4'd3  &  i0_rs1_class_d.alu,
-                                  i0_rs1_depth_d[3:0] == 4'd4  &  i0_rs1_class_d.alu,
-                                  i0_rs1_depth_d[3:0] == 4'd5  & (i0_rs1_class_d.alu | i0_rs1_class_d.load | i0_rs1_class_d.mul),
-                                  i0_rs1_depth_d[3:0] == 4'd6  & (i0_rs1_class_d.alu | i0_rs1_class_d.load | i0_rs1_class_d.mul),
-                                  i0_rs1_depth_d[3:0] == 4'd7  & (i0_rs1_class_d.alu | i0_rs1_class_d.load | i0_rs1_class_d.mul | i0_rs1_class_d.sec),
-                                  i0_rs1_depth_d[3:0] == 4'd8  & (i0_rs1_class_d.alu | i0_rs1_class_d.load | i0_rs1_class_d.mul | i0_rs1_class_d.sec),
-                                  i0_rs1_depth_d[3:0] == 4'd9  & (i0_rs1_class_d.alu | i0_rs1_class_d.load | i0_rs1_class_d.mul | i0_rs1_class_d.sec),
-                                  i0_rs1_depth_d[3:0] == 4'd10 & (i0_rs1_class_d.alu | i0_rs1_class_d.load | i0_rs1_class_d.mul | i0_rs1_class_d.sec) };
+   assign i0_rs1bypass[9:0] = {   i0_rs1_depth_d[3:0] == 4'd1  & (i0_rs1_class_d.alu | i0_rs1_class_d.fp_to_int),
+                                  i0_rs1_depth_d[3:0] == 4'd2  & (i0_rs1_class_d.alu | i0_rs1_class_d.fp_to_int),
+                                  i0_rs1_depth_d[3:0] == 4'd3  & (i0_rs1_class_d.alu | i0_rs1_class_d.fp_to_int),
+                                  i0_rs1_depth_d[3:0] == 4'd4  & (i0_rs1_class_d.alu | i0_rs1_class_d.fp_to_int),
+                                  i0_rs1_depth_d[3:0] == 4'd5  & (i0_rs1_class_d.alu | i0_rs1_class_d.fp_to_int | i0_rs1_class_d.load | i0_rs1_class_d.mul),
+                                  i0_rs1_depth_d[3:0] == 4'd6  & (i0_rs1_class_d.alu | i0_rs1_class_d.fp_to_int | i0_rs1_class_d.load | i0_rs1_class_d.mul),
+                                  i0_rs1_depth_d[3:0] == 4'd7  & (i0_rs1_class_d.alu | i0_rs1_class_d.fp_to_int | i0_rs1_class_d.load | i0_rs1_class_d.mul | i0_rs1_class_d.sec),
+                                  i0_rs1_depth_d[3:0] == 4'd8  & (i0_rs1_class_d.alu | i0_rs1_class_d.fp_to_int | i0_rs1_class_d.load | i0_rs1_class_d.mul | i0_rs1_class_d.sec),
+                                  i0_rs1_depth_d[3:0] == 4'd9  & (i0_rs1_class_d.alu | i0_rs1_class_d.fp_to_int | i0_rs1_class_d.load | i0_rs1_class_d.mul | i0_rs1_class_d.sec),
+                                  i0_rs1_depth_d[3:0] == 4'd10 & (i0_rs1_class_d.alu | i0_rs1_class_d.fp_to_int | i0_rs1_class_d.load | i0_rs1_class_d.mul | i0_rs1_class_d.sec) };
 
 
-   assign i0_rs2bypass[9:0] = {   i0_rs2_depth_d[3:0] == 4'd1  &  i0_rs2_class_d.alu,
-                                  i0_rs2_depth_d[3:0] == 4'd2  &  i0_rs2_class_d.alu,
-                                  i0_rs2_depth_d[3:0] == 4'd3  &  i0_rs2_class_d.alu,
-                                  i0_rs2_depth_d[3:0] == 4'd4  &  i0_rs2_class_d.alu,
-                                  i0_rs2_depth_d[3:0] == 4'd5  & (i0_rs2_class_d.alu | i0_rs2_class_d.load | i0_rs2_class_d.mul),
-                                  i0_rs2_depth_d[3:0] == 4'd6  & (i0_rs2_class_d.alu | i0_rs2_class_d.load | i0_rs2_class_d.mul),
-                                  i0_rs2_depth_d[3:0] == 4'd7  & (i0_rs2_class_d.alu | i0_rs2_class_d.load | i0_rs2_class_d.mul | i0_rs2_class_d.sec),
-                                  i0_rs2_depth_d[3:0] == 4'd8  & (i0_rs2_class_d.alu | i0_rs2_class_d.load | i0_rs2_class_d.mul | i0_rs2_class_d.sec),
-                                  i0_rs2_depth_d[3:0] == 4'd9  & (i0_rs2_class_d.alu | i0_rs2_class_d.load | i0_rs2_class_d.mul | i0_rs2_class_d.sec),
-                                  i0_rs2_depth_d[3:0] == 4'd10 & (i0_rs2_class_d.alu | i0_rs2_class_d.load | i0_rs2_class_d.mul | i0_rs2_class_d.sec) };
+   assign i0_rs2bypass[9:0] = {   i0_rs2_depth_d[3:0] == 4'd1  & (i0_rs2_class_d.alu | i0_rs2_class_d.fp_to_int),
+                                  i0_rs2_depth_d[3:0] == 4'd2  & (i0_rs2_class_d.alu | i0_rs2_class_d.fp_to_int),
+                                  i0_rs2_depth_d[3:0] == 4'd3  & (i0_rs2_class_d.alu | i0_rs2_class_d.fp_to_int),
+                                  i0_rs2_depth_d[3:0] == 4'd4  & (i0_rs2_class_d.alu | i0_rs2_class_d.fp_to_int),
+                                  i0_rs2_depth_d[3:0] == 4'd5  & (i0_rs2_class_d.alu | i0_rs2_class_d.fp_to_int | i0_rs2_class_d.load | i0_rs2_class_d.mul),
+                                  i0_rs2_depth_d[3:0] == 4'd6  & (i0_rs2_class_d.alu | i0_rs2_class_d.fp_to_int | i0_rs2_class_d.load | i0_rs2_class_d.mul),
+                                  i0_rs2_depth_d[3:0] == 4'd7  & (i0_rs2_class_d.alu | i0_rs2_class_d.fp_to_int | i0_rs2_class_d.load | i0_rs2_class_d.mul | i0_rs2_class_d.sec),
+                                  i0_rs2_depth_d[3:0] == 4'd8  & (i0_rs2_class_d.alu | i0_rs2_class_d.fp_to_int | i0_rs2_class_d.load | i0_rs2_class_d.mul | i0_rs2_class_d.sec),
+                                  i0_rs2_depth_d[3:0] == 4'd9  & (i0_rs2_class_d.alu | i0_rs2_class_d.fp_to_int | i0_rs2_class_d.load | i0_rs2_class_d.mul | i0_rs2_class_d.sec),
+                                  i0_rs2_depth_d[3:0] == 4'd10 & (i0_rs2_class_d.alu | i0_rs2_class_d.fp_to_int | i0_rs2_class_d.load | i0_rs2_class_d.mul | i0_rs2_class_d.sec) };
 
 
-   assign i1_rs1bypass[9:0] = {   i1_rs1_depth_d[3:0] == 4'd1  &  i1_rs1_class_d.alu,
-                                  i1_rs1_depth_d[3:0] == 4'd2  &  i1_rs1_class_d.alu,
-                                  i1_rs1_depth_d[3:0] == 4'd3  &  i1_rs1_class_d.alu,
-                                  i1_rs1_depth_d[3:0] == 4'd4  &  i1_rs1_class_d.alu,
-                                  i1_rs1_depth_d[3:0] == 4'd5  & (i1_rs1_class_d.alu | i1_rs1_class_d.load | i1_rs1_class_d.mul),
-                                  i1_rs1_depth_d[3:0] == 4'd6  & (i1_rs1_class_d.alu | i1_rs1_class_d.load | i1_rs1_class_d.mul),
-                                  i1_rs1_depth_d[3:0] == 4'd7  & (i1_rs1_class_d.alu | i1_rs1_class_d.load | i1_rs1_class_d.mul | i1_rs1_class_d.sec),
-                                  i1_rs1_depth_d[3:0] == 4'd8  & (i1_rs1_class_d.alu | i1_rs1_class_d.load | i1_rs1_class_d.mul | i1_rs1_class_d.sec),
-                                  i1_rs1_depth_d[3:0] == 4'd9  & (i1_rs1_class_d.alu | i1_rs1_class_d.load | i1_rs1_class_d.mul | i1_rs1_class_d.sec),
-                                  i1_rs1_depth_d[3:0] == 4'd10 & (i1_rs1_class_d.alu | i1_rs1_class_d.load | i1_rs1_class_d.mul | i1_rs1_class_d.sec) };
+   assign i1_rs1bypass[9:0] = {   i1_rs1_depth_d[3:0] == 4'd1  & (i1_rs1_class_d.alu | i1_rs1_class_d.fp_to_int),
+                                  i1_rs1_depth_d[3:0] == 4'd2  & (i1_rs1_class_d.alu | i1_rs1_class_d.fp_to_int),
+                                  i1_rs1_depth_d[3:0] == 4'd3  & (i1_rs1_class_d.alu | i1_rs1_class_d.fp_to_int),
+                                  i1_rs1_depth_d[3:0] == 4'd4  & (i1_rs1_class_d.alu | i1_rs1_class_d.fp_to_int),
+                                  i1_rs1_depth_d[3:0] == 4'd5  & (i1_rs1_class_d.alu | i1_rs1_class_d.fp_to_int | i1_rs1_class_d.load | i1_rs1_class_d.mul),
+                                  i1_rs1_depth_d[3:0] == 4'd6  & (i1_rs1_class_d.alu | i1_rs1_class_d.fp_to_int | i1_rs1_class_d.load | i1_rs1_class_d.mul),
+                                  i1_rs1_depth_d[3:0] == 4'd7  & (i1_rs1_class_d.alu | i1_rs1_class_d.fp_to_int | i1_rs1_class_d.load | i1_rs1_class_d.mul | i1_rs1_class_d.sec),
+                                  i1_rs1_depth_d[3:0] == 4'd8  & (i1_rs1_class_d.alu | i1_rs1_class_d.fp_to_int | i1_rs1_class_d.load | i1_rs1_class_d.mul | i1_rs1_class_d.sec),
+                                  i1_rs1_depth_d[3:0] == 4'd9  & (i1_rs1_class_d.alu | i1_rs1_class_d.fp_to_int | i1_rs1_class_d.load | i1_rs1_class_d.mul | i1_rs1_class_d.sec),
+                                  i1_rs1_depth_d[3:0] == 4'd10 & (i1_rs1_class_d.alu | i1_rs1_class_d.fp_to_int | i1_rs1_class_d.load | i1_rs1_class_d.mul | i1_rs1_class_d.sec) };
 
 
-   assign i1_rs2bypass[9:0] = {   i1_rs2_depth_d[3:0] == 4'd1  &  i1_rs2_class_d.alu,
-                                  i1_rs2_depth_d[3:0] == 4'd2  &  i1_rs2_class_d.alu,
-                                  i1_rs2_depth_d[3:0] == 4'd3  &  i1_rs2_class_d.alu,
-                                  i1_rs2_depth_d[3:0] == 4'd4  &  i1_rs2_class_d.alu,
-                                  i1_rs2_depth_d[3:0] == 4'd5  & (i1_rs2_class_d.alu | i1_rs2_class_d.load | i1_rs2_class_d.mul),
-                                  i1_rs2_depth_d[3:0] == 4'd6  & (i1_rs2_class_d.alu | i1_rs2_class_d.load | i1_rs2_class_d.mul),
-                                  i1_rs2_depth_d[3:0] == 4'd7  & (i1_rs2_class_d.alu | i1_rs2_class_d.load | i1_rs2_class_d.mul | i1_rs2_class_d.sec),
-                                  i1_rs2_depth_d[3:0] == 4'd8  & (i1_rs2_class_d.alu | i1_rs2_class_d.load | i1_rs2_class_d.mul | i1_rs2_class_d.sec),
-                                  i1_rs2_depth_d[3:0] == 4'd9  & (i1_rs2_class_d.alu | i1_rs2_class_d.load | i1_rs2_class_d.mul | i1_rs2_class_d.sec),
-                                  i1_rs2_depth_d[3:0] == 4'd10 & (i1_rs2_class_d.alu | i1_rs2_class_d.load | i1_rs2_class_d.mul | i1_rs2_class_d.sec) };
+   assign i1_rs2bypass[9:0] = {   i1_rs2_depth_d[3:0] == 4'd1  & (i1_rs2_class_d.alu | i1_rs2_class_d.fp_to_int),
+                                  i1_rs2_depth_d[3:0] == 4'd2  & (i1_rs2_class_d.alu | i1_rs2_class_d.fp_to_int),
+                                  i1_rs2_depth_d[3:0] == 4'd3  & (i1_rs2_class_d.alu | i1_rs2_class_d.fp_to_int),
+                                  i1_rs2_depth_d[3:0] == 4'd4  & (i1_rs2_class_d.alu | i1_rs2_class_d.fp_to_int),
+                                  i1_rs2_depth_d[3:0] == 4'd5  & (i1_rs2_class_d.alu | i1_rs2_class_d.fp_to_int | i1_rs2_class_d.load | i1_rs2_class_d.mul),
+                                  i1_rs2_depth_d[3:0] == 4'd6  & (i1_rs2_class_d.alu | i1_rs2_class_d.fp_to_int | i1_rs2_class_d.load | i1_rs2_class_d.mul),
+                                  i1_rs2_depth_d[3:0] == 4'd7  & (i1_rs2_class_d.alu | i1_rs2_class_d.fp_to_int | i1_rs2_class_d.load | i1_rs2_class_d.mul | i1_rs2_class_d.sec),
+                                  i1_rs2_depth_d[3:0] == 4'd8  & (i1_rs2_class_d.alu | i1_rs2_class_d.fp_to_int | i1_rs2_class_d.load | i1_rs2_class_d.mul | i1_rs2_class_d.sec),
+                                  i1_rs2_depth_d[3:0] == 4'd9  & (i1_rs2_class_d.alu | i1_rs2_class_d.fp_to_int | i1_rs2_class_d.load | i1_rs2_class_d.mul | i1_rs2_class_d.sec),
+                                  i1_rs2_depth_d[3:0] == 4'd10 & (i1_rs2_class_d.alu | i1_rs2_class_d.fp_to_int | i1_rs2_class_d.load | i1_rs2_class_d.mul | i1_rs2_class_d.sec) };
 
 
 
@@ -2526,7 +3087,663 @@ end : cam_array
                                        ({64{i1_rs2bypass[0]}} & i0_result_wb[63:0]);
 
 
+   //********************************FPU related logic*************************************
+   // rounding mode illeagl
+   assign dynamic_rm[2:0] = dec_tlu_frm_rounding_mode[2:0];
 
+   // i1 rm illegal
+   assign i1_sel_dyn_rm = (i1[14:12] == 3'b111);
+
+   assign i1_static_rm[2:0] = i1[14:12];
+
+   assign i1_static_rm_illeagl = (i1_static_rm[2:0] == 3'b101) || (i1_static_rm[2:0] == 3'b110);
+   
+   assign i1_dynamic_rm_illeagl = i1_sel_dyn_rm & dec_tlu_frm_rounding_mode[2] & (|dec_tlu_frm_rounding_mode[1:0]);
+
+   assign i1_illegal_rm = (i1_static_rm_illeagl | i1_dynamic_rm_illeagl) & i1_dp.fpu;
+
+   // i0 rm illegal
+   assign i0_sel_dyn_rm = (i0[14:12] == 3'b111);
+
+   assign i0_static_rm[2:0] = i0[14:12];
+
+   assign i0_static_rm_illeagl = (i0_static_rm[2:0] == 3'b101) || (i0_static_rm[2:0] == 3'b110);
+   
+   assign i0_dynamic_rm_illeagl = i0_sel_dyn_rm & dec_tlu_frm_rounding_mode[2] & (|dec_tlu_frm_rounding_mode[1:0]);
+
+   assign i0_illegal_rm = (i0_static_rm_illeagl | i0_dynamic_rm_illeagl) & i0_dp.fpu;
+
+   // div_sqrt_ctl
+   assign i0_fdiv_fsqrt_legal_decode_d = (i0_fdp.fdiv | i0_fdp.fsqrt) & i0_legal_decode_d;
+
+   // FPU dispatch
+   assign fpu_decode_d = (i0_legal_decode_d & i0_dp.fpu) |
+                         (dec_i1_decode_d & i1_dp.fpu);
+
+   assign fpu_decode_i0_d = i0_dp.fpu & i0_legal_decode_d; 
+
+   assign fpu_decode_i1_d = i1_dp.fpu & dec_i1_decode_d;
+
+   assign fpu_d.valid     = fpu_decode_d;
+   assign fpu_d.fp_to_int = i0_dp.fpu ? i0_fdp.fp_to_int : i1_fdp.fp_to_int;
+   assign fpu_d.int_to_fp = i0_dp.fpu ? i0_fdp.int_to_fp : i1_fdp.int_to_fp;
+   assign fpu_d.fp_to_fp  = i0_dp.fpu ? i0_fdp.fp_to_fp  : i1_fdp.fp_to_fp;
+   assign fpu_d.fma       = i0_dp.fpu ? i0_fdp.fma       : i1_fdp.fma;
+   assign fpu_d.fp64      = i0_dp.fpu ? i0_fdp.fp64      : i1_fdp.fp64;
+   assign fpu_d.long      = i0_dp.fpu ? i0_fdp.long      : i1_fdp.long;
+   assign fpu_d.sign      = i0_dp.fpu ? i0_fdp.sign      : i1_fdp.sign;
+   assign fpu_d.fmin      = i0_dp.fpu ? i0_fdp.fmin      : i1_fdp.fmin;
+   assign fpu_d.fmax      = i0_dp.fpu ? i0_fdp.fmax      : i1_fdp.fmax;
+   assign fpu_d.fsgnj     = i0_dp.fpu ? i0_fdp.fsgnj     : i1_fdp.fsgnj;
+   assign fpu_d.fsgnjn    = i0_dp.fpu ? i0_fdp.fsgnjn    : i1_fdp.fsgnjn;
+   assign fpu_d.fsgnjx    = i0_dp.fpu ? i0_fdp.fsgnjx    : i1_fdp.fsgnjx;
+   assign fpu_d.fcvt      = i0_dp.fpu ? i0_fdp.fcvt      : i1_fdp.fcvt;
+   assign fpu_d.fs        = i0_dp.fpu ? i0_fdp.fs        : i1_fdp.fs;
+   assign fpu_d.fl        = i0_dp.fpu ? i0_fdp.fl        : i1_fdp.fl;
+   assign fpu_d.fclass    = i0_dp.fpu ? i0_fdp.fclass    : i1_fdp.fclass;
+   assign fpu_d.feq       = i0_dp.fpu ? i0_fdp.feq       : i1_fdp.feq;
+   assign fpu_d.flt       = i0_dp.fpu ? i0_fdp.flt       : i1_fdp.flt;
+   assign fpu_d.fle       = i0_dp.fpu ? i0_fdp.fle       : i1_fdp.fle;
+   assign fpu_d.fmv       = i0_dp.fpu ? i0_fdp.fmv       : i1_fdp.fmv;
+   assign fpu_d.fadd      = i0_dp.fpu ? i0_fdp.fadd      : i1_fdp.fadd;
+   assign fpu_d.fsub      = i0_dp.fpu ? i0_fdp.fsub      : i1_fdp.fsub;
+   assign fpu_d.fmul      = i0_dp.fpu ? i0_fdp.fmul      : i1_fdp.fmul;
+   assign fpu_d.fmadd     = i0_dp.fpu ? i0_fdp.fmadd     : i1_fdp.fmadd;
+   assign fpu_d.fmsub     = i0_dp.fpu ? i0_fdp.fmsub     : i1_fdp.fmsub;
+   assign fpu_d.fnmadd    = i0_dp.fpu ? i0_fdp.fnmadd    : i1_fdp.fnmadd;
+   assign fpu_d.fnmsub    = i0_dp.fpu ? i0_fdp.fnmsub    : i1_fdp.fnmsub;
+   assign fpu_d.fdiv      = i0_dp.fpu ? i0_fdp.fdiv      : i1_fdp.fdiv;
+   assign fpu_d.fsqrt     = i0_dp.fpu ? i0_fdp.fsqrt     : i1_fdp.fsqrt;
+   assign fpu_d.rm[2:0]   = i0_dp.fpu ? i0_fdp.rm[2:0]   : i1_fdp.rm[2:0];
+
+   rvdffe #(1) i0_result_fp64_e1_ff (.*, .en(i0_e1_ctl_en), .din(i0_dp.fp64),         .dout(i0_result_fp64_e1));
+   rvdffe #(1) i0_result_fp64_e2_ff (.*, .en(i0_e2_ctl_en), .din(i0_result_fp64_e1),  .dout(i0_result_fp64_e2));
+   rvdffe #(1) i0_result_fp64_e3_ff (.*, .en(i0_e3_ctl_en), .din(i0_result_fp64_e2),  .dout(i0_result_fp64_e3));
+   rvdffe #(1) i0_result_fp64_e4_ff (.*, .en(i0_e4_ctl_en), .din(i0_result_fp64_e3),  .dout(i0_result_fp64_e4));
+   rvdffe #(1) i0_result_fp64_wb_ff (.*, .en(i0_wb_ctl_en | fpu_fdiv_fsqrt_finish), .din(fpu_fdiv_fsqrt_finish ? fdiv_fsqrt_fp64 : i0_result_fp64_e4),  .dout(i0_result_fp64_wb));
+
+   rvdffe #(1) i1_result_fp64_e1_ff (.*, .en(i1_e1_ctl_en), .din(i1_dp.fp64),         .dout(i1_result_fp64_e1));
+   rvdffe #(1) i1_result_fp64_e2_ff (.*, .en(i1_e2_ctl_en), .din(i1_result_fp64_e1),  .dout(i1_result_fp64_e2));
+   rvdffe #(1) i1_result_fp64_e3_ff (.*, .en(i1_e3_ctl_en), .din(i1_result_fp64_e2),  .dout(i1_result_fp64_e3));
+   rvdffe #(1) i1_result_fp64_e4_ff (.*, .en(i1_e4_ctl_en), .din(i1_result_fp64_e3),  .dout(i1_result_fp64_e4));
+   rvdffe #(1) i1_result_fp64_wb_ff (.*, .en(i1_wb_ctl_en), .din(i1_result_fp64_e4),  .dout(i1_result_fp64_wb));
+
+   // For flw/fld
+   assign lsu_fp64_e3 = e3d.i0_fpu ? i0_result_fp64_e3 : i1_result_fp64_e3;
+
+   //FGPR control
+   // read
+   assign dec_frs1_ren        = i0_dp.fpu ? i0_dp.frs1    : i1_dp.frs1;
+   assign dec_frs1_raddr[4:0] = i0_dp.fpu ? i0r.frs1[4:0] : i1r.frs1[4:0];
+
+   assign dec_frs2_ren        = i0_dp.fpu ? i0_dp.frs2    : i1_dp.frs2;
+   assign dec_frs2_raddr[4:0] = i0_dp.fpu ? i0r.frs2[4:0] : i1r.frs2[4:0];
+
+   assign dec_frs3_ren        = i0_dp.fpu ? i0_dp.frs3    : i1_dp.frs3;
+   assign dec_frs3_raddr[4:0] = i0_dp.fpu ? i0r.frs3[4:0] : i1r.frs3[4:0];
+   
+   // write 
+   assign dec_frd_wen_wb = wbd.i0_fpu ? (wbd.i0_wr_frd & ~dec_tlu_i0_kill_writeb_wb) : (wbd.i1_wr_frd & ~dec_tlu_i1_kill_writeb_wb);
+   assign dec_frd_fp64_wb = wbd.i0_fpu ? i0_result_fp64_wb : i1_result_fp64_wb;
+   assign dec_frd_waddr_wb[4:0] = wbd.i0_fpu ? wbd.i0_frd[4:0] : wbd.i1_frd[4:0];
+   assign dec_frd_rec_fn_wdata_wb[64:0] = wbd.i0_fpu ? i0_float_rec_fn_result_wb[64:0] : i1_float_rec_fn_result_wb[64:0];
+
+   //***********float exception flags passing pipeline**********************
+   // i1 exc passing
+   assign i1_float_exc_e1[4:0] = (i1_float_sel_e1 | e1d.i1_fp_to_int) ? fpu_fmisc_exc_e1[4:0] : 5'b0;
+
+   rvdffs #(5) float_i1e2excff (.*,
+                                .en(i1_e2_data_en),
+                                .din(i1_float_exc_e1[4:0]),
+                                .dout(i1_float_exc_e2[4:0])
+                                );
+
+   rvdffs #(5) float_i1e3excff (.*,
+                                .en(i1_e3_data_en),
+                                .din(i1_float_exc_e2[4:0]),
+                                .dout(i1_float_exc_e3[4:0])
+                                ); 
+
+   assign i1_float_exc_e3_final[4:0] = (e3d.i1_fma) ? fpu_fma_exc_e3[4:0] : i1_float_exc_e3[4:0];
+
+   rvdffs #(5) float_i1e4excff (.*,
+                                .en(i1_e4_data_en),
+                                .din(i1_float_exc_e3_final[4:0]),
+                                .dout(i1_float_exc_e4[4:0])
+                                );
+
+   // i0 exc passing 
+   assign i0_float_exc_e1[4:0] = (i0_float_sel_e1 | e1d.i0_fp_to_int) ? fpu_fmisc_exc_e1[4:0] : 5'b0;
+
+   rvdffs #(5) float_i0e2excff (.*,
+                                .en(i0_e2_data_en),
+                                .din(i0_float_exc_e1[4:0]),
+                                .dout(i0_float_exc_e2[4:0])
+                                );
+
+   rvdffs #(5) float_i0e3excff (.*,
+                                .en(i0_e3_data_en),
+                                .din(i0_float_exc_e2[4:0]),
+                                .dout(i0_float_exc_e3[4:0])
+                                );
+
+   logic [4:0] i0_float_exc_e3_final;
+
+   assign i0_float_exc_e3_final[4:0] = (e3d.i0_fma) ? fpu_fma_exc_e3[4:0] : i0_float_exc_e3[4:0];
+
+   rvdffs #(5) float_i0e4excff (.*,
+                                .en(i0_e4_data_en),
+                                .din(i0_float_exc_e3_final[4:0]),
+                                .dout(i0_float_exc_e4[4:0])
+                                );
+   
+   // send i1 & i0 exc flags to tlu
+   assign fflgas_i0_valid_e4 = ( e4d.i0_fpu & ~e4d.fdiv_fsqrt) | fpu_fdiv_fsqrt_finish; 
+   assign fflgas_i1_valid_e4 =  e4d.i1_fpu;
+
+   
+   assign f_flags_i0_e4[4:0] =  (fpu_fdiv_fsqrt_finish) ? fpu_fdiv_fsqrt_exc[4:0] : i0_float_exc_e4[4:0];
+   assign f_flags_i1_e4[4:0] =  i1_float_exc_e4[4:0];
+
+   //*******fdiv_sqrt stuff*********
+   // hold fdiv_fsqrt_stall one cycle 
+   assign fdiv_fsqrt_stall = fpu_fdiv_fsqrt_stall | fpu_fdiv_fsqrt_stall_f1 | fpu_fdiv_fsqrt_stall_f2;
+
+   rvdff  #(1) fdiv_fsqrt_stallf1 (.*, .clk(active_clk), .din(fpu_fdiv_fsqrt_stall), .dout(fpu_fdiv_fsqrt_stall_f1));
+
+   rvdff  #(1) fdiv_fsqrt_stallf2 (.*, .clk(active_clk), .din(fpu_fdiv_fsqrt_stall_f1), .dout(fpu_fdiv_fsqrt_stall_f2));
+
+   // bypass logic start
+   //************************************************
+   // I1 BYPASS  e1/e2/e3/e4/wb -> decode
+   //************************************************
+   // decode stage frs1 <-> e1/e2/e3/e4/wb dependency judge
+   assign i1_frs1_depend_i0_e1 = i1_dp.frs1 & e1d.i0_wr_frd & (e1d.i0_frd[4:0] == i1r.frs1[4:0]);
+   assign i1_frs1_depend_i0_e2 = i1_dp.frs1 & e2d.i0_wr_frd & (e2d.i0_frd[4:0] == i1r.frs1[4:0]);
+   assign i1_frs1_depend_i0_e3 = i1_dp.frs1 & e3d.i0_wr_frd & (e3d.i0_frd[4:0] == i1r.frs1[4:0]);
+   assign i1_frs1_depend_i0_e4 = i1_dp.frs1 & e4d.i0_wr_frd & (e4d.i0_frd[4:0] == i1r.frs1[4:0]);
+   assign i1_frs1_depend_i0_wb = i1_dp.frs1 & wbd.i0_wr_frd & (wbd.i0_frd[4:0] == i1r.frs1[4:0]);
+
+   // decode stage frs2 <-> e1/e2/e3/e4/wb dependency judge
+   assign i1_frs2_depend_i0_e1 = i1_dp.frs2 & e1d.i0_wr_frd & (e1d.i0_frd[4:0] == i1r.frs2[4:0]);
+   assign i1_frs2_depend_i0_e2 = i1_dp.frs2 & e2d.i0_wr_frd & (e2d.i0_frd[4:0] == i1r.frs2[4:0]);
+   assign i1_frs2_depend_i0_e3 = i1_dp.frs2 & e3d.i0_wr_frd & (e3d.i0_frd[4:0] == i1r.frs2[4:0]);
+   assign i1_frs2_depend_i0_e4 = i1_dp.frs2 & e4d.i0_wr_frd & (e4d.i0_frd[4:0] == i1r.frs2[4:0]);
+   assign i1_frs2_depend_i0_wb = i1_dp.frs2 & wbd.i0_wr_frd & (wbd.i0_frd[4:0] == i1r.frs2[4:0]);
+
+   // decode stage frs3 <-> e1/e2/e3/e4/wb dependency judge
+   assign i1_frs3_depend_i0_e1 = i1_dp.frs3 & e1d.i0_wr_frd & (e1d.i0_frd[4:0] == i1r.frs3[4:0]);
+   assign i1_frs3_depend_i0_e2 = i1_dp.frs3 & e2d.i0_wr_frd & (e2d.i0_frd[4:0] == i1r.frs3[4:0]);
+   assign i1_frs3_depend_i0_e3 = i1_dp.frs3 & e3d.i0_wr_frd & (e3d.i0_frd[4:0] == i1r.frs3[4:0]);
+   assign i1_frs3_depend_i0_e4 = i1_dp.frs3 & e4d.i0_wr_frd & (e4d.i0_frd[4:0] == i1r.frs3[4:0]);
+   assign i1_frs3_depend_i0_wb = i1_dp.frs3 & wbd.i0_wr_frd & (wbd.i0_frd[4:0] == i1r.frs3[4:0]);
+
+   // decode stage frs1 <-> e1/e2/e3/e4/wb dependency judge
+   assign i1_frs1_depend_i1_e1 = i1_dp.frs1 & e1d.i1_wr_frd & (e1d.i1_frd[4:0] == i1r.frs1[4:0]);
+   assign i1_frs1_depend_i1_e2 = i1_dp.frs1 & e2d.i1_wr_frd & (e2d.i1_frd[4:0] == i1r.frs1[4:0]);
+   assign i1_frs1_depend_i1_e3 = i1_dp.frs1 & e3d.i1_wr_frd & (e3d.i1_frd[4:0] == i1r.frs1[4:0]);
+   assign i1_frs1_depend_i1_e4 = i1_dp.frs1 & e4d.i1_wr_frd & (e4d.i1_frd[4:0] == i1r.frs1[4:0]);
+   assign i1_frs1_depend_i1_wb = i1_dp.frs1 & wbd.i1_wr_frd & (wbd.i1_frd[4:0] == i1r.frs1[4:0]);
+
+   // decode stage frs2 <-> e1/e2/e3/e4/wb dependency judge
+   assign i1_frs2_depend_i1_e1 = i1_dp.frs2 & e1d.i1_wr_frd & (e1d.i1_frd[4:0] == i1r.frs2[4:0]);
+   assign i1_frs2_depend_i1_e2 = i1_dp.frs2 & e2d.i1_wr_frd & (e2d.i1_frd[4:0] == i1r.frs2[4:0]);
+   assign i1_frs2_depend_i1_e3 = i1_dp.frs2 & e3d.i1_wr_frd & (e3d.i1_frd[4:0] == i1r.frs2[4:0]);
+   assign i1_frs2_depend_i1_e4 = i1_dp.frs2 & e4d.i1_wr_frd & (e4d.i1_frd[4:0] == i1r.frs2[4:0]);
+   assign i1_frs2_depend_i1_wb = i1_dp.frs2 & wbd.i1_wr_frd & (wbd.i1_frd[4:0] == i1r.frs2[4:0]);
+
+   // decode stage frs3 <-> e1/e2/e3/e4/wb dependency judge
+   assign i1_frs3_depend_i1_e1 = i1_dp.frs3 & e1d.i1_wr_frd & (e1d.i1_frd[4:0] == i1r.frs3[4:0]);
+   assign i1_frs3_depend_i1_e2 = i1_dp.frs3 & e2d.i1_wr_frd & (e2d.i1_frd[4:0] == i1r.frs3[4:0]);
+   assign i1_frs3_depend_i1_e3 = i1_dp.frs3 & e3d.i1_wr_frd & (e3d.i1_frd[4:0] == i1r.frs3[4:0]);
+   assign i1_frs3_depend_i1_e4 = i1_dp.frs3 & e4d.i1_wr_frd & (e4d.i1_frd[4:0] == i1r.frs3[4:0]);
+   assign i1_frs3_depend_i1_wb = i1_dp.frs3 & wbd.i1_wr_frd & (wbd.i1_frd[4:0] == i1r.frs3[4:0]);
+   
+   // decode stage frs1 dependency encode
+   assign {i1_frs1_class_d, i1_frs1_depth_d[3:0]} =
+                                                  (i1_frs1_depend_i1_e1) ? { i1_e1c, 4'd1 } :
+                                                  (i1_frs1_depend_i0_e1) ? { i0_e1c, 4'd2 } :
+                                                  (i1_frs1_depend_i1_e2) ? { i1_e2c, 4'd3 } :
+                                                  (i1_frs1_depend_i0_e2) ? { i0_e2c, 4'd4 } :
+                                                  (i1_frs1_depend_i1_e3) ? { i1_e3c, 4'd5 } :
+                                                  (i1_frs1_depend_i0_e3) ? { i0_e3c, 4'd6 } :
+                                                  (i1_frs1_depend_i1_e4) ? { i1_e4c, 4'd7 } :
+                                                  (i1_frs1_depend_i0_e4) ? { i0_e4c, 4'd8 } :
+                                                  (i1_frs1_depend_i1_wb) ? { i1_wbc, 4'd9 } :
+                                                  (i1_frs1_depend_i0_wb) ? { i0_wbc, 4'd10 } : '0;
+   // decode stage frs2 dependency encode
+   assign {i1_frs2_class_d, i1_frs2_depth_d[3:0]} =
+                                                  (i1_frs2_depend_i1_e1) ? { i1_e1c, 4'd1 } :
+                                                  (i1_frs2_depend_i0_e1) ? { i0_e1c, 4'd2 } :
+                                                  (i1_frs2_depend_i1_e2) ? { i1_e2c, 4'd3 } :
+                                                  (i1_frs2_depend_i0_e2) ? { i0_e2c, 4'd4 } :
+                                                  (i1_frs2_depend_i1_e3) ? { i1_e3c, 4'd5 } :
+                                                  (i1_frs2_depend_i0_e3) ? { i0_e3c, 4'd6 } :
+                                                  (i1_frs2_depend_i1_e4) ? { i1_e4c, 4'd7 } :
+                                                  (i1_frs2_depend_i0_e4) ? { i0_e4c, 4'd8 } :
+                                                  (i1_frs2_depend_i1_wb) ? { i1_wbc, 4'd9 } :
+                                                  (i1_frs2_depend_i0_wb) ? { i0_wbc, 4'd10 } : '0;
+
+   // decode stage frs3 dependency encode
+   assign {i1_frs3_class_d, i1_frs3_depth_d[3:0]} =
+                                                  (i1_frs3_depend_i1_e1) ? { i1_e1c, 4'd1 } :
+                                                  (i1_frs3_depend_i0_e1) ? { i0_e1c, 4'd2 } :
+                                                  (i1_frs3_depend_i1_e2) ? { i1_e2c, 4'd3 } :
+                                                  (i1_frs3_depend_i0_e2) ? { i0_e2c, 4'd4 } :
+                                                  (i1_frs3_depend_i1_e3) ? { i1_e3c, 4'd5 } :
+                                                  (i1_frs3_depend_i0_e3) ? { i0_e3c, 4'd6 } :
+                                                  (i1_frs3_depend_i1_e4) ? { i1_e4c, 4'd7 } :
+                                                  (i1_frs3_depend_i0_e4) ? { i0_e4c, 4'd8 } :
+                                                  (i1_frs3_depend_i1_wb) ? { i1_wbc, 4'd9 } :
+                                                  (i1_frs3_depend_i0_wb) ? { i0_wbc, 4'd10 } : '0;
+   
+   // frs1 dependency encode
+   assign i1_frs1bypass[9:0] = {  i1_frs1_depth_d[3:0] == 4'd1  & (i1_frs1_class_d.int_to_fp | i1_frs1_class_d.fp_to_fp),
+                                  i1_frs1_depth_d[3:0] == 4'd2  & (i1_frs1_class_d.int_to_fp | i1_frs1_class_d.fp_to_fp),
+                                  i1_frs1_depth_d[3:0] == 4'd3  & (i1_frs1_class_d.int_to_fp | i1_frs1_class_d.fp_to_fp),
+                                  i1_frs1_depth_d[3:0] == 4'd4  & (i1_frs1_class_d.int_to_fp | i1_frs1_class_d.fp_to_fp),
+                                  i1_frs1_depth_d[3:0] == 4'd5  & (i1_frs1_class_d.int_to_fp | i1_frs1_class_d.fp_to_fp | i1_frs1_class_d.fl | i1_frs1_class_d.fma), 
+                                  i1_frs1_depth_d[3:0] == 4'd6  & (i1_frs1_class_d.int_to_fp | i1_frs1_class_d.fp_to_fp | i1_frs1_class_d.fl | i1_frs1_class_d.fma),
+                                  i1_frs1_depth_d[3:0] == 4'd7  & (i1_frs1_class_d.int_to_fp | i1_frs1_class_d.fp_to_fp | i1_frs1_class_d.fl | i1_frs1_class_d.fma),
+                                  i1_frs1_depth_d[3:0] == 4'd8  & (i1_frs1_class_d.int_to_fp | i1_frs1_class_d.fp_to_fp | i1_frs1_class_d.fl | i1_frs1_class_d.fma),
+                                  i1_frs1_depth_d[3:0] == 4'd9  & (i1_frs1_class_d.int_to_fp | i1_frs1_class_d.fp_to_fp | i1_frs1_class_d.fl | i1_frs1_class_d.fma),
+                                  i1_frs1_depth_d[3:0] == 4'd10 & (i1_frs1_class_d.int_to_fp | i1_frs1_class_d.fp_to_fp | i1_frs1_class_d.fl | i1_frs1_class_d.fma) };
+
+   // frs2 dependency encode
+   assign i1_frs2bypass[9:0] = {  i1_frs2_depth_d[3:0] == 4'd1  & (i1_frs2_class_d.int_to_fp | i1_frs2_class_d.fp_to_fp),
+                                  i1_frs2_depth_d[3:0] == 4'd2  & (i1_frs2_class_d.int_to_fp | i1_frs2_class_d.fp_to_fp),
+                                  i1_frs2_depth_d[3:0] == 4'd3  & (i1_frs2_class_d.int_to_fp | i1_frs2_class_d.fp_to_fp),
+                                  i1_frs2_depth_d[3:0] == 4'd4  & (i1_frs2_class_d.int_to_fp | i1_frs2_class_d.fp_to_fp),
+                                  i1_frs2_depth_d[3:0] == 4'd5  & (i1_frs2_class_d.int_to_fp | i1_frs2_class_d.fp_to_fp | i1_frs2_class_d.fl | i1_frs2_class_d.fma),
+                                  i1_frs2_depth_d[3:0] == 4'd6  & (i1_frs2_class_d.int_to_fp | i1_frs2_class_d.fp_to_fp | i1_frs2_class_d.fl | i1_frs2_class_d.fma),
+                                  i1_frs2_depth_d[3:0] == 4'd7  & (i1_frs2_class_d.int_to_fp | i1_frs2_class_d.fp_to_fp | i1_frs2_class_d.fl | i1_frs2_class_d.fma),
+                                  i1_frs2_depth_d[3:0] == 4'd8  & (i1_frs2_class_d.int_to_fp | i1_frs2_class_d.fp_to_fp | i1_frs2_class_d.fl | i1_frs2_class_d.fma),
+                                  i1_frs2_depth_d[3:0] == 4'd9  & (i1_frs2_class_d.int_to_fp | i1_frs2_class_d.fp_to_fp | i1_frs2_class_d.fl | i1_frs2_class_d.fma),
+                                  i1_frs2_depth_d[3:0] == 4'd10 & (i1_frs2_class_d.int_to_fp | i1_frs2_class_d.fp_to_fp | i1_frs2_class_d.fl | i1_frs2_class_d.fma) };
+   
+   // frs3 dependency encode
+   assign i1_frs3bypass[9:0] = {  i1_frs3_depth_d[3:0] == 4'd1  & (i1_frs3_class_d.int_to_fp | i1_frs3_class_d.fp_to_fp),
+                                  i1_frs3_depth_d[3:0] == 4'd2  & (i1_frs3_class_d.int_to_fp | i1_frs3_class_d.fp_to_fp),
+                                  i1_frs3_depth_d[3:0] == 4'd3  & (i1_frs3_class_d.int_to_fp | i1_frs3_class_d.fp_to_fp),
+                                  i1_frs3_depth_d[3:0] == 4'd4  & (i1_frs3_class_d.int_to_fp | i1_frs3_class_d.fp_to_fp),
+                                  i1_frs3_depth_d[3:0] == 4'd5  & (i1_frs3_class_d.int_to_fp | i1_frs3_class_d.fp_to_fp | i1_frs3_class_d.fl | i1_frs3_class_d.fma),
+                                  i1_frs3_depth_d[3:0] == 4'd6  & (i1_frs3_class_d.int_to_fp | i1_frs3_class_d.fp_to_fp | i1_frs3_class_d.fl | i1_frs3_class_d.fma),
+                                  i1_frs3_depth_d[3:0] == 4'd7  & (i1_frs3_class_d.int_to_fp | i1_frs3_class_d.fp_to_fp | i1_frs3_class_d.fl | i1_frs3_class_d.fma),
+                                  i1_frs3_depth_d[3:0] == 4'd8  & (i1_frs3_class_d.int_to_fp | i1_frs3_class_d.fp_to_fp | i1_frs3_class_d.fl | i1_frs3_class_d.fma),
+                                  i1_frs3_depth_d[3:0] == 4'd9  & (i1_frs3_class_d.int_to_fp | i1_frs3_class_d.fp_to_fp | i1_frs3_class_d.fl | i1_frs3_class_d.fma),
+                                  i1_frs3_depth_d[3:0] == 4'd10 & (i1_frs3_class_d.int_to_fp | i1_frs3_class_d.fp_to_fp | i1_frs3_class_d.fl | i1_frs3_class_d.fma) };
+   
+   // bypass data mux
+   assign i1_frs1_bypass_rec_fn_data_d[64:0] = ({65{i1_frs1bypass[9]}} & i1_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i1_frs1bypass[8]}} & i0_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i1_frs1bypass[7]}} & i1_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i1_frs1bypass[6]}} & i0_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i1_frs1bypass[5]}} & i1_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i1_frs1bypass[4]}} & i0_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i1_frs1bypass[3]}} & i1_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i1_frs1bypass[2]}} & i0_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i1_frs1bypass[1]}} & i1_float_rec_fn_result_wb[64:0]) |
+                                               ({65{i1_frs1bypass[0]}} & i0_float_rec_fn_result_wb[64:0]);
+
+   assign i1_frs2_bypass_rec_fn_data_d[64:0] = ({65{i1_frs2bypass[9]}} & i1_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i1_frs2bypass[8]}} & i0_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i1_frs2bypass[7]}} & i1_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i1_frs2bypass[6]}} & i0_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i1_frs2bypass[5]}} & i1_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i1_frs2bypass[4]}} & i0_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i1_frs2bypass[3]}} & i1_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i1_frs2bypass[2]}} & i0_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i1_frs2bypass[1]}} & i1_float_rec_fn_result_wb[64:0]) |
+                                               ({65{i1_frs2bypass[0]}} & i0_float_rec_fn_result_wb[64:0]);
+
+   assign i1_frs3_bypass_rec_fn_data_d[64:0] = ({65{i1_frs3bypass[9]}} & i1_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i1_frs3bypass[8]}} & i0_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i1_frs3bypass[7]}} & i1_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i1_frs3bypass[6]}} & i0_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i1_frs3bypass[5]}} & i1_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i1_frs3bypass[4]}} & i0_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i1_frs3bypass[3]}} & i1_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i1_frs3bypass[2]}} & i0_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i1_frs3bypass[1]}} & i1_float_rec_fn_result_wb[64:0]) |
+                                               ({65{i1_frs3bypass[0]}} & i0_float_rec_fn_result_wb[64:0]);
+   
+   assign dec_i1_frs1_bypass_fp64_d = (i1_frs1bypass[9] & i1_result_fp64_e1) |
+                                      (i1_frs1bypass[8] & i0_result_fp64_e1) |
+                                      (i1_frs1bypass[7] & i1_result_fp64_e2) |
+                                      (i1_frs1bypass[6] & i0_result_fp64_e2) |
+                                      (i1_frs1bypass[5] & i1_result_fp64_e3) |
+                                      (i1_frs1bypass[4] & i0_result_fp64_e3) |
+                                      (i1_frs1bypass[3] & i1_result_fp64_e4) |
+                                      (i1_frs1bypass[2] & i0_result_fp64_e4) |
+                                      (i1_frs1bypass[1] & i1_result_fp64_wb) |
+                                      (i1_frs1bypass[0] & i0_result_fp64_wb);
+   
+   assign dec_i1_frs2_bypass_fp64_d = (i1_frs2bypass[9] & i1_result_fp64_e1) |
+                                      (i1_frs2bypass[8] & i0_result_fp64_e1) |
+                                      (i1_frs2bypass[7] & i1_result_fp64_e2) |
+                                      (i1_frs2bypass[6] & i0_result_fp64_e2) |
+                                      (i1_frs2bypass[5] & i1_result_fp64_e3) |
+                                      (i1_frs2bypass[4] & i0_result_fp64_e3) |
+                                      (i1_frs2bypass[3] & i1_result_fp64_e4) |
+                                      (i1_frs2bypass[2] & i0_result_fp64_e4) |
+                                      (i1_frs2bypass[1] & i1_result_fp64_wb) |
+                                      (i1_frs2bypass[0] & i0_result_fp64_wb);
+   
+   assign dec_i1_frs3_bypass_fp64_d = (i1_frs3bypass[9] & i1_result_fp64_e1) |
+                                      (i1_frs3bypass[8] & i0_result_fp64_e1) |
+                                      (i1_frs3bypass[7] & i1_result_fp64_e2) |
+                                      (i1_frs3bypass[6] & i0_result_fp64_e2) |
+                                      (i1_frs3bypass[5] & i1_result_fp64_e3) |
+                                      (i1_frs3bypass[4] & i0_result_fp64_e3) |
+                                      (i1_frs3bypass[3] & i1_result_fp64_e4) |
+                                      (i1_frs3bypass[2] & i0_result_fp64_e4) |
+                                      (i1_frs3bypass[1] & i1_result_fp64_wb) |
+                                      (i1_frs3bypass[0] & i0_result_fp64_wb);
+   
+   // float rs bypass enable    
+   assign dec_i1_frs1_bypass_en_d = |i1_frs1bypass[9:0];
+   assign dec_i1_frs2_bypass_en_d = |i1_frs2bypass[9:0];
+   assign dec_i1_frs3_bypass_en_d = |i1_frs3bypass[9:0];
+
+   // float bypass data mux
+   assign dec_i1_frs1_bypass_rec_fn_data_d[64:0] = i1_frs1_bypass_rec_fn_data_d[64:0];
+   assign dec_i1_frs2_bypass_rec_fn_data_d[64:0] = i1_frs2_bypass_rec_fn_data_d[64:0]; 
+   assign dec_i1_frs3_bypass_rec_fn_data_d[64:0] = i1_frs3_bypass_rec_fn_data_d[64:0];
+
+   //************************************************
+   // I0 BYPASS  e1/e2/e3/e4/wb -> decode
+   //************************************************
+   // decode stage frs1 <-> e1/e2/e3/e4/wb dependency judge
+   assign i0_frs1_depend_i0_e1 = i0_dp.frs1 & e1d.i0_wr_frd & (e1d.i0_frd[4:0] == i0r.frs1[4:0]);
+   assign i0_frs1_depend_i0_e2 = i0_dp.frs1 & e2d.i0_wr_frd & (e2d.i0_frd[4:0] == i0r.frs1[4:0]);
+   assign i0_frs1_depend_i0_e3 = i0_dp.frs1 & e3d.i0_wr_frd & (e3d.i0_frd[4:0] == i0r.frs1[4:0]);
+   assign i0_frs1_depend_i0_e4 = i0_dp.frs1 & e4d.i0_wr_frd & (e4d.i0_frd[4:0] == i0r.frs1[4:0]);
+   assign i0_frs1_depend_i0_wb = i0_dp.frs1 & wbd.i0_wr_frd & (wbd.i0_frd[4:0] == i0r.frs1[4:0]);
+   // decode stage frs2 <-> e1/e2/e3/e4/wb dependency judge
+   assign i0_frs2_depend_i0_e1 = i0_dp.frs2 & e1d.i0_wr_frd & (e1d.i0_frd[4:0] == i0r.frs2[4:0]);
+   assign i0_frs2_depend_i0_e2 = i0_dp.frs2 & e2d.i0_wr_frd & (e2d.i0_frd[4:0] == i0r.frs2[4:0]);
+   assign i0_frs2_depend_i0_e3 = i0_dp.frs2 & e3d.i0_wr_frd & (e3d.i0_frd[4:0] == i0r.frs2[4:0]);
+   assign i0_frs2_depend_i0_e4 = i0_dp.frs2 & e4d.i0_wr_frd & (e4d.i0_frd[4:0] == i0r.frs2[4:0]);
+   assign i0_frs2_depend_i0_wb = i0_dp.frs2 & wbd.i0_wr_frd & (wbd.i0_frd[4:0] == i0r.frs2[4:0]);
+   // decode stage frs3 <-> e1/e2/e3/e4/wb dependency judge
+   assign i0_frs3_depend_i0_e1 = i0_dp.frs3 & e1d.i0_wr_frd & (e1d.i0_frd[4:0] == i0r.frs3[4:0]);
+   assign i0_frs3_depend_i0_e2 = i0_dp.frs3 & e2d.i0_wr_frd & (e2d.i0_frd[4:0] == i0r.frs3[4:0]);
+   assign i0_frs3_depend_i0_e3 = i0_dp.frs3 & e3d.i0_wr_frd & (e3d.i0_frd[4:0] == i0r.frs3[4:0]);
+   assign i0_frs3_depend_i0_e4 = i0_dp.frs3 & e4d.i0_wr_frd & (e4d.i0_frd[4:0] == i0r.frs3[4:0]);
+   assign i0_frs3_depend_i0_wb = i0_dp.frs3 & wbd.i0_wr_frd & (wbd.i0_frd[4:0] == i0r.frs3[4:0]);
+
+   // decode stage frs1 <-> e1/e2/e3/e4/wb dependency judge
+   assign i0_frs1_depend_i1_e1 = i0_dp.frs1 & e1d.i1_wr_frd & (e1d.i1_frd[4:0] == i0r.frs1[4:0]);
+   assign i0_frs1_depend_i1_e2 = i0_dp.frs1 & e2d.i1_wr_frd & (e2d.i1_frd[4:0] == i0r.frs1[4:0]);
+   assign i0_frs1_depend_i1_e3 = i0_dp.frs1 & e3d.i1_wr_frd & (e3d.i1_frd[4:0] == i0r.frs1[4:0]);
+   assign i0_frs1_depend_i1_e4 = i0_dp.frs1 & e4d.i1_wr_frd & (e4d.i1_frd[4:0] == i0r.frs1[4:0]);
+   assign i0_frs1_depend_i1_wb = i0_dp.frs1 & wbd.i1_wr_frd & (wbd.i1_frd[4:0] == i0r.frs1[4:0]);
+
+   // decode stage frs2 <-> e1/e2/e3/e4/wb dependency judge
+   assign i0_frs2_depend_i1_e1 = i0_dp.frs2 & e1d.i1_wr_frd & (e1d.i1_frd[4:0] == i0r.frs2[4:0]);
+   assign i0_frs2_depend_i1_e2 = i0_dp.frs2 & e2d.i1_wr_frd & (e2d.i1_frd[4:0] == i0r.frs2[4:0]);
+   assign i0_frs2_depend_i1_e3 = i0_dp.frs2 & e3d.i1_wr_frd & (e3d.i1_frd[4:0] == i0r.frs2[4:0]);
+   assign i0_frs2_depend_i1_e4 = i0_dp.frs2 & e4d.i1_wr_frd & (e4d.i1_frd[4:0] == i0r.frs2[4:0]);
+   assign i0_frs2_depend_i1_wb = i0_dp.frs2 & wbd.i1_wr_frd & (wbd.i1_frd[4:0] == i0r.frs2[4:0]);
+
+   // decode stage frs3 <-> e1/e2/e3/e4/wb dependency judge
+   assign i0_frs3_depend_i1_e1 = i0_dp.frs3 & e1d.i1_wr_frd & (e1d.i1_frd[4:0] == i0r.frs3[4:0]);
+   assign i0_frs3_depend_i1_e2 = i0_dp.frs3 & e2d.i1_wr_frd & (e2d.i1_frd[4:0] == i0r.frs3[4:0]);
+   assign i0_frs3_depend_i1_e3 = i0_dp.frs3 & e3d.i1_wr_frd & (e3d.i1_frd[4:0] == i0r.frs3[4:0]);
+   assign i0_frs3_depend_i1_e4 = i0_dp.frs3 & e4d.i1_wr_frd & (e4d.i1_frd[4:0] == i0r.frs3[4:0]);
+   assign i0_frs3_depend_i1_wb = i0_dp.frs3 & wbd.i1_wr_frd & (wbd.i1_frd[4:0] == i0r.frs3[4:0]);
+
+   // decode stage frs1 dependency encode
+   assign {i0_frs1_class_d, i0_frs1_depth_d[3:0]} =
+                                                  (i0_frs1_depend_i1_e1) ? { i1_e1c, 4'd1 } :
+                                                  (i0_frs1_depend_i0_e1) ? { i0_e1c, 4'd2 } :
+                                                  (i0_frs1_depend_i1_e2) ? { i1_e2c, 4'd3 } :
+                                                  (i0_frs1_depend_i0_e2) ? { i0_e2c, 4'd4 } :
+                                                  (i0_frs1_depend_i1_e3) ? { i1_e3c, 4'd5 } :
+                                                  (i0_frs1_depend_i0_e3) ? { i0_e3c, 4'd6 } :
+                                                  (i0_frs1_depend_i1_e4) ? { i1_e4c, 4'd7 } :
+                                                  (i0_frs1_depend_i0_e4) ? { i0_e4c, 4'd8 } :
+                                                  (i0_frs1_depend_i1_wb) ? { i1_wbc, 4'd9 } :
+                                                  (i0_frs1_depend_i0_wb) ? { i0_wbc, 4'd10 } : '0;
+
+   // decode stage frs2 dependency encode
+   assign {i0_frs2_class_d, i0_frs2_depth_d[3:0]} =
+                                                  (i0_frs2_depend_i1_e1) ? { i1_e1c, 4'd1 } :
+                                                  (i0_frs2_depend_i0_e1) ? { i0_e1c, 4'd2 } :
+                                                  (i0_frs2_depend_i1_e2) ? { i1_e2c, 4'd3 } :
+                                                  (i0_frs2_depend_i0_e2) ? { i0_e2c, 4'd4 } :
+                                                  (i0_frs2_depend_i1_e3) ? { i1_e3c, 4'd5 } :
+                                                  (i0_frs2_depend_i0_e3) ? { i0_e3c, 4'd6 } :
+                                                  (i0_frs2_depend_i1_e4) ? { i1_e4c, 4'd7 } :
+                                                  (i0_frs2_depend_i0_e4) ? { i0_e4c, 4'd8 } :
+                                                  (i0_frs2_depend_i1_wb) ? { i1_wbc, 4'd9 } :
+                                                  (i0_frs2_depend_i0_wb) ? { i0_wbc, 4'd10 } : '0;
+
+   // decode stage frs3 dependency encode
+   assign {i0_frs3_class_d, i0_frs3_depth_d[3:0]} =
+                                                  (i0_frs3_depend_i1_e1) ? { i1_e1c, 4'd1 } :
+                                                  (i0_frs3_depend_i0_e1) ? { i0_e1c, 4'd2 } :
+                                                  (i0_frs3_depend_i1_e2) ? { i1_e2c, 4'd3 } :
+                                                  (i0_frs3_depend_i0_e2) ? { i0_e2c, 4'd4 } :
+                                                  (i0_frs3_depend_i1_e3) ? { i1_e3c, 4'd5 } :
+                                                  (i0_frs3_depend_i0_e3) ? { i0_e3c, 4'd6 } :
+                                                  (i0_frs3_depend_i1_e4) ? { i1_e4c, 4'd7 } :
+                                                  (i0_frs3_depend_i0_e4) ? { i0_e4c, 4'd8 } :
+                                                  (i0_frs3_depend_i1_wb) ? { i1_wbc, 4'd9 } :
+                                                  (i0_frs3_depend_i0_wb) ? { i0_wbc, 4'd10 } : '0;
+
+   // frs1 dependency encode
+   assign i0_frs1bypass[9:0] = {  i0_frs1_depth_d[3:0] == 4'd1  & (i0_frs1_class_d.int_to_fp | i0_frs1_class_d.fp_to_fp),
+                                  i0_frs1_depth_d[3:0] == 4'd2  & (i0_frs1_class_d.int_to_fp | i0_frs1_class_d.fp_to_fp),
+                                  i0_frs1_depth_d[3:0] == 4'd3  & (i0_frs1_class_d.int_to_fp | i0_frs1_class_d.fp_to_fp),
+                                  i0_frs1_depth_d[3:0] == 4'd4  & (i0_frs1_class_d.int_to_fp | i0_frs1_class_d.fp_to_fp),
+                                  i0_frs1_depth_d[3:0] == 4'd5  & (i0_frs1_class_d.int_to_fp | i0_frs1_class_d.fp_to_fp | i0_frs1_class_d.fl | i0_frs1_class_d.fma), 
+                                  i0_frs1_depth_d[3:0] == 4'd6  & (i0_frs1_class_d.int_to_fp | i0_frs1_class_d.fp_to_fp | i0_frs1_class_d.fl | i0_frs1_class_d.fma),
+                                  i0_frs1_depth_d[3:0] == 4'd7  & (i0_frs1_class_d.int_to_fp | i0_frs1_class_d.fp_to_fp | i0_frs1_class_d.fl | i0_frs1_class_d.fma),
+                                  i0_frs1_depth_d[3:0] == 4'd8  & (i0_frs1_class_d.int_to_fp | i0_frs1_class_d.fp_to_fp | i0_frs1_class_d.fl | i0_frs1_class_d.fma),
+                                  i0_frs1_depth_d[3:0] == 4'd9  & (i0_frs1_class_d.int_to_fp | i0_frs1_class_d.fp_to_fp | i0_frs1_class_d.fl | i0_frs1_class_d.fma),
+                                  i0_frs1_depth_d[3:0] == 4'd10 & (i0_frs1_class_d.int_to_fp | i0_frs1_class_d.fp_to_fp | i0_frs1_class_d.fl | i0_frs1_class_d.fma) };
+
+   // frs2 dependency encode
+   assign i0_frs2bypass[9:0] = {  i0_frs2_depth_d[3:0] == 4'd1  & (i0_frs2_class_d.int_to_fp | i0_frs2_class_d.fp_to_fp),
+                                  i0_frs2_depth_d[3:0] == 4'd2  & (i0_frs2_class_d.int_to_fp | i0_frs2_class_d.fp_to_fp),
+                                  i0_frs2_depth_d[3:0] == 4'd3  & (i0_frs2_class_d.int_to_fp | i0_frs2_class_d.fp_to_fp),
+                                  i0_frs2_depth_d[3:0] == 4'd4  & (i0_frs2_class_d.int_to_fp | i0_frs2_class_d.fp_to_fp),
+                                  i0_frs2_depth_d[3:0] == 4'd5  & (i0_frs2_class_d.int_to_fp | i0_frs2_class_d.fp_to_fp | i0_frs2_class_d.fl | i0_frs2_class_d.fma),
+                                  i0_frs2_depth_d[3:0] == 4'd6  & (i0_frs2_class_d.int_to_fp | i0_frs2_class_d.fp_to_fp | i0_frs2_class_d.fl | i0_frs2_class_d.fma),
+                                  i0_frs2_depth_d[3:0] == 4'd7  & (i0_frs2_class_d.int_to_fp | i0_frs2_class_d.fp_to_fp | i0_frs2_class_d.fl | i0_frs2_class_d.fma),
+                                  i0_frs2_depth_d[3:0] == 4'd8  & (i0_frs2_class_d.int_to_fp | i0_frs2_class_d.fp_to_fp | i0_frs2_class_d.fl | i0_frs2_class_d.fma),
+                                  i0_frs2_depth_d[3:0] == 4'd9  & (i0_frs2_class_d.int_to_fp | i0_frs2_class_d.fp_to_fp | i0_frs2_class_d.fl | i0_frs2_class_d.fma),
+                                  i0_frs2_depth_d[3:0] == 4'd10 & (i0_frs2_class_d.int_to_fp | i0_frs2_class_d.fp_to_fp | i0_frs2_class_d.fl | i0_frs2_class_d.fma) };
+   
+   // frs3 dependency encode
+   assign i0_frs3bypass[9:0] = {  i0_frs3_depth_d[3:0] == 4'd1  & (i0_frs3_class_d.int_to_fp | i0_frs3_class_d.fp_to_fp),
+                                  i0_frs3_depth_d[3:0] == 4'd2  & (i0_frs3_class_d.int_to_fp | i0_frs3_class_d.fp_to_fp),
+                                  i0_frs3_depth_d[3:0] == 4'd3  & (i0_frs3_class_d.int_to_fp | i0_frs3_class_d.fp_to_fp),
+                                  i0_frs3_depth_d[3:0] == 4'd4  & (i0_frs3_class_d.int_to_fp | i0_frs3_class_d.fp_to_fp),
+                                  i0_frs3_depth_d[3:0] == 4'd5  & (i0_frs3_class_d.int_to_fp | i0_frs3_class_d.fp_to_fp | i0_frs3_class_d.fl | i0_frs3_class_d.fma),
+                                  i0_frs3_depth_d[3:0] == 4'd6  & (i0_frs3_class_d.int_to_fp | i0_frs3_class_d.fp_to_fp | i0_frs3_class_d.fl | i0_frs3_class_d.fma),
+                                  i0_frs3_depth_d[3:0] == 4'd7  & (i0_frs3_class_d.int_to_fp | i0_frs3_class_d.fp_to_fp | i0_frs3_class_d.fl | i0_frs3_class_d.fma),
+                                  i0_frs3_depth_d[3:0] == 4'd8  & (i0_frs3_class_d.int_to_fp | i0_frs3_class_d.fp_to_fp | i0_frs3_class_d.fl | i0_frs3_class_d.fma),
+                                  i0_frs3_depth_d[3:0] == 4'd9  & (i0_frs3_class_d.int_to_fp | i0_frs3_class_d.fp_to_fp | i0_frs3_class_d.fl | i0_frs3_class_d.fma),
+                                  i0_frs3_depth_d[3:0] == 4'd10 & (i0_frs3_class_d.int_to_fp | i0_frs3_class_d.fp_to_fp | i0_frs3_class_d.fl | i0_frs3_class_d.fma) };
+   
+   // bypass data mux
+   assign i0_frs1_bypass_rec_fn_data_d[64:0] = ({65{i0_frs1bypass[9]}} & i1_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i0_frs1bypass[8]}} & i0_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i0_frs1bypass[7]}} & i1_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i0_frs1bypass[6]}} & i0_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i0_frs1bypass[5]}} & i1_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i0_frs1bypass[4]}} & i0_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i0_frs1bypass[3]}} & i1_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i0_frs1bypass[2]}} & i0_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i0_frs1bypass[1]}} & i1_float_rec_fn_result_wb[64:0]) |
+                                               ({65{i0_frs1bypass[0]}} & i0_float_rec_fn_result_wb[64:0]);
+
+   assign i0_frs2_bypass_rec_fn_data_d[64:0] = ({65{i0_frs2bypass[9]}} & i1_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i0_frs2bypass[8]}} & i0_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i0_frs2bypass[7]}} & i1_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i0_frs2bypass[6]}} & i0_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i0_frs2bypass[5]}} & i1_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i0_frs2bypass[4]}} & i0_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i0_frs2bypass[3]}} & i1_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i0_frs2bypass[2]}} & i0_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i0_frs2bypass[1]}} & i1_float_rec_fn_result_wb[64:0]) |
+                                               ({65{i0_frs2bypass[0]}} & i0_float_rec_fn_result_wb[64:0]);
+
+   assign i0_frs3_bypass_rec_fn_data_d[64:0] = ({65{i0_frs3bypass[9]}} & i1_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i0_frs3bypass[8]}} & i0_float_rec_fn_result_e1[64:0]) |
+                                               ({65{i0_frs3bypass[7]}} & i1_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i0_frs3bypass[6]}} & i0_float_rec_fn_result_e2[64:0]) |
+                                               ({65{i0_frs3bypass[5]}} & i1_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i0_frs3bypass[4]}} & i0_float_rec_fn_result_e3_final[64:0]) |
+                                               ({65{i0_frs3bypass[3]}} & i1_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i0_frs3bypass[2]}} & i0_float_rec_fn_result_e4_final[64:0]) |
+                                               ({65{i0_frs3bypass[1]}} & i1_float_rec_fn_result_wb[64:0]) |
+                                               ({65{i0_frs3bypass[0]}} & i0_float_rec_fn_result_wb[64:0]);
+
+   assign dec_i0_frs1_bypass_fp64_d = (i0_frs1bypass[9] & i1_result_fp64_e1) |
+                                      (i0_frs1bypass[8] & i0_result_fp64_e1) |
+                                      (i0_frs1bypass[7] & i1_result_fp64_e2) |
+                                      (i0_frs1bypass[6] & i0_result_fp64_e2) |
+                                      (i0_frs1bypass[5] & i1_result_fp64_e3) |
+                                      (i0_frs1bypass[4] & i0_result_fp64_e3) |
+                                      (i0_frs1bypass[3] & i1_result_fp64_e4) |
+                                      (i0_frs1bypass[2] & i0_result_fp64_e4) |
+                                      (i0_frs1bypass[1] & i1_result_fp64_wb) |
+                                      (i0_frs1bypass[0] & i0_result_fp64_wb);
+   
+   assign dec_i0_frs2_bypass_fp64_d = (i0_frs2bypass[9] & i1_result_fp64_e1) |
+                                      (i0_frs2bypass[8] & i0_result_fp64_e1) |
+                                      (i0_frs2bypass[7] & i1_result_fp64_e2) |
+                                      (i0_frs2bypass[6] & i0_result_fp64_e2) |
+                                      (i0_frs2bypass[5] & i1_result_fp64_e3) |
+                                      (i0_frs2bypass[4] & i0_result_fp64_e3) |
+                                      (i0_frs2bypass[3] & i1_result_fp64_e4) |
+                                      (i0_frs2bypass[2] & i0_result_fp64_e4) |
+                                      (i0_frs2bypass[1] & i1_result_fp64_wb) |
+                                      (i0_frs2bypass[0] & i0_result_fp64_wb);
+   
+   assign dec_i0_frs3_bypass_fp64_d = (i0_frs3bypass[9] & i1_result_fp64_e1) |
+                                      (i0_frs3bypass[8] & i0_result_fp64_e1) |
+                                      (i0_frs3bypass[7] & i1_result_fp64_e2) |
+                                      (i0_frs3bypass[6] & i0_result_fp64_e2) |
+                                      (i0_frs3bypass[5] & i1_result_fp64_e3) |
+                                      (i0_frs3bypass[4] & i0_result_fp64_e3) |
+                                      (i0_frs3bypass[3] & i1_result_fp64_e4) |
+                                      (i0_frs3bypass[2] & i0_result_fp64_e4) |
+                                      (i0_frs3bypass[1] & i1_result_fp64_wb) |
+                                      (i0_frs3bypass[0] & i0_result_fp64_wb);
+   
+   // float rs bypass enable    
+   assign dec_i0_frs1_bypass_en_d = |i0_frs1bypass[9:0];
+   assign dec_i0_frs2_bypass_en_d = |i0_frs2bypass[9:0];
+   assign dec_i0_frs3_bypass_en_d = |i0_frs3bypass[9:0];
+
+   // float bypass data mux
+   assign dec_i0_frs1_bypass_rec_fn_data_d[64:0] = i0_frs1_bypass_rec_fn_data_d[64:0];
+   assign dec_i0_frs2_bypass_rec_fn_data_d[64:0] = i0_frs2_bypass_rec_fn_data_d[64:0]; 
+   assign dec_i0_frs3_bypass_rec_fn_data_d[64:0] = i0_frs3_bypass_rec_fn_data_d[64:0];
+
+   //************************************************
+   // FLW BYPASS
+   //************************************************
+   assign fs_dec_i1 = i1_dp.fpu & i1_dp.store;
+
+   assign fs_dec_i0 = i0_dp.fpu & i0_dp.store;
+
+   assign fs_data_bypass_c1 = (
+                              (      fs_dec_i0 & i0_frs2_depth_d[3:0] == 4'd3 & i0_frs2_class_d.fl) |
+                              (      fs_dec_i0 & i0_frs2_depth_d[3:0] == 4'd4 & i0_frs2_class_d.fl) |
+                              (~fs_dec_i0 & fs_dec_i1 & i1_frs2_depth_d[3:0] == 4'd3 & i1_frs2_class_d.fl) |
+                              (~fs_dec_i0 & fs_dec_i1 & i1_frs2_depth_d[3:0] == 4'd4 & i1_frs2_class_d.fl)
+                              );
+
+   assign fs_data_bypass_c2 = (
+                              (      fs_dec_i0 & i0_frs2_depth_d[3:0] == 4'd1 & i0_frs2_class_d.fl) |
+                              (      fs_dec_i0 & i0_frs2_depth_d[3:0] == 4'd2 & i0_frs2_class_d.fl) | 
+                              (~fs_dec_i0 & fs_dec_i1 & i1_frs2_depth_d[3:0] == 4'd1 & i1_frs2_class_d.fl) |
+                              (~fs_dec_i0 & fs_dec_i1 & i1_frs2_depth_d[3:0] == 4'd2 & i1_frs2_class_d.fl)
+                              );
+   //************************************************
+   // dependency stall
+   //************************************************
+   // i1 stall control
+   assign i1_frs1_match_e1 = (  i1_frs1_depth_d[3:0] == 4'd1 |
+                                i1_frs1_depth_d[3:0] == 4'd2);
+      
+   assign i1_frs1_match_e2 = (  i1_frs1_depth_d[3:0] == 4'd3 |
+                                i1_frs1_depth_d[3:0] == 4'd4);
+      
+   assign i1_frs2_match_e1 = (  i1_frs2_depth_d[3:0] == 4'd1 |
+                                i1_frs2_depth_d[3:0] == 4'd2);
+      
+   assign i1_frs2_match_e2 = (  i1_frs2_depth_d[3:0] == 4'd3 |
+                                i1_frs2_depth_d[3:0] == 4'd4);
+   
+   assign i1_frs3_match_e1 = (  i1_frs3_depth_d[3:0] == 4'd1 |
+                                i1_frs3_depth_d[3:0] == 4'd2);
+      
+   assign i1_frs3_match_e2 = (  i1_frs3_depth_d[3:0] == 4'd3 |
+                                i1_frs3_depth_d[3:0] == 4'd4);
+   
+   assign i1_frs1_match_e1_e2 = i1_frs1_match_e1 | i1_frs1_match_e2;
+   assign i1_frs2_match_e1_e2 = i1_frs2_match_e1 | i1_frs2_match_e2;
+   assign i1_frs3_match_e1_e2 = i1_frs3_match_e1 | i1_frs3_match_e2;
+   
+   assign i1_fl_block_d = (i1_frs1_class_d.fl & i1_frs1_match_e1) |
+                          (i1_frs1_class_d.fl & i1_frs1_match_e2) |
+                          (i1_frs2_class_d.fl & i1_frs2_match_e1) |
+                          (i1_frs2_class_d.fl & i1_frs2_match_e2) |
+                          (i1_frs3_class_d.fl & i1_frs3_match_e1) |
+                          (i1_frs3_class_d.fl & i1_frs3_match_e2);
+
+   assign i1_fma_block_d = (i1_frs1_class_d.fma & i1_frs1_match_e1_e2) |
+                           (i1_frs2_class_d.fma & i1_frs2_match_e1_e2) |
+                           (i1_frs3_class_d.fma & i1_frs3_match_e1_e2);
+
+   // i0 stall control
+   assign i0_frs1_match_e1 = (  i0_frs1_depth_d[3:0] == 4'd1 |
+                                i0_frs1_depth_d[3:0] == 4'd2);
+      
+   assign i0_frs1_match_e2 = (  i0_frs1_depth_d[3:0] == 4'd3 |
+                                i0_frs1_depth_d[3:0] == 4'd4);
+      
+   assign i0_frs2_match_e1 = (  i0_frs2_depth_d[3:0] == 4'd1 |
+                                i0_frs2_depth_d[3:0] == 4'd2);
+      
+   assign i0_frs2_match_e2 = (  i0_frs2_depth_d[3:0] == 4'd3 |
+                                i0_frs2_depth_d[3:0] == 4'd4);
+   
+   assign i0_frs3_match_e1 = (  i0_frs3_depth_d[3:0] == 4'd1 |
+                                i0_frs3_depth_d[3:0] == 4'd2);
+      
+   assign i0_frs3_match_e2 = (  i0_frs3_depth_d[3:0] == 4'd3 |
+                                i0_frs3_depth_d[3:0] == 4'd4);
+
+   assign i0_frs1_match_e1_e2 = i0_frs1_match_e1 | i0_frs1_match_e2;
+
+   assign i0_frs2_match_e1_e2 = i0_frs2_match_e1 | i0_frs2_match_e2;
+
+   assign i0_frs3_match_e1_e2 = i0_frs3_match_e1 | i0_frs3_match_e2;
+
+   assign i0_fl_block_d = (i0_frs1_class_d.fl & i0_frs1_match_e1) |
+                          (i0_frs1_class_d.fl & i0_frs1_match_e2) |
+                          (i0_frs2_class_d.fl & i0_frs2_match_e1) |  
+                          (i0_frs2_class_d.fl & i0_frs2_match_e2) | 
+                          (i0_frs3_class_d.fl & i0_frs3_match_e1) |
+                          (i0_frs3_class_d.fl & i0_frs3_match_e2);
+
+   assign i0_fma_block_d = (i0_frs1_class_d.fma & i0_frs1_match_e1_e2) |
+                           (i0_frs2_class_d.fma & i0_frs2_match_e1_e2) |
+                           (i0_frs3_class_d.fma & i0_frs3_match_e1_e2);
+
+   //************************************************
+   // FPU structure block
+   //************************************************
+   assign fpu_structure_block_d = i0_dp.fpu & i1_dp.fpu;
+   
+   //********************************FPU related logic*************************************
 
 
 
@@ -2557,83 +3774,86 @@ module dec_dec_ctl
 
    logic [31:0] i;
 
+   assign i = inst;
 
-   assign i[31:0] = inst[31:0];
+   assign out.alu = (!i[6]&i[3]&i[2]) | (i[27]&i[14]&i[5]) | (!i[25]&i[5]&i[4]) | (
+      i[6]&i[5]) | (!i[6]&!i[5]&i[4]) | (i[4]&i[2]);
 
-   assign out.alu = (i[27]&i[14]&i[4]) | (i[2]) | (!i[25]&i[4]) | (!i[5]&i[4]) | (i[6]);
+   assign out.rs1 = (i[31]&i[28]&!i[5]&i[4]&!i[2]) | (!i[14]&!i[13]&i[5]&!i[2]) | (
+      !i[13]&i[11]&i[5]&!i[2]) | (i[19]&i[13]&i[5]&!i[2]) | (!i[13]&i[10]
+      &i[5]&!i[2]) | (i[18]&i[13]&i[5]&!i[2]) | (!i[6]&!i[4]&!i[3]) | (
+      !i[13]&i[9]&i[5]&!i[2]) | (i[17]&i[13]&i[5]&!i[2]) | (!i[13]&i[8]
+      &i[5]&!i[2]) | (i[16]&i[13]&i[5]&!i[2]) | (!i[13]&i[7]&i[5]&!i[2]) | (
+      i[15]&i[13]&i[5]&!i[2]) | (i[5]&!i[4]&!i[3]) | (!i[6]&!i[2]);
 
-   assign out.rs1 = (!i[14]&!i[13]&!i[2]) | (!i[13]&i[11]&!i[2]) | (i[19]&i[13]&!i[2]) | (
-       !i[13]&i[10]&!i[2]) | (i[18]&i[13]&!i[2]) | (!i[13]&i[9]&!i[2]) | (
-       i[17]&i[13]&!i[2]) | (!i[13]&i[8]&!i[2]) | (i[16]&i[13]&!i[2]) | (
-       !i[13]&i[7]&!i[2]) | (i[15]&i[13]&!i[2]) | (!i[4]&!i[3]) | (!i[6]
-       &!i[2]);
+   assign out.rs2 = (!i[27]&i[5]&i[3]&!i[2]) | (!i[14]&i[5]&i[3]&!i[2]) | (!i[6]&i[5]
+      &!i[3]&!i[2]) | (i[5]&!i[4]&!i[2]);
 
-   assign out.rs2 = (!i[27]&i[5]&i[3]&!i[2]) | (!i[14]&i[5]&i[3]&!i[2]) | (i[5]&!i[4]
-       &!i[2]) | (!i[6]&i[5]&!i[3]&!i[2]);
+   assign out.imm12 = (i[6]&i[5]&!i[3]&i[2]) | (!i[13]&!i[12]&i[6]&i[5]&i[4]) | (i[13]
+      &!i[6]&!i[5]&i[4]&!i[2]) | (!i[12]&!i[6]&!i[5]&i[4]&!i[2]);
 
-   assign out.imm12 = (!i[4]&!i[3]&i[2]) | (!i[13]&!i[12]&i[6]&i[4]) | (i[13]&!i[5]
-       &i[4]&!i[2]) | (!i[12]&!i[5]&i[4]&!i[2]);
+   assign out.rd = (i[4]&i[2]) | (i[6]&i[5]&i[2]) | (i[5]&i[4]) | (!i[6]&!i[5]&!i[2]) | (
+      i[31]&!i[28]&i[4]);
 
-   assign out.rd = (!i[5]&!i[2]) | (i[5]&i[2]) | (i[4]);
+   assign out.shimm6 = (i[27]&!i[14]&!i[13]&i[12]&!i[6]&!i[5]&i[4]&!i[2]) | (!i[27]
+      &i[14]&!i[13]&i[12]&!i[6]&!i[5]&i[4]&!i[2]) | (!i[29]&!i[13]&i[12]
+      &!i[6]&!i[5]&i[4]&!i[2]);
 
-   assign out.shimm6 = (i[27]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]) | (!i[27]&i[14]
-       &!i[13]&i[12]&!i[5]&i[4]&!i[2]) | (!i[29]&!i[13]&i[12]&!i[5]&i[4]
-       &!i[2]);
+   assign out.imm20 = (i[5]&i[3]&i[2]) | (i[4]&i[2]);
 
-   assign out.imm20 = (i[6]&i[3]) | (i[4]&i[2]);
+   assign out.pc = (i[5]&i[3]&i[2]) | (!i[5]&i[4]&i[2]);
 
-   assign out.pc = (!i[5]&!i[3]&i[2]) | (i[6]&i[3]);
-
-   assign out.load = (!i[5]&!i[4]&!i[2]);
+   assign out.load = (!i[6]&!i[5]&!i[4]&!i[3]);
 
    assign out.store = (!i[6]&i[5]&!i[4]);
 
-   assign out.lsu = (!i[6]&!i[4]&!i[2]);
+   assign out.lsu = (!i[6]&!i[4]&!i[3]);
 
-   assign out.add = (!i[5]&!i[3]&i[2]) | (!i[30]&!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]
-       &!i[2]) | (!i[14]&!i[13]&!i[12]&!i[5]&i[4]);
+   assign out.add = (!i[30]&!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]&!i[2]) | (!i[5]&i[4]
+      &i[2]) | (!i[14]&!i[13]&!i[12]&!i[6]&!i[5]&i[4]);
 
    assign out.sub = (i[30]&!i[14]&!i[12]&!i[6]&i[5]&i[4]&!i[2]) | (i[27]&i[25]&i[14]
-       &!i[6]&i[5]&!i[2]) | (!i[29]&!i[25]&!i[14]&i[13]&!i[6]&i[4]&!i[2]) | (
-       !i[14]&i[13]&!i[5]&i[4]&!i[2]) | (i[6]&!i[4]&!i[2]);
+      &!i[6]&i[5]&!i[2]) | (!i[29]&!i[25]&!i[14]&i[13]&!i[6]&i[4]&!i[2]) | (
+      !i[14]&i[13]&!i[6]&!i[5]&i[4]&!i[2]) | (i[6]&i[5]&!i[4]&!i[2]);
 
-   assign out.land = (!i[25]&i[14]&i[13]&i[12]&!i[6]&!i[2]) | (i[14]&i[13]&i[12]&!i[5]
-       &!i[2]);
+   assign out.land = (!i[25]&i[14]&i[13]&i[12]&!i[6]&!i[2]) | (i[14]&i[13]&i[12]&!i[6]
+      &!i[5]&!i[2]);
 
-   assign out.lor = (!i[6]&i[3]&i[2]) | (!i[29]&!i[25]&i[14]&i[13]&!i[12]&i[4]&!i[2]) | (
-       i[5]&i[4]&i[2]) | (!i[12]&i[6]&i[4]) | (i[13]&i[6]&i[4]) | (i[14]
-       &i[13]&!i[12]&!i[5]&i[4]&!i[2]) | (i[7]&i[6]&i[4]) | (i[8]&i[6]&i[4]) | (
-       i[9]&i[6]&i[4]) | (i[10]&i[6]&i[4]) | (i[11]&i[6]&i[4]);
+   assign out.lor = (!i[6]&i[3]&i[2]) | (!i[29]&!i[25]&i[14]&i[13]&!i[12]&i[5]&i[4]) | (
+      !i[12]&i[6]&i[5]&i[4]) | (i[13]&i[6]&i[5]&i[4]) | (i[14]&i[13]&!i[12]
+      &!i[6]&!i[5]&i[4]&!i[2]) | (i[7]&i[6]&i[5]&i[4]) | (i[8]&i[6]&i[5]
+      &i[4]) | (i[9]&i[6]&i[5]&i[4]) | (i[10]&i[6]&i[5]&i[4]) | (i[11]&i[6]
+      &i[5]&i[4]) | (i[5]&i[4]&i[2]);
 
-   assign out.lxor = (!i[29]&!i[25]&i[14]&!i[13]&!i[12]&i[4]&!i[3]&!i[2]) | (i[14]
-       &!i[13]&!i[12]&!i[5]&i[4]&!i[2]);
+   assign out.lxor = (!i[29]&!i[25]&i[14]&!i[13]&!i[12]&i[5]&i[4]&!i[3]&!i[2]) | (
+      i[14]&!i[13]&!i[12]&!i[6]&!i[5]&i[4]&!i[2]);
 
    assign out.sll = (!i[29]&!i[27]&!i[25]&!i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]) | (
-       !i[30]&!i[29]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+      !i[30]&!i[29]&!i[14]&!i[13]&i[12]&!i[6]&!i[5]&i[4]&!i[2]);
 
    assign out.sra = (i[30]&!i[29]&!i[27]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
 
    assign out.srl = (!i[30]&!i[25]&i[14]&!i[13]&i[12]&!i[6]&i[5]&!i[2]) | (!i[30]&!i[27]
-       &i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+      &i[14]&!i[13]&i[12]&!i[6]&!i[5]&i[4]&!i[2]);
 
-   assign out.slt = (!i[29]&!i[25]&!i[14]&i[13]&!i[6]&i[4]&!i[2]) | (!i[14]&i[13]&!i[5]
-       &i[4]&!i[2]);
+   assign out.slt = (!i[29]&!i[25]&!i[14]&i[13]&!i[6]&i[4]&!i[2]) | (!i[14]&i[13]&!i[6]
+      &!i[5]&i[4]&!i[2]);
 
-   assign out.unsign = (i[14]&!i[5]&!i[4]) | (i[14]&i[13]&!i[4]&!i[2]) | (!i[25]&!i[14]
-       &i[13]&i[12]&!i[6]&i[4]&!i[2]) | (i[25]&i[14]&i[12]&!i[6]&i[5]&!i[2]) | (
-       !i[14]&i[13]&i[12]&!i[5]&i[4]&!i[2]);
+   assign out.unsign = (i[13]&i[6]&i[5]&!i[4]&!i[2]) | (!i[25]&!i[14]&i[13]&i[12]&!i[6]
+      &i[4]&!i[2]) | (i[25]&i[14]&i[12]&!i[6]&i[5]&!i[2]) | (i[14]&!i[6]
+      &!i[4]) | (!i[14]&i[13]&i[12]&!i[6]&!i[5]&i[4]&!i[2]);
 
-   assign out.condbr = (i[6]&!i[4]&!i[2]);
+   assign out.condbr = (i[6]&i[5]&!i[4]&!i[2]);
 
-   assign out.beq = (!i[14]&!i[12]&i[6]&!i[4]&!i[2]);
+   assign out.beq = (!i[14]&!i[12]&i[6]&i[5]&!i[4]&!i[2]);
 
-   assign out.bne = (!i[14]&i[12]&i[6]&!i[4]&!i[2]);
+   assign out.bne = (!i[14]&i[12]&i[6]&i[5]&!i[4]&!i[2]);
 
    assign out.bge = (i[14]&i[12]&i[5]&!i[4]&!i[2]);
 
    assign out.blt = (i[14]&!i[12]&i[5]&!i[4]&!i[2]);
 
-   assign out.jal = (i[6]&i[2]);
+   assign out.jal = (i[6]&i[5]&i[2]);
 
    assign out.by = (!i[13]&!i[12]&!i[6]&!i[4]&!i[2]);
 
@@ -2643,80 +3863,159 @@ module dec_dec_ctl
 
    assign out.dword = (i[13]&i[12]&!i[6]&!i[4]);
 
-   assign out.csr_read = (i[13]&i[6]&i[4]) | (i[7]&i[6]&i[4]) | (i[8]&i[6]&i[4]) | (
-       i[9]&i[6]&i[4]) | (i[10]&i[6]&i[4]) | (i[11]&i[6]&i[4]);
+   assign out.csr_read = (i[13]&i[6]&i[5]&i[4]) | (i[7]&i[6]&i[5]&i[4]) | (i[8]&i[6]
+      &i[5]&i[4]) | (i[9]&i[6]&i[5]&i[4]) | (i[10]&i[6]&i[5]&i[4]) | (
+      i[11]&i[6]&i[5]&i[4]);
 
-   assign out.csr_clr = (i[15]&i[13]&i[12]&i[6]&i[4]) | (i[16]&i[13]&i[12]&i[6]&i[4]) | (
-       i[17]&i[13]&i[12]&i[6]&i[4]) | (i[18]&i[13]&i[12]&i[6]&i[4]) | (
-       i[19]&i[13]&i[12]&i[6]&i[4]);
+   assign out.csr_clr = (i[15]&i[13]&i[12]&i[6]&i[5]&i[4]) | (i[16]&i[13]&i[12]&i[6]
+      &i[5]&i[4]) | (i[17]&i[13]&i[12]&i[6]&i[5]&i[4]) | (i[18]&i[13]&i[12]
+      &i[6]&i[5]&i[4]) | (i[19]&i[13]&i[12]&i[6]&i[5]&i[4]);
 
-   assign out.csr_set = (i[15]&!i[12]&i[6]&i[4]) | (i[16]&!i[12]&i[6]&i[4]) | (i[17]
-       &!i[12]&i[6]&i[4]) | (i[18]&!i[12]&i[6]&i[4]) | (i[19]&!i[12]&i[6]
-       &i[4]);
+   assign out.csr_set = (i[15]&!i[12]&i[6]&i[5]&i[4]) | (i[16]&!i[12]&i[6]&i[5]&i[4]) | (
+      i[17]&!i[12]&i[6]&i[5]&i[4]) | (i[18]&!i[12]&i[6]&i[5]&i[4]) | (
+      i[19]&!i[12]&i[6]&i[5]&i[4]);
 
-   assign out.csr_write = (!i[13]&i[12]&i[6]&i[4]);
+   assign out.csr_write = (!i[13]&i[12]&i[6]&i[5]&i[4]);
 
-   assign out.csr_imm = (i[14]&!i[13]&i[6]&i[4]) | (i[15]&i[14]&i[6]&i[4]) | (i[16]
-       &i[14]&i[6]&i[4]) | (i[17]&i[14]&i[6]&i[4]) | (i[18]&i[14]&i[6]&i[4]) | (
-       i[19]&i[14]&i[6]&i[4]);
+   assign out.csr_imm = (i[14]&!i[13]&i[6]&i[5]&i[4]) | (i[15]&i[14]&i[6]&i[5]&i[4]) | (
+      i[16]&i[14]&i[6]&i[5]&i[4]) | (i[17]&i[14]&i[6]&i[5]&i[4]) | (i[18]
+      &i[14]&i[6]&i[5]&i[4]) | (i[19]&i[14]&i[6]&i[5]&i[4]);
 
-   assign out.presync = (!i[5]&i[3]&i[2]) | (!i[27]&i[25]&i[14]&!i[6]&i[5]&!i[2]) | (
-       !i[13]&i[7]&i[6]&i[4]) | (!i[13]&i[8]&i[6]&i[4]) | (!i[13]&i[9]&i[6]
-       &i[4]) | (!i[13]&i[10]&i[6]&i[4]) | (!i[13]&i[11]&i[6]&i[4]) | (
-       i[15]&i[13]&i[6]&i[4]) | (i[16]&i[13]&i[6]&i[4]) | (i[17]&i[13]&i[6]
-       &i[4]) | (i[18]&i[13]&i[6]&i[4]) | (i[19]&i[13]&i[6]&i[4]);
+   assign out.presync = (!i[6]&i[3]&i[2]) | (i[28]&i[27]&i[6]&!i[5]&i[4]) | (!i[27]
+      &i[25]&i[14]&!i[6]&i[5]&!i[2]) | (!i[13]&i[7]&i[6]&i[5]&i[4]) | (
+      !i[13]&i[8]&i[6]&i[5]&i[4]) | (!i[13]&i[9]&i[6]&i[5]&i[4]) | (!i[13]
+      &i[10]&i[6]&i[5]&i[4]) | (!i[13]&i[11]&i[6]&i[5]&i[4]) | (i[15]&i[13]
+      &i[6]&i[5]&i[4]) | (i[16]&i[13]&i[6]&i[5]&i[4]) | (i[17]&i[13]&i[6]
+      &i[5]&i[4]) | (i[18]&i[13]&i[6]&i[5]&i[4]) | (i[19]&i[13]&i[6]&i[5]
+      &i[4]);
 
-   assign out.postsync = (i[12]&!i[5]&i[3]&i[2]) | (!i[22]&!i[13]&!i[12]&i[6]&i[4]) | (
-       !i[27]&i[25]&i[14]&!i[6]&i[5]&!i[2]) | (!i[13]&i[7]&i[6]&i[4]) | (
-       !i[13]&i[8]&i[6]&i[4]) | (!i[13]&i[9]&i[6]&i[4]) | (!i[13]&i[10]&i[6]
-       &i[4]) | (!i[13]&i[11]&i[6]&i[4]) | (i[15]&i[13]&i[6]&i[4]) | (i[16]
-       &i[13]&i[6]&i[4]) | (i[17]&i[13]&i[6]&i[4]) | (i[18]&i[13]&i[6]&i[4]) | (
-       i[19]&i[13]&i[6]&i[4]);
+   assign out.postsync = (i[12]&!i[6]&i[3]&i[2]) | (!i[22]&!i[13]&!i[12]&i[6]&i[5]&i[4]) | (
+      i[28]&i[27]&i[6]&!i[5]&i[4]) | (!i[27]&i[25]&i[14]&!i[6]&i[5]&!i[2]) | (
+      !i[13]&i[7]&i[6]&i[5]&i[4]) | (!i[13]&i[8]&i[6]&i[5]&i[4]) | (!i[13]
+      &i[9]&i[6]&i[5]&i[4]) | (!i[13]&i[10]&i[6]&i[5]&i[4]) | (!i[13]&i[11]
+      &i[6]&i[5]&i[4]) | (i[15]&i[13]&i[6]&i[5]&i[4]) | (i[16]&i[13]&i[6]
+      &i[5]&i[4]) | (i[17]&i[13]&i[6]&i[5]&i[4]) | (i[18]&i[13]&i[6]&i[5]
+      &i[4]) | (i[19]&i[13]&i[6]&i[5]&i[4]);
 
-   assign out.ebreak = (!i[22]&i[20]&!i[13]&!i[12]&i[6]&i[4]);
+   assign out.ebreak = (!i[22]&i[20]&!i[13]&!i[12]&i[6]&i[5]&i[4]);
 
-   assign out.ecall = (!i[21]&!i[20]&!i[13]&!i[12]&i[6]&i[4]);
+   assign out.ecall = (!i[21]&!i[20]&!i[13]&!i[12]&i[6]&i[5]&i[4]);
 
-   assign out.mret = (i[29]&!i[13]&!i[12]&i[6]&i[4]);
+   assign out.mret = (i[21]&!i[13]&!i[12]&i[6]&i[5]&i[4]);
 
    assign out.mul = (i[25]&!i[14]&!i[6]&i[5]&i[4]&!i[2]);
 
    assign out.rs1_sign = (!i[27]&i[25]&!i[14]&i[13]&!i[12]&!i[6]&i[5]&i[4]&!i[2]) | (
-       !i[27]&i[25]&!i[14]&!i[13]&i[12]&!i[6]&i[5]&i[4]&!i[2]);
+      !i[27]&i[25]&!i[14]&!i[13]&i[12]&!i[6]&i[5]&i[4]&!i[2]);
 
    assign out.rs2_sign = (!i[27]&i[25]&!i[14]&!i[13]&i[12]&!i[6]&i[5]&i[4]&!i[2]);
 
    assign out.low = (i[27]&i[25]&!i[14]&!i[13]&!i[6]&i[5]&i[4]&!i[2]) | (i[25]&!i[14]
-       &!i[13]&!i[12]&i[5]&i[4]&!i[2]);
+      &!i[13]&!i[12]&i[5]&i[4]&!i[2]);
 
    assign out.div = (!i[27]&i[25]&i[14]&!i[6]&i[5]&!i[2]);
 
    assign out.rem = (!i[27]&i[25]&i[14]&i[13]&!i[6]&i[5]&!i[2]);
 
-   assign out.fence = (!i[5]&i[3]&i[2]);
+   assign out.fence = (!i[6]&i[3]&i[2]);
 
-   assign out.fence_i = (i[12]&!i[5]&i[3]&i[2]);
+   assign out.fence_i = (i[12]&!i[6]&i[3]&i[2]);
 
-   assign out.pm_alu = (i[22]&!i[13]&!i[12]&i[6]&i[4]) | (!i[29]&!i[27]&!i[5]&i[4]) | (
-       !i[29]&!i[27]&!i[25]&!i[14]&!i[6]&i[4]) | (!i[30]&!i[29]&!i[25]&!i[6]
-       &i[4]&!i[3]) | (!i[29]&!i[27]&!i[25]&!i[13]&i[12]&!i[6]&i[4]) | (
-       i[13]&!i[5]&i[4]) | (!i[12]&!i[5]&i[4]) | (i[4]&i[2]);
+   assign out.pm_alu = (i[22]&!i[13]&!i[12]&i[6]&i[5]&i[4]) | (!i[29]&!i[27]&!i[6]&!i[5]
+      &i[4]) | (!i[29]&!i[27]&!i[25]&!i[14]&!i[6]&i[4]) | (!i[30]&!i[29]
+      &!i[25]&!i[6]&i[4]&!i[3]) | (!i[29]&!i[27]&!i[25]&!i[13]&i[12]&!i[6]
+      &i[4]) | (i[13]&!i[6]&!i[5]&i[4]) | (!i[12]&!i[6]&!i[5]&i[4]) | (
+      i[4]&i[2]);
 
-   assign out.wpostfix = (!i[29]&!i[27]&i[3]&!i[2]) | (!i[12]&!i[5]&i[3]&!i[2]) | (
-       !i[27]&i[12]&i[3]&!i[2]);
+   assign out.wpostfix = (!i[29]&!i[27]&i[4]&i[3]) | (!i[12]&!i[5]&i[4]&i[3]) | (!i[27]
+      &i[12]&i[4]&i[3]);
 
-   assign out.clz = (i[29]&!i[27]&!i[22]&!i[21]&!i[20]&!i[14]&!i[13]&i[12]&!i[5]&i[4]
-       &!i[2]);
+   assign out.fpu = (!i[6]&!i[4]&!i[3]&i[2]) | (i[6]&!i[5]);
 
-   assign out.ctz = (i[29]&!i[27]&!i[22]&i[20]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+   assign out.frs1 = (!i[31]&i[6]&!i[5]) | (!i[28]&i[6]&!i[5]) | (i[6]&!i[5]&!i[4]);
 
-   assign out.cpop = (i[29]&!i[27]&i[21]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+   assign out.frs2 = (!i[6]&i[5]&!i[4]&i[2]) | (!i[30]&i[6]&!i[5]) | (i[6]&!i[5]&!i[4]);
 
-   assign out.sext_b = (i[29]&!i[27]&i[22]&!i[20]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+   assign out.frs3 = (i[6]&!i[5]&!i[4]);
 
-   assign out.sext_h = (i[29]&!i[27]&i[22]&i[20]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+   assign out.frd = (!i[5]&!i[4]&!i[3]&i[2]) | (i[28]&i[6]&!i[5]) | (!i[31]&i[6]&!i[5]) | (
+      i[6]&!i[5]&!i[4]);
 
-   assign out.zext_h = (i[27]&i[14]&i[3]&!i[2]);
+   assign out.fflags = (!i[30]&i[6]&!i[5]) | (!i[29]&i[6]&!i[5]) | (i[6]&!i[5]&!i[4]);
+
+   assign out.fp64 = (i[12]&!i[6]&!i[4]&!i[3]&i[2]) | (i[25]&i[6]&!i[5]);
+
+   assign out.long = (i[30]&i[21]&i[6]&!i[5]&i[4]);
+
+   assign out.sign = (i[31]&!i[29]&!i[20]&i[6]&!i[5]&i[4]);
+
+   assign out.fp_to_int = (i[31]&!i[28]&i[6]&!i[5]&i[4]);
+
+   assign out.int_to_fp = (i[31]&i[28]&i[6]&!i[5]&i[4]);
+
+   assign out.fp_to_fp = (!i[31]&i[30]&!i[27]&i[6]&!i[5]&i[4]) | (!i[31]&i[29]&i[6]
+      &!i[5]&i[4]);
+
+   assign out.fma = (!i[29]&!i[28]&i[27]&i[6]&!i[5]) | (!i[30]&!i[29]&!i[27]&i[6]&!i[5]) | (
+      i[6]&!i[5]&!i[4]);
+
+   assign out.fmin = (i[29]&i[27]&!i[12]&i[6]&!i[5]&i[4]);
+
+   assign out.fmax = (i[29]&i[27]&i[12]&i[6]&!i[5]&i[4]);
+
+   assign out.fsgnj = (!i[31]&i[29]&!i[27]&!i[13]&!i[12]&i[6]&!i[5]&i[4]);
+
+   assign out.fsgnjn = (!i[31]&i[29]&!i[27]&i[12]&i[6]&!i[5]&i[4]);
+
+   assign out.fsgnjx = (!i[31]&i[29]&i[13]&i[6]&!i[5]&i[4]);
+
+   assign out.fcvt = (i[30]&!i[29]&!i[27]&i[6]&!i[5]&i[4]);
+
+   assign out.fs = (!i[6]&i[5]&!i[4]&i[2]);
+
+   assign out.fl = (!i[6]&!i[5]&!i[4]&!i[3]&i[2]);
+
+   assign out.fclass = (i[30]&i[29]&i[12]&i[6]&!i[5]&i[4]);
+
+   assign out.feq = (i[31]&i[29]&i[13]&i[6]&!i[5]&i[4]);
+
+   assign out.flt = (i[31]&!i[30]&i[12]&i[6]&!i[5]&i[4]);
+
+   assign out.fle = (i[31]&!i[30]&!i[13]&!i[12]&i[6]&i[4]);
+
+   assign out.fmv = (i[30]&i[29]&!i[12]&i[6]&!i[5]&i[4]);
+
+   assign out.fadd = (!i[30]&!i[29]&!i[28]&!i[27]&i[6]&!i[5]&i[4]);
+
+   assign out.fsub = (!i[29]&!i[28]&i[27]&i[6]&!i[5]&i[4]);
+
+   assign out.fmul = (!i[30]&i[28]&!i[27]&i[6]&!i[5]&i[4]);
+
+   assign out.fmadd = (i[6]&!i[5]&!i[4]&!i[3]&!i[2]);
+
+   assign out.fmsub = (i[6]&!i[5]&!i[3]&i[2]);
+
+   assign out.fnmadd = (i[6]&!i[5]&i[3]&i[2]);
+
+   assign out.fnmsub = (!i[4]&i[3]&!i[2]);
+
+   assign out.fdiv = (!i[30]&i[28]&i[27]&i[6]&!i[5]&i[4]);
+
+   assign out.fsqrt = (i[30]&i[27]&i[6]&!i[5]&i[4]);
+
+   assign out.clz = (i[29]&!i[27]&!i[22]&!i[21]&!i[20]&!i[14]&!i[13]&i[12]&!i[6]&!i[5]
+      &i[4]&!i[2]);
+
+   assign out.ctz = (i[30]&!i[27]&!i[22]&i[20]&!i[14]&!i[13]&i[12]&!i[6]&!i[5]&i[4]
+      &!i[2]);
+
+   assign out.cpop = (i[30]&!i[27]&i[21]&!i[14]&!i[13]&i[12]&!i[6]&!i[5]&i[4]&!i[2]);
+
+   assign out.sext_b = (i[30]&!i[27]&i[22]&!i[20]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+
+   assign out.sext_h = (i[30]&!i[27]&i[22]&i[20]&!i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+
+   assign out.zext_h = (i[27]&i[14]&!i[6]&i[3]);
 
    assign out.min = (i[27]&i[25]&i[14]&!i[13]&!i[6]&i[5]&!i[2]);
 
@@ -2746,89 +4045,105 @@ module dec_dec_ctl
 
    assign out.rev8 = (i[29]&i[27]&!i[20]&i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
 
-   assign out.orc_b = (!i[30]&i[27]&i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
+   assign out.orc_b = (!i[30]&i[29]&i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]);
 
-   assign out.zba = (i[27]&i[12]&i[3]&!i[2]) | (i[27]&!i[14]&i[5]&i[3]&!i[2]) | (i[29]
-       &!i[12]&!i[6]&i[5]&i[4]&!i[2]);
+   assign out.zba = (i[27]&i[12]&i[4]&i[3]) | (i[27]&!i[14]&i[5]&i[3]&!i[2]) | (i[29]
+      &!i[12]&!i[6]&i[5]&i[4]&!i[2]);
 
    assign out.zbb = (i[30]&i[14]&!i[12]&!i[6]&i[5]&!i[2]) | (i[29]&i[14]&!i[13]&i[12]
-       &!i[5]&i[4]&!i[2]) | (i[30]&i[13]&!i[6]&i[5]&i[4]&!i[2]) | (!i[30]
-       &i[27]&i[14]&!i[6]&i[5]&!i[2]) | (i[29]&!i[27]&!i[13]&i[12]&!i[6]
-       &i[4]&!i[2]);
+      &!i[5]&i[4]&!i[2]) | (i[30]&i[13]&!i[6]&i[5]&i[4]&!i[2]) | (!i[30]
+      &i[27]&i[14]&!i[6]&i[5]&!i[2]) | (i[29]&!i[27]&!i[13]&i[12]&!i[6]
+      &i[4]&!i[2]);
 
    assign out.zbc = (i[27]&i[25]&!i[14]&!i[6]&i[5]&i[4]&!i[2]);
 
-   assign out.zbs = (!i[29]&i[27]&i[14]&!i[13]&i[12]&!i[5]&i[4]&!i[2]) | (i[27]&!i[25]
-       &!i[6]&i[5]&i[4]&!i[3]&!i[2]) | (i[27]&!i[14]&!i[13]&i[12]&!i[5]&i[4]
-       &!i[3]&!i[2]);
+   assign out.zbs = (i[29]&i[27]&!i[14]&!i[13]&i[12]&!i[6]&i[4]&!i[2]) | (i[30]&!i[29]
+      &i[27]&!i[13]&i[12]&!i[6]&i[4]&!i[2]);
 
    assign out.rs2neg = (i[30]&i[14]&!i[12]&!i[6]&i[5]&!i[2]) | (i[30]&i[13]&!i[6]&i[5]
-       &i[4]&!i[2]);
+      &i[4]&!i[2]);
 
-   assign out.dotuw = (i[27]&i[12]&i[3]&!i[2]) | (i[27]&!i[14]&i[5]&i[3]&!i[2]) | (
-       i[29]&!i[12]&i[5]&i[3]&!i[2]);
+   assign out.dotuw = (i[27]&i[12]&i[4]&i[3]) | (i[27]&!i[14]&i[5]&i[3]&!i[2]) | (
+      i[29]&!i[12]&i[5]&i[3]&!i[2]);
+
 
 
 
    assign out.legal = (!i[31]&!i[30]&i[29]&i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]
-       &!i[22]&i[21]&!i[20]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]
-       &!i[10]&!i[9]&!i[8]&!i[7]&i[6]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (
-       !i[31]&!i[30]&!i[29]&i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&i[22]
-       &!i[21]&i[20]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]&!i[10]
-       &!i[9]&!i[8]&!i[7]&i[6]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]
-       &!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]
-       &!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]&!i[10]&!i[9]&!i[8]
-       &!i[7]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&!i[28]&!i[26]
-       &i[25]&i[24]&i[23]&!i[22]&!i[21]&!i[20]&i[14]&!i[6]&!i[5]&i[4]&!i[3]
-       &i[1]&i[0]) | (!i[31]&i[30]&i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[24]
-       &!i[23]&!i[22]&!i[21]&!i[13]&i[12]&!i[6]&i[4]&!i[2]&i[1]&i[0]) | (
-       !i[31]&!i[30]&i[29]&!i[28]&i[27]&!i[26]&!i[25]&!i[24]&!i[23]&i[22]
-       &i[21]&i[20]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&i[30]&i[29]
-       &!i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[20]&!i[13]&i[12]
-       &!i[6]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&i[29]&!i[28]&!i[26]
-       &!i[25]&!i[24]&!i[23]&!i[21]&!i[14]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (
-       !i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[14]&!i[13]&!i[12]&!i[6]
-       &i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[26]&i[25]
-       &i[12]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&!i[28]&!i[27]
-       &!i[26]&i[14]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&!i[30]
-       &!i[29]&!i[28]&!i[26]&i[25]&i[13]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (
-       !i[31]&!i[30]&!i[29]&!i[28]&!i[26]&i[25]&i[14]&!i[6]&i[5]&i[4]&!i[3]
-       &i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[13]
-       &i[12]&!i[6]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[29]&!i[28]&!i[27]
-       &!i[26]&!i[25]&i[14]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&i[29]
-       &!i[28]&i[27]&!i[26]&!i[25]&!i[14]&!i[13]&i[12]&!i[6]&!i[3]&!i[2]
-       &i[1]&i[0]) | (!i[31]&i[30]&!i[29]&!i[28]&i[27]&!i[26]&!i[25]&!i[13]
-       &i[12]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&i[29]&!i[28]&i[27]&!i[26]
-       &!i[14]&!i[6]&!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&!i[29]
-       &!i[28]&i[27]&!i[26]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[14]
-       &!i[13]&!i[12]&i[6]&i[5]&!i[4]&!i[3]&i[1]&i[0]) | (i[14]&i[6]&i[5]
-       &!i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]
-       &!i[26]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (!i[13]&i[12]&i[6]&i[5]&!i[3]
-       &!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[25]
-       &!i[24]&!i[23]&!i[22]&!i[21]&!i[20]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]
-       &!i[14]&!i[13]&!i[11]&!i[10]&!i[9]&!i[8]&!i[7]&!i[6]&!i[5]&!i[4]&i[3]
-       &i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[19]&!i[18]&!i[17]
-       &!i[16]&!i[15]&!i[14]&!i[13]&!i[12]&!i[11]&!i[10]&!i[9]&!i[8]&!i[7]
-       &!i[6]&!i[5]&!i[4]&i[3]&i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]
-       &i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]&!i[20]&!i[13]&!i[12]
-       &!i[6]&i[5]&i[4]&i[3]&!i[2]&i[1]&i[0]) | (i[13]&i[6]&i[5]&i[4]&!i[3]
-       &!i[2]&i[1]&i[0]) | (!i[31]&i[30]&!i[28]&!i[27]&!i[26]&!i[25]&i[14]
-       &!i[13]&i[12]&!i[6]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]
-       &!i[28]&!i[27]&!i[26]&i[25]&i[14]&!i[6]&i[5]&i[4]&!i[2]&i[1]&i[0]) | (
-       !i[31]&!i[30]&i[29]&!i[28]&!i[27]&!i[26]&!i[25]&i[13]&!i[12]&!i[6]
-       &i[5]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[26]
-       &!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]&i[3]&!i[2]&i[1]&i[0]) | (
-       !i[31]&!i[30]&i[29]&!i[28]&!i[27]&!i[26]&!i[25]&i[14]&!i[12]&!i[6]
-       &i[5]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&i[29]&!i[28]&!i[27]&!i[26]
-       &!i[25]&!i[13]&i[12]&!i[6]&i[5]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[29]
-       &!i[28]&!i[27]&!i[26]&!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]&!i[2]
-       &i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&i[27]&!i[26]&!i[14]&!i[13]
-       &!i[6]&!i[5]&i[4]&i[3]&!i[2]&i[1]&i[0]) | (!i[12]&!i[6]&!i[5]&!i[3]
-       &!i[2]&i[1]&i[0]) | (!i[14]&!i[6]&!i[4]&!i[3]&!i[2]&i[1]&i[0]) | (
-       i[6]&i[5]&!i[4]&i[3]&i[2]&i[1]&i[0]) | (!i[13]&!i[6]&!i[5]&!i[4]&!i[3]
-       &!i[2]&i[1]&i[0]) | (!i[14]&!i[13]&!i[12]&!i[6]&!i[5]&i[4]&!i[2]&i[1]
-       &i[0]) | (i[13]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[6]&i[4]&!i[3]
-       &i[2]&i[1]&i[0]);
+      &!i[22]&i[21]&!i[20]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]
+      &!i[10]&!i[9]&!i[8]&!i[7]&i[6]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (
+      !i[31]&!i[30]&!i[29]&i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&i[22]
+      &!i[21]&i[20]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]&!i[10]
+      &!i[9]&!i[8]&!i[7]&i[6]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]
+      &!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]&!i[19]
+      &!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[11]&!i[10]&!i[9]&!i[8]&!i[7]
+      &i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&!i[28]&!i[26]&i[25]
+      &i[24]&i[23]&!i[22]&!i[21]&!i[20]&i[14]&!i[6]&!i[5]&i[4]&!i[3]&i[1]
+      &i[0]) | (!i[31]&!i[30]&i[29]&!i[28]&i[27]&!i[26]&!i[25]&!i[24]&!i[23]
+      &i[22]&i[21]&i[20]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (i[31]&i[29]
+      &!i[28]&!i[27]&!i[26]&!i[24]&!i[23]&!i[22]&!i[21]&!i[20]&!i[14]&!i[13]
+      &i[6]&!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&i[29]&!i[28]&!i[27]
+      &!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]&!i[13]&i[12]&!i[6]&i[4]
+      &!i[2]&i[1]&i[0]) | (!i[31]&i[30]&i[29]&!i[28]&!i[26]&!i[25]&!i[24]
+      &!i[23]&!i[21]&!i[14]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]
+      &i[30]&i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[20]
+      &!i[13]&i[12]&!i[6]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[29]&i[28]
+      &i[27]&!i[26]&!i[24]&!i[23]&!i[22]&!i[21]&!i[20]&i[6]&!i[5]&!i[3]
+      &!i[2]&i[1]&i[0]) | (i[30]&!i[29]&!i[28]&!i[27]&!i[26]&i[25]&!i[24]
+      &!i[23]&!i[22]&!i[21]&!i[20]&i[6]&!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (
+      i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]
+      &i[20]&i[6]&!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]
+      &!i[28]&!i[27]&!i[26]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]&!i[2]&i[1]&i[0]) | (
+      !i[31]&!i[30]&!i[29]&!i[28]&!i[26]&i[25]&i[13]&!i[6]&i[4]&!i[3]&i[1]
+      &i[0]) | (i[31]&i[30]&!i[29]&!i[27]&!i[26]&!i[24]&!i[23]&!i[22]&i[6]
+      &!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (!i[30]&i[29]&!i[28]&!i[27]&!i[26]
+      &!i[14]&!i[12]&!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]
+      &!i[28]&!i[26]&i[25]&i[12]&i[5]&i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]
+      &i[30]&!i[28]&!i[27]&!i[26]&i[14]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (
+      !i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[13]&i[12]&!i[6]
+      &i[4]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&!i[29]&!i[28]&i[27]&!i[26]
+      &!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&i[29]&!i[28]&i[27]&!i[26]
+      &!i[14]&!i[6]&!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]
+      &!i[28]&!i[26]&i[25]&i[14]&!i[6]&i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]
+      &!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&i[14]&!i[6]&i[4]&!i[3]&i[1]&i[0]) | (
+      !i[31]&i[30]&!i[29]&!i[28]&i[27]&!i[26]&!i[25]&!i[13]&i[12]&!i[6]
+      &i[4]&!i[3]&i[1]&i[0]) | (!i[31]&i[29]&!i[28]&i[27]&!i[26]&!i[25]
+      &!i[14]&!i[13]&i[12]&!i[6]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]
+      &!i[28]&!i[26]&!i[14]&!i[13]&i[6]&!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (
+      !i[30]&i[29]&!i[28]&!i[27]&!i[26]&!i[14]&!i[13]&i[6]&!i[5]&!i[3]&!i[2]
+      &i[1]&i[0]) | (!i[14]&!i[13]&!i[12]&i[6]&i[5]&!i[4]&!i[3]&i[1]&i[0]) | (
+      !i[14]&i[13]&!i[6]&!i[3]&i[2]&i[1]&i[0]) | (i[14]&i[6]&i[5]&!i[4]
+      &!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[26]
+      &!i[6]&i[4]&!i[3]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[26]&i[6]&!i[5]
+      &!i[3]&!i[2]&i[1]&i[0]) | (!i[13]&i[12]&i[6]&i[5]&!i[3]&!i[2]&i[1]
+      &i[0]) | (!i[14]&!i[6]&!i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]
+      &!i[29]&!i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]&!i[20]
+      &!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[13]&!i[11]&!i[10]&!i[9]
+      &!i[8]&!i[7]&!i[5]&!i[4]&i[3]&i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]
+      &!i[28]&!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&!i[14]&!i[13]&!i[12]&!i[11]
+      &!i[10]&!i[9]&!i[8]&!i[7]&!i[6]&!i[5]&!i[4]&i[3]&i[2]&i[1]&i[0]) | (
+      i[31]&i[30]&!i[27]&!i[26]&!i[24]&!i[23]&!i[22]&!i[21]&!i[20]&!i[14]
+      &!i[13]&!i[12]&!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]
+      &!i[28]&i[27]&!i[26]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]&!i[20]&!i[13]
+      &!i[12]&!i[6]&i[5]&i[4]&i[3]&!i[2]&i[1]&i[0]) | (i[13]&i[6]&i[5]&i[4]
+      &!i[3]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&i[29]&!i[28]&!i[27]&!i[26]
+      &!i[25]&i[13]&!i[12]&!i[6]&i[5]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]
+      &!i[29]&!i[28]&!i[27]&!i[26]&i[25]&i[14]&!i[6]&i[5]&i[4]&!i[2]&i[1]
+      &i[0]) | (!i[31]&i[30]&!i[28]&!i[27]&!i[26]&!i[25]&i[14]&!i[13]&i[12]
+      &!i[6]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[26]
+      &!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]&i[3]&!i[2]&i[1]&i[0]) | (
+      !i[31]&!i[30]&i[29]&!i[28]&!i[27]&!i[26]&!i[25]&i[14]&!i[12]&!i[6]
+      &i[5]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&i[30]&i[29]&!i[28]&!i[27]&!i[26]
+      &!i[25]&!i[13]&i[12]&!i[6]&i[5]&i[4]&!i[2]&i[1]&i[0]) | (!i[31]&!i[29]
+      &!i[28]&!i[27]&!i[26]&!i[25]&!i[14]&!i[13]&!i[12]&!i[6]&i[4]&!i[2]
+      &i[1]&i[0]) | (!i[31]&!i[30]&!i[29]&!i[28]&i[27]&!i[26]&!i[14]&!i[13]
+      &!i[6]&!i[5]&i[4]&i[3]&!i[2]&i[1]&i[0]) | (!i[26]&i[6]&!i[5]&!i[4]
+      &i[1]&i[0]) | (!i[12]&!i[6]&!i[5]&!i[3]&!i[2]&i[1]&i[0]) | (!i[13]
+      &!i[6]&!i[5]&!i[4]&!i[3]&!i[2]&i[1]&i[0]) | (!i[14]&!i[13]&!i[12]
+      &!i[6]&!i[5]&i[4]&!i[2]&i[1]&i[0]) | (i[6]&i[5]&!i[4]&i[3]&i[2]&i[1]
+      &i[0]) | (i[13]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[6]&i[4]&!i[3]
+      &i[2]&i[1]&i[0]);
+
 
 
 endmodule

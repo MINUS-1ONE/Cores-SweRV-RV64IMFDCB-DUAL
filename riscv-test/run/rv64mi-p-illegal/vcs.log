@@ -1,0 +1,13 @@
+Command: /home/riscv/work/swerv/Cores-SweRV-RV64IMFDCBV/simv +vcs+lic+wait -l vcs.log +vcs+initreg+0 +ILLRGAL_INST_NOT_STOP
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar 18 02:29 2022
+
+Finished : minstret = 90, mcycle = 408
+TEST_PASSED
+$finish called from file "/home/riscv/work/swerv/Cores-SweRV-RV64IMFDCBV/testbench/tb_top.sv", line 352.
+$finish at simulation time                 4140
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 4140 ns
+CPU Time:      0.230 seconds;       Data structure size:   2.5Mb
+Fri Mar 18 02:29:48 2022

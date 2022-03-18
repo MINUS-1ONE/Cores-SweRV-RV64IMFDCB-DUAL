@@ -1,4 +1,4 @@
-`define finish_fail $stop
+`include "HardFloat_consts.vi"
 
 // preMul : 1.40ns  Muladd: 1.37ns   postMul : 1.05ns  round:0.83
 // stage 1: preMul
@@ -6,22 +6,24 @@
 // stage 3: round
 
 module FMA (
-	input clk, 
-	input rst_l,
-	input e2_data_en, 
-	input e3_data_en,
-	input [64:0] in_in1,  // rec format rs1 input
-    input [64:0] in_in2,  // rec format rs2 input
-    input [64:0] in_in3,  // rec format rs3 input
+	input logic clk, 
+	input logic rst_l,
+	input logic e2_data_en, 
+	input logic e3_data_en,
+	input logic [64:0] in_frs1_rec_fn,  // rec format rs1 input
+    input logic [64:0] in_frs2_rec_fn,  // rec format rs2 input
+    input logic [64:0] in_frs3_rec_fn,  // rec format rs3 input
     input logic fp64,
     // {fadd, fsub, fmul, fmadd, fmsub, fnmsub, fnmadd}
     input logic [6:0] ctrl_code,
-    input [2:0] in_rm,             // rounding mode
-   	output logic [64:0] out_data,  // rec format output data
+    input logic [2:0] in_rm,             // rounding mode
+   	output logic [64:0] out_rec_fn_data,  // rec format output data
 	output logic [4:0]  out_exc    // exception flags	
 );  
 
 	logic fadd, fsub, fmul, fmadd, fmsub, fnmsub, fnmadd;
+
+    logic fp64_e2, fp64_e3;
 
     logic [1:0] fma_op;
 
@@ -38,24 +40,24 @@ module FMA (
 
     assign {fadd, fsub, fmul, fmadd, fmsub, fnmsub, fnmadd} = ctrl_code;
 
-    assign fma_op = ({2{fmadd}}  & 2'b00) | 
-                    ({2{fmsub}}  & 2'b01) |
-                    ({2{fnmsub}} & 2'b10) |
-                    ({2{fnmadd}} & 2'b11);
+    assign fma_op = ({2{fmadd | fadd | fmul}} & 2'b00) | 
+                    ({2{fmsub | fsub}}        & 2'b01) |
+                    ({2{fnmsub}}              & 2'b10) |
+                    ({2{fnmadd}}              & 2'b11);
 
     assign one_fp32  = {1'b0, 9'h100, 23'b0};
-    assign zero_fp32 = {in_in1[32]^in_in2[32], 32'b0};
+    assign zero_fp32 = {in_frs1_rec_fn[32] ^ in_frs2_rec_fn[32], 32'b0};
     assign one_fp64  = {1'b0, 12'h800, 52'b0};
-    assign zero_fp64 = {in_in1[32]^in_in2[32], 64'b0};
+    assign zero_fp64 = {in_frs1_rec_fn[32]^in_frs2_rec_fn[32], 64'b0};
 
-    assign rs1_fp32 = in_in1[32:0];
+    assign rs1_fp32 = in_frs1_rec_fn[32:0];
     // rs1*1 ± rs3
-    assign rs2_fp32 = (fadd | fsub) ? one_fp32 : in_in2[32:0];
+    assign rs2_fp32 = (fadd | fsub) ? one_fp32 : in_frs2_rec_fn[32:0];
     // rs1*rs2 + 0
-    assign rs3_fp32 = fmul ? zero_fp32 : in_in3[32:0];
-    assign rs1_fp64 = in_in1[64:0];
-    assign rs2_fp64 = (fadd | fsub) ? one_fp64 : in_in2[64:0];
-    assign rs3_fp64 = fmul ? zero_fp64 : in_in3[64:0];
+    assign rs3_fp32 = fmul ? zero_fp32 : in_frs3_rec_fn[32:0];
+    assign rs1_fp64 = in_frs1_rec_fn[64:0];
+    assign rs2_fp64 = (fadd | fsub) ? one_fp64 : in_frs2_rec_fn[64:0];
+    assign rs3_fp64 = fmul ? zero_fp64 : in_frs3_rec_fn[64:0];
 
     // e1 stage signal defination
     // fp32
@@ -171,7 +173,8 @@ module FMA (
 		intermed_CDom_CAlignDist_e1[4:0]  -> intermed_CDom_CAlignDist_e2[4:0]
 		intermed_highAlignedSigC_e1[25:0] -> intermed_highAlignedSigC_e2[25:0]
 		roundingMode_e1[2:0]              -> roundingMode_e2[2:0] */
-	// fp32
+	rvdffs #(1) fp64_e2_ff (.*, .en(e2_data_en), .din(fp64), .dout(fp64_e2));
+    // fp32
     rvdffe #(24) mulAddA_fp32_e2_ff (.*,.scan_mode(1'b0),.en(e2_data_en),.din(mulAddA_fp32_e1),.dout(mulAddA_fp32_e2));
 	rvdffe #(24) mulAddB_fp32_e2_ff (.*,.scan_mode(1'b0),.en(e2_data_en),.din(mulAddB_fp32_e1),.dout(mulAddB_fp32_e2));
 	rvdffe #(48) mulAddC_fp32_e2_ff (.*,.scan_mode(1'b0),.en(e2_data_en),.din(mulAddC_fp32_e1),.dout(mulAddC_fp32_e2));
@@ -233,7 +236,8 @@ module FMA (
 		out_sExp_e2[9:0]     -> out_sExp_e3[9:0]
 		out_sig_e2[26:0]     -> out_sig_e3[26:0]
 		roundingMode_e2[2:0] -> roundingMode_e3[2:0] */
-	// fp32
+	rvdffs #(1) fp64_e3_ff (.*, .en(e3_data_en), .din(fp64_e2), .dout(fp64_e3));
+    // fp32
     rvdffs #(1) invalidExc_fp32_e3_ff (.*, .en(e3_data_en),.din(invalidExc_fp32_e2),.dout(invalidExc_fp32_e3));
 	rvdffs #(1) out_isNaN_fp32_e3_ff (.*, .en(e3_data_en),.din(out_isNaN_fp32_e2),.dout(out_isNaN_fp32_e3));
 	rvdffs #(1) out_isInf_fp32_e3_ff (.*, .en(e3_data_en),.din(out_isInf_fp32_e2),.dout(out_isInf_fp32_e3));
@@ -282,7 +286,7 @@ module FMA (
         .exceptionFlags(fma_fp64_exc)
     );
 
-    assign out_data = fp64 ? fma_fp64_data : {32'b0, fma_fp32_data};
-    assign out_exc = fp64 ? fma_fp64_exc : fma_fp32_exc;
+    assign out_rec_fn_data = fp64_e3 ? fma_fp64_data : {32'b0, fma_fp32_data};
+    assign out_exc = fp64_e3 ? fma_fp64_exc : fma_fp32_exc;
 
 endmodule
