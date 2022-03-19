@@ -234,14 +234,14 @@ ifneq (,$(wildcard $(TEST_DIR)/$(TEST).makefile))
 program.hex:
 	$(MAKE) -f $(TEST_DIR)/$(TEST).makefile
 else
-program.hex:
-	cp ${HEX_DIR}/$(TEST).hex program.hex
-# program.hex: $(OFILES) $(LINK)
-# 	@echo Building $(TEST)
-# 	$(GCC_PREFIX)-gcc $(ABI) -Wl,-Map=$(TEST).map -lgcc -T$(LINK) -o $(TEST).exe $(OFILES) -nostartfiles  $(TEST_LIBS)
-# 	$(GCC_PREFIX)-objcopy -O verilog $(TEST).exe program.hex
-# 	$(GCC_PREFIX)-objdump -S $(TEST).exe > $(TEST).dis
-# 	@echo Completed building $(TEST)
+# program.hex:
+# 	cp ${HEX_DIR}/$(TEST).hex program.hex
+program.hex: $(OFILES) $(LINK)
+	@echo Building $(TEST)
+	$(GCC_PREFIX)-gcc $(ABI) -Wl,-Map=$(TEST).map -lgcc -T$(LINK) -o $(TEST).exe $(OFILES) -nostartfiles  $(TEST_LIBS) -lm
+	$(GCC_PREFIX)-objcopy -O verilog $(TEST).exe program.hex
+	$(GCC_PREFIX)-objdump -S $(TEST).exe > $(TEST).dis
+	@echo Completed building $(TEST)
 
 %.o : %.s ${BUILD_DIR}/defines.h
 	$(GCC_PREFIX)-cpp -I${BUILD_DIR}  $<  > $*.cpp.s

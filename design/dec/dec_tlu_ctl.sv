@@ -2737,7 +2737,11 @@ assign dec_csr_rddata_d[63:0] = ( ({64{csr_misa}}      & supported_extensions) |
                                   ({64{csr_mvendorid}} & 64'h00000045) |
                                   ({64{csr_marchid}}   & 64'h0000000b) |
                                   ({64{csr_mimpid}}    & 64'h6) |
-                                  ({64{csr_mstatus}}   & {51'b0, 2'b11, 3'b0, mstatus[1], 3'b0, mstatus[0], 3'b0}) |
+                                  // 需要加入FS域和SD域。
+                                  // FS可读可写，XS只读，SD只读。
+                                  // 其中，SD = ((FS == 11) | (XS = 11))。
+                                  // 当FS为OFF时，执行任何读/写fcsr和FGPRs的指令都会触发非法指令异常。
+                                  ({64{csr_mstatus}}   & {53'b0, 3'b0, mstatus[1], 3'b0, mstatus[0], 3'b0}) |
                                   ({64{csr_mtvec}}     & {mtvec[62:1], 1'b0, mtvec[0]}) |
                                   ({64{csr_mip}}       & {33'b0, mip[5:3], 16'b0, mip[2], 3'b0, mip[1], 3'b0, mip[0], 3'b0}) |
                                   ({64{csr_mie}}       & {33'b0, mie[5:3], 16'b0, mie[2], 3'b0, mie[1], 3'b0, mie[0], 3'b0}) |

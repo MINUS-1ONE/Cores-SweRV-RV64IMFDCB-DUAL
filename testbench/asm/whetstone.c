@@ -20,7 +20,7 @@
 #define USECS_PER_SEC (1000000)
 #define EE_TICKS_PER_SEC (CORE_FREQ_IN_MHZ*USECS_PER_SEC)
 
-#define ITERATIONS 1
+#define ITERATIONS 1000
 
 /* function prototypes */
 void POUT(float X4);

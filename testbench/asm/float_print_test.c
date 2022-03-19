@@ -5,7 +5,7 @@
 
 // #define printf whisperPrintf
 
-void print_float(double num) {
+void print_float(float num) {
 
     int int_part;
     int fract_part;
@@ -13,8 +13,8 @@ void print_float(double num) {
     int_part = (int)num;
     fract_part = (int)((num - int_part)*1000);
 
-    printf("float_num: %d.%02d \n", int_part, fract_part);
-    // printf("float_num: %lf \n", num);
+    // printf("float_num: %d.%02d \n", int_part, fract_part);
+    printf("float_num: %f \n", num);
 }
 
 int main() {
@@ -22,11 +22,13 @@ int main() {
     float frs1_s, frs2_s, frs3_s, frd_s;
     double frs1_d, frs2_d, frs3_d, frd_d;
 
+    float a, b, c, d;
+
     a = 1.57;
     b = 6.22;
     c = a + b;
 
-    d = sin(a);
+    d = sinf(a);
     
     printf("add result :");
     print_float(c); 

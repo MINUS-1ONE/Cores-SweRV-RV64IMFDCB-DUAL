@@ -416,9 +416,11 @@ module ifu_compress_ctl
         &i[13]&i[9]&i[0]) | (!i[15]&i[14]&i[13]&i[10]&i[0]) | (!i[15]&i[14]
         &i[13]&i[11]&i[0]) | (!i[14]&i[13]&!i[0]) | (i[15]&!i[14]&i[13]);
 
-    assign o[1]  = 1'b0;
+    // 32b instruction has lower two bits 2'b11
 
-    assign o[0]  = 1'b0;
+    assign o[1]  = 1'b1;
+
+    assign o[0]  = 1'b1;
 
     assign legal = (!i[14]&i[6]&i[1]&!i[0]) | (!i[14]&i[12]&i[1]&!i[0]) | (!i[14]
         &i[5]&i[1]&!i[0]) | (!i[14]&i[4]&i[1]&!i[0]) | (i[13]&!i[1]&!i[0]) | (
