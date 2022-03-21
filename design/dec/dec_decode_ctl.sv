@@ -305,6 +305,8 @@ module dec_decode_ctl
    // control signal DEC<-> TLU
    // FCSR control rounding mode
    input logic [2:0] dec_tlu_frm_rounding_mode,
+   input logic [1:0] dec_tlu_mstatus_fs,
+   output logic finst_wb,
 
    // fdiv_sqrt signal
    input logic fpu_fdiv_fsqrt_stall, 
@@ -662,8 +664,8 @@ module dec_decode_ctl
    logic i0_frd_en_d, i1_frd_en_d;
    logic [4:0] i0_frd_d, i1_frd_d;
 
-   logic i0_result_fp64_e1, i0_result_fp64_e2, i0_result_fp64_e3, i0_result_fp64_e4, i0_result_fp64_wb;
-   logic i1_result_fp64_e1, i1_result_fp64_e2, i1_result_fp64_e3, i1_result_fp64_e4, i1_result_fp64_wb;
+   logic i0_fp64_e1, i0_fp64_e2, i0_fp64_e3, i0_fp64_e4, i0_fp64_wb;
+   logic i1_fp64_e1, i1_fp64_e2, i1_fp64_e3, i1_fp64_e4, i1_fp64_wb;
 
    logic [64:0] i0_float_rec_fn_result_e1;
    logic [64:0] i0_float_rec_fn_result_e2;
@@ -1837,6 +1839,11 @@ end : cam_array
 
    //***************************FPU related modify*******************************
    // include illegal rounding mode
+   // When mstatus.fs is OFF, any access to fCSRs and FGPRs is illegal
+   logic i0_illegal_access_fgprs, i0_illegal_access_fcsrs;
+   assign i0_illegal_access_fgprs = i0_dp.fpu & (dec_tlu_mstatus_fs[1:0] == 2'b0);
+   assign i0_illegal_access_fcsrs = (i0_dp.csr_read | i0_dp.csr_write) & ((i0[31:20] == 12'h1) | (i0[31:20] == 12'h2) | (i0[31:20] == 12'h3));
+   // assign i0_legal = i0_dp.legal & (~any_csr_d | dec_csr_legal_d) & ~i0_illegal_rm & ~i0_illegal_access_fgprs & ~i0_illegal_access_fcsrs;
    assign i0_legal = i0_dp.legal & (~any_csr_d | dec_csr_legal_d) & ~i0_illegal_rm;
    //***************************FPU related modify*******************************
 
@@ -1865,7 +1872,11 @@ end : cam_array
 
    // only decode i1 if legal and i0 not illegal - csr's cant decode as i1
    //
-   assign i1_leagl = i1_dp.legal & ~i1_illegal_rm;
+   logic i1_illegal_access_fgprs, i1_illegal_access_fcsrs;
+   assign i1_illegal_access_fgprs = i1_dp.fpu & (dec_tlu_mstatus_fs[1:0] == 2'b0);
+   assign i1_illegal_access_fcsrs = (i1_dp.csr_read | i1_dp.csr_write) & ((i1[31:20] == 12'h1) | (i1[31:20] == 12'h2) | (i1[31:20] == 12'h3));
+   // assign i1_leagl = i1_dp.legal & ~i1_illegal_rm & ~i1_illegal_access_fgprs & ~i1_illegal_access_fcsrs;
+   assign i1_leagl = i1_dp.legal & ~i1_illegal_rm & ~i1_illegal_access_fgprs;
 
    assign dec_i1_decode_d = i0_legal_decode_d & i1_valid_d & i1_leagl & ~i1_block_d & ~freeze;
 
@@ -3156,20 +3167,20 @@ end : cam_array
    assign fpu_d.fsqrt     = i0_dp.fpu ? i0_fdp.fsqrt     : i1_fdp.fsqrt;
    assign fpu_d.rm[2:0]   = i0_dp.fpu ? i0_fdp.rm[2:0]   : i1_fdp.rm[2:0];
 
-   rvdffe #(1) i0_result_fp64_e1_ff (.*, .en(i0_e1_ctl_en), .din(i0_dp.fp64),         .dout(i0_result_fp64_e1));
-   rvdffe #(1) i0_result_fp64_e2_ff (.*, .en(i0_e2_ctl_en), .din(i0_result_fp64_e1),  .dout(i0_result_fp64_e2));
-   rvdffe #(1) i0_result_fp64_e3_ff (.*, .en(i0_e3_ctl_en), .din(i0_result_fp64_e2),  .dout(i0_result_fp64_e3));
-   rvdffe #(1) i0_result_fp64_e4_ff (.*, .en(i0_e4_ctl_en), .din(i0_result_fp64_e3),  .dout(i0_result_fp64_e4));
-   rvdffe #(1) i0_result_fp64_wb_ff (.*, .en(i0_wb_ctl_en | fpu_fdiv_fsqrt_finish), .din(fpu_fdiv_fsqrt_finish ? fdiv_fsqrt_fp64 : i0_result_fp64_e4),  .dout(i0_result_fp64_wb));
+   rvdffe #(1) i0_result_fp64_e1_ff (.*, .en(i0_e1_ctl_en), .din(i0_dp.fp64),         .dout(i0_fp64_e1));
+   rvdffe #(1) i0_result_fp64_e2_ff (.*, .en(i0_e2_ctl_en), .din(i0_fp64_e1),  .dout(i0_fp64_e2));
+   rvdffe #(1) i0_result_fp64_e3_ff (.*, .en(i0_e3_ctl_en), .din(i0_fp64_e2),  .dout(i0_fp64_e3));
+   rvdffe #(1) i0_result_fp64_e4_ff (.*, .en(i0_e4_ctl_en), .din(i0_fp64_e3),  .dout(i0_fp64_e4));
+   rvdffe #(1) i0_result_fp64_wb_ff (.*, .en(i0_wb_ctl_en | fpu_fdiv_fsqrt_finish), .din(fpu_fdiv_fsqrt_finish ? fdiv_fsqrt_fp64 : i0_fp64_e4),  .dout(i0_fp64_wb));
 
-   rvdffe #(1) i1_result_fp64_e1_ff (.*, .en(i1_e1_ctl_en), .din(i1_dp.fp64),         .dout(i1_result_fp64_e1));
-   rvdffe #(1) i1_result_fp64_e2_ff (.*, .en(i1_e2_ctl_en), .din(i1_result_fp64_e1),  .dout(i1_result_fp64_e2));
-   rvdffe #(1) i1_result_fp64_e3_ff (.*, .en(i1_e3_ctl_en), .din(i1_result_fp64_e2),  .dout(i1_result_fp64_e3));
-   rvdffe #(1) i1_result_fp64_e4_ff (.*, .en(i1_e4_ctl_en), .din(i1_result_fp64_e3),  .dout(i1_result_fp64_e4));
-   rvdffe #(1) i1_result_fp64_wb_ff (.*, .en(i1_wb_ctl_en), .din(i1_result_fp64_e4),  .dout(i1_result_fp64_wb));
+   rvdffe #(1) i1_result_fp64_e1_ff (.*, .en(i1_e1_ctl_en), .din(i1_dp.fp64),  .dout(i1_fp64_e1));
+   rvdffe #(1) i1_result_fp64_e2_ff (.*, .en(i1_e2_ctl_en), .din(i1_fp64_e1),  .dout(i1_fp64_e2));
+   rvdffe #(1) i1_result_fp64_e3_ff (.*, .en(i1_e3_ctl_en), .din(i1_fp64_e2),  .dout(i1_fp64_e3));
+   rvdffe #(1) i1_result_fp64_e4_ff (.*, .en(i1_e4_ctl_en), .din(i1_fp64_e3),  .dout(i1_fp64_e4));
+   rvdffe #(1) i1_result_fp64_wb_ff (.*, .en(i1_wb_ctl_en), .din(i1_fp64_e4),  .dout(i1_fp64_wb));
 
    // For flw/fld
-   assign lsu_fp64_e3 = e3d.i0_fpu ? i0_result_fp64_e3 : i1_result_fp64_e3;
+   assign lsu_fp64_e3 = e3d.i0_fpu ? i0_fp64_e3 : i1_fp64_e3;
 
    //FGPR control
    // read
@@ -3184,9 +3195,10 @@ end : cam_array
    
    // write 
    assign dec_frd_wen_wb = wbd.i0_fpu ? (wbd.i0_wr_frd & ~dec_tlu_i0_kill_writeb_wb) : (wbd.i1_wr_frd & ~dec_tlu_i1_kill_writeb_wb);
-   assign dec_frd_fp64_wb = wbd.i0_fpu ? i0_result_fp64_wb : i1_result_fp64_wb;
+   assign dec_frd_fp64_wb = wbd.i0_fpu ? i0_fp64_wb : i1_fp64_wb;
    assign dec_frd_waddr_wb[4:0] = wbd.i0_fpu ? wbd.i0_frd[4:0] : wbd.i1_frd[4:0];
    assign dec_frd_rec_fn_wdata_wb[64:0] = wbd.i0_fpu ? i0_float_rec_fn_result_wb[64:0] : i1_float_rec_fn_result_wb[64:0];
+   assign finst_wb = wbd.i0_fpu ? (wbd.i0_fpu & wbd.i0valid) : (wbd.i1_fpu & wbd.i1valid);
 
    //***********float exception flags passing pipeline**********************
    // i1 exc passing
@@ -3407,38 +3419,38 @@ end : cam_array
                                                ({65{i1_frs3bypass[1]}} & i1_float_rec_fn_result_wb[64:0]) |
                                                ({65{i1_frs3bypass[0]}} & i0_float_rec_fn_result_wb[64:0]);
    
-   assign dec_i1_frs1_bypass_fp64_d = (i1_frs1bypass[9] & i1_result_fp64_e1) |
-                                      (i1_frs1bypass[8] & i0_result_fp64_e1) |
-                                      (i1_frs1bypass[7] & i1_result_fp64_e2) |
-                                      (i1_frs1bypass[6] & i0_result_fp64_e2) |
-                                      (i1_frs1bypass[5] & i1_result_fp64_e3) |
-                                      (i1_frs1bypass[4] & i0_result_fp64_e3) |
-                                      (i1_frs1bypass[3] & i1_result_fp64_e4) |
-                                      (i1_frs1bypass[2] & i0_result_fp64_e4) |
-                                      (i1_frs1bypass[1] & i1_result_fp64_wb) |
-                                      (i1_frs1bypass[0] & i0_result_fp64_wb);
+   assign dec_i1_frs1_bypass_fp64_d = (i1_frs1bypass[9] & i1_fp64_e1) |
+                                      (i1_frs1bypass[8] & i0_fp64_e1) |
+                                      (i1_frs1bypass[7] & i1_fp64_e2) |
+                                      (i1_frs1bypass[6] & i0_fp64_e2) |
+                                      (i1_frs1bypass[5] & i1_fp64_e3) |
+                                      (i1_frs1bypass[4] & i0_fp64_e3) |
+                                      (i1_frs1bypass[3] & i1_fp64_e4) |
+                                      (i1_frs1bypass[2] & i0_fp64_e4) |
+                                      (i1_frs1bypass[1] & i1_fp64_wb) |
+                                      (i1_frs1bypass[0] & i0_fp64_wb);
    
-   assign dec_i1_frs2_bypass_fp64_d = (i1_frs2bypass[9] & i1_result_fp64_e1) |
-                                      (i1_frs2bypass[8] & i0_result_fp64_e1) |
-                                      (i1_frs2bypass[7] & i1_result_fp64_e2) |
-                                      (i1_frs2bypass[6] & i0_result_fp64_e2) |
-                                      (i1_frs2bypass[5] & i1_result_fp64_e3) |
-                                      (i1_frs2bypass[4] & i0_result_fp64_e3) |
-                                      (i1_frs2bypass[3] & i1_result_fp64_e4) |
-                                      (i1_frs2bypass[2] & i0_result_fp64_e4) |
-                                      (i1_frs2bypass[1] & i1_result_fp64_wb) |
-                                      (i1_frs2bypass[0] & i0_result_fp64_wb);
+   assign dec_i1_frs2_bypass_fp64_d = (i1_frs2bypass[9] & i1_fp64_e1) |
+                                      (i1_frs2bypass[8] & i0_fp64_e1) |
+                                      (i1_frs2bypass[7] & i1_fp64_e2) |
+                                      (i1_frs2bypass[6] & i0_fp64_e2) |
+                                      (i1_frs2bypass[5] & i1_fp64_e3) |
+                                      (i1_frs2bypass[4] & i0_fp64_e3) |
+                                      (i1_frs2bypass[3] & i1_fp64_e4) |
+                                      (i1_frs2bypass[2] & i0_fp64_e4) |
+                                      (i1_frs2bypass[1] & i1_fp64_wb) |
+                                      (i1_frs2bypass[0] & i0_fp64_wb);
    
-   assign dec_i1_frs3_bypass_fp64_d = (i1_frs3bypass[9] & i1_result_fp64_e1) |
-                                      (i1_frs3bypass[8] & i0_result_fp64_e1) |
-                                      (i1_frs3bypass[7] & i1_result_fp64_e2) |
-                                      (i1_frs3bypass[6] & i0_result_fp64_e2) |
-                                      (i1_frs3bypass[5] & i1_result_fp64_e3) |
-                                      (i1_frs3bypass[4] & i0_result_fp64_e3) |
-                                      (i1_frs3bypass[3] & i1_result_fp64_e4) |
-                                      (i1_frs3bypass[2] & i0_result_fp64_e4) |
-                                      (i1_frs3bypass[1] & i1_result_fp64_wb) |
-                                      (i1_frs3bypass[0] & i0_result_fp64_wb);
+   assign dec_i1_frs3_bypass_fp64_d = (i1_frs3bypass[9] & i1_fp64_e1) |
+                                      (i1_frs3bypass[8] & i0_fp64_e1) |
+                                      (i1_frs3bypass[7] & i1_fp64_e2) |
+                                      (i1_frs3bypass[6] & i0_fp64_e2) |
+                                      (i1_frs3bypass[5] & i1_fp64_e3) |
+                                      (i1_frs3bypass[4] & i0_fp64_e3) |
+                                      (i1_frs3bypass[3] & i1_fp64_e4) |
+                                      (i1_frs3bypass[2] & i0_fp64_e4) |
+                                      (i1_frs3bypass[1] & i1_fp64_wb) |
+                                      (i1_frs3bypass[0] & i0_fp64_wb);
    
    // float rs bypass enable    
    assign dec_i1_frs1_bypass_en_d = |i1_frs1bypass[9:0];
@@ -3602,38 +3614,38 @@ end : cam_array
                                                ({65{i0_frs3bypass[1]}} & i1_float_rec_fn_result_wb[64:0]) |
                                                ({65{i0_frs3bypass[0]}} & i0_float_rec_fn_result_wb[64:0]);
 
-   assign dec_i0_frs1_bypass_fp64_d = (i0_frs1bypass[9] & i1_result_fp64_e1) |
-                                      (i0_frs1bypass[8] & i0_result_fp64_e1) |
-                                      (i0_frs1bypass[7] & i1_result_fp64_e2) |
-                                      (i0_frs1bypass[6] & i0_result_fp64_e2) |
-                                      (i0_frs1bypass[5] & i1_result_fp64_e3) |
-                                      (i0_frs1bypass[4] & i0_result_fp64_e3) |
-                                      (i0_frs1bypass[3] & i1_result_fp64_e4) |
-                                      (i0_frs1bypass[2] & i0_result_fp64_e4) |
-                                      (i0_frs1bypass[1] & i1_result_fp64_wb) |
-                                      (i0_frs1bypass[0] & i0_result_fp64_wb);
+   assign dec_i0_frs1_bypass_fp64_d = (i0_frs1bypass[9] & i1_fp64_e1) |
+                                      (i0_frs1bypass[8] & i0_fp64_e1) |
+                                      (i0_frs1bypass[7] & i1_fp64_e2) |
+                                      (i0_frs1bypass[6] & i0_fp64_e2) |
+                                      (i0_frs1bypass[5] & i1_fp64_e3) |
+                                      (i0_frs1bypass[4] & i0_fp64_e3) |
+                                      (i0_frs1bypass[3] & i1_fp64_e4) |
+                                      (i0_frs1bypass[2] & i0_fp64_e4) |
+                                      (i0_frs1bypass[1] & i1_fp64_wb) |
+                                      (i0_frs1bypass[0] & i0_fp64_wb);
    
-   assign dec_i0_frs2_bypass_fp64_d = (i0_frs2bypass[9] & i1_result_fp64_e1) |
-                                      (i0_frs2bypass[8] & i0_result_fp64_e1) |
-                                      (i0_frs2bypass[7] & i1_result_fp64_e2) |
-                                      (i0_frs2bypass[6] & i0_result_fp64_e2) |
-                                      (i0_frs2bypass[5] & i1_result_fp64_e3) |
-                                      (i0_frs2bypass[4] & i0_result_fp64_e3) |
-                                      (i0_frs2bypass[3] & i1_result_fp64_e4) |
-                                      (i0_frs2bypass[2] & i0_result_fp64_e4) |
-                                      (i0_frs2bypass[1] & i1_result_fp64_wb) |
-                                      (i0_frs2bypass[0] & i0_result_fp64_wb);
+   assign dec_i0_frs2_bypass_fp64_d = (i0_frs2bypass[9] & i1_fp64_e1) |
+                                      (i0_frs2bypass[8] & i0_fp64_e1) |
+                                      (i0_frs2bypass[7] & i1_fp64_e2) |
+                                      (i0_frs2bypass[6] & i0_fp64_e2) |
+                                      (i0_frs2bypass[5] & i1_fp64_e3) |
+                                      (i0_frs2bypass[4] & i0_fp64_e3) |
+                                      (i0_frs2bypass[3] & i1_fp64_e4) |
+                                      (i0_frs2bypass[2] & i0_fp64_e4) |
+                                      (i0_frs2bypass[1] & i1_fp64_wb) |
+                                      (i0_frs2bypass[0] & i0_fp64_wb);
    
-   assign dec_i0_frs3_bypass_fp64_d = (i0_frs3bypass[9] & i1_result_fp64_e1) |
-                                      (i0_frs3bypass[8] & i0_result_fp64_e1) |
-                                      (i0_frs3bypass[7] & i1_result_fp64_e2) |
-                                      (i0_frs3bypass[6] & i0_result_fp64_e2) |
-                                      (i0_frs3bypass[5] & i1_result_fp64_e3) |
-                                      (i0_frs3bypass[4] & i0_result_fp64_e3) |
-                                      (i0_frs3bypass[3] & i1_result_fp64_e4) |
-                                      (i0_frs3bypass[2] & i0_result_fp64_e4) |
-                                      (i0_frs3bypass[1] & i1_result_fp64_wb) |
-                                      (i0_frs3bypass[0] & i0_result_fp64_wb);
+   assign dec_i0_frs3_bypass_fp64_d = (i0_frs3bypass[9] & i1_fp64_e1) |
+                                      (i0_frs3bypass[8] & i0_fp64_e1) |
+                                      (i0_frs3bypass[7] & i1_fp64_e2) |
+                                      (i0_frs3bypass[6] & i0_fp64_e2) |
+                                      (i0_frs3bypass[5] & i1_fp64_e3) |
+                                      (i0_frs3bypass[4] & i0_fp64_e3) |
+                                      (i0_frs3bypass[3] & i1_fp64_e4) |
+                                      (i0_frs3bypass[2] & i0_fp64_e4) |
+                                      (i0_frs3bypass[1] & i1_fp64_wb) |
+                                      (i0_frs3bypass[0] & i0_fp64_wb);
    
    // float rs bypass enable    
    assign dec_i0_frs1_bypass_en_d = |i0_frs1bypass[9:0];

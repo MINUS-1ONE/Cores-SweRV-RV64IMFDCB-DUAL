@@ -584,6 +584,8 @@ module dec
    
    // FCSR control signal
    logic [2:0] dec_tlu_frm_rounding_mode;
+   logic [1:0] dec_tlu_mstatus_fs;
+   logic finst_wb;
 
    logic [4:0] f_flags_i0_e4;
    logic [4:0] f_flags_i1_e4;
