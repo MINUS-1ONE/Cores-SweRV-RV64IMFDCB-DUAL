@@ -48,8 +48,10 @@ endfunction
 function string dasm16_0( input[31:0] opcode, tid);
     case(opcode[15:13])
     3'b000: return dasm16_ciw(opcode);
+    3'b001: return {"c.fld  ", dasm16_cl(opcode, tid)};
     3'b010: return {"c.lw   ", dasm16_cl(opcode, tid)};
     3'b011: return {"c.ld   ", dasm16_cl(opcode, tid)};
+    3'b101: return {"c.fsd  ", dasm16_cl(opcode, tid)};
     3'b110: return {"c.sw   ", dasm16_cl(opcode, tid)};
     3'b111: return {"c.sd   ", dasm16_cl(opcode, tid)};
     endcase
@@ -69,16 +71,11 @@ int imm;
     imm=0;
     imm[5:3] = opcode[12:10];
     case(opcode[15:13])
-    3'b010: begin //c.lw
+    3'b010, 3'b110: begin //c.lw, c.sw
         imm[6] = opcode[5];
         imm[2] = opcode[6];
     end
-    3'b011: imm[7:6] = opcode[6:5]; //c.ld
-    3'b110: begin //c.sw
-        imm[6] = opcode[5];
-        imm[2] = opcode[6];
-    end
-    3'b111: imm[7:6] = opcode[6:5]; //c.sd
+    3'b001, 3'b011, 3'b101, 3'b111: imm[7:6] = opcode[6:5]; //c.fld, c.ld, c.fsd, c.sd
     endcase
 
     return $sformatf(" %s,%0d(%s) [%h]", abi_reg[opcode[4:2]+8], imm, abi_reg[opcode[9:7]+8], gpr[tid][opcode[9:7]+8]+imm);
@@ -172,8 +169,10 @@ endfunction
 function string dasm16_2( input[31:0] opcode, input tid=0);
     case(opcode[15:13])
     3'b000: return {"c.slli  ", dasm16_ci(opcode)};
+    3'b001: return {"c.fldsp ", dasm16_cls(opcode,1,tid)};
     3'b010: return {"c.lwsp  ", dasm16_cls(opcode,0,tid)};
     3'b011: return {"c.ldsp  ", dasm16_cls(opcode,1,tid)};
+    3'b101: return {"c.fsdsp ", dasm16_css(opcode,1,tid)};
     3'b110: return {"c.swsp  ", dasm16_css(opcode,0,tid)};
     3'b111: return {"c.sdsp  ", dasm16_css(opcode,1,tid)};
     endcase
@@ -224,6 +223,20 @@ function string dasm32( input[31:0] opcode, input[63:0] pc, input tid=0);
     7'b0001111: return {"fence", dasm32_fence(opcode)};
     7'b1110011: return dasm32_e(opcode);
     7'b0101111: return dasm32_a(opcode,tid);
+    // load-fp
+    7'b0000111: return dasm32_fl(opcode,tid);
+    // store-fp
+    7'b0100111: return dasm32_fs(opcode,tid);
+    // op-fp
+    7'b1010011: return dasm32_op_fp(opcode);
+    // FMADD
+    7'b1000011: return dasm32_fma(opcode);
+    // FMSUB
+    7'b1000111: return dasm32_fma(opcode);
+    // FNMSUB
+    7'b1001011: return dasm32_fma(opcode);
+    // FNMADD
+    7'b1001111: return dasm32_fma(opcode);
 
     endcase
     return $sformatf(".long   0x%h", opcode);
@@ -548,4 +561,284 @@ endfunction
 
 function string dasm32_amo( input[31:0] opcode, input tid=0);
     return $sformatf(" %s,%s,(%s) [%h]", abi_reg[opcode[11:7]], abi_reg[opcode[24:20]], abi_reg[opcode[19:15]], gpr[tid][opcode[19:15]]);
+endfunction
+
+function string dasm32_fl( input[31:0] opcode, input tid=0);
+int imm;
+string mn;
+    imm=0;
+    imm[11:0] = opcode[31:20];
+    if(opcode[31]) imm[31:12] = '1;
+    case(opcode[14:12])
+    3'b010: mn = "flw      ";
+    3'b011: mn = "fld      ";
+    default : return $sformatf(".long   0x%h", opcode);
+    endcase
+    return $sformatf("%s%s,%0d(%s) [%h]", mn, abi_f_reg[opcode[11:7]], imm, abi_reg[opcode[19:15]], imm+gpr[tid][opcode[19:15]]);
+endfunction
+
+function string dasm32_fs( input[31:0] opcode, input tid=0);
+int imm;
+string mn;
+    imm=0;
+    imm[11:5] = opcode[31:25];
+    imm[4:0] = opcode[11:7];
+    if(opcode[31]) imm[31:12] = '1;
+    case(opcode[14:12])
+    3'b010: mn = "fsw      ";
+    3'b010: mn = "fsd      ";
+    default : return $sformatf(".long   0x%h", opcode);
+    endcase
+    return $sformatf("%s%s,%0d(%s) [%h]", mn, abi_f_reg[opcode[24:20]], imm, abi_reg[opcode[19:15]], imm+gpr[tid][opcode[19:15]]);
+endfunction
+
+function string dasm32_fma( input[31:0] opcode);
+string mn;
+    case(opcode[26:25])
+    2'b00:
+        case(opcode[4:2])
+        3'b000: mn = "fmadd.s   ";
+        3'b001: mn = "fmsub.s   ";
+        3'b010: mn = "fnmsub.s  ";
+        3'b011: mn = "fnmadd.s  ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    2'b01:
+        case(opcode[4:2])
+        3'b000: mn = "fmadd.d   ";
+        3'b001: mn = "fmsub.d   ";
+        3'b010: mn = "fnmsub.d  ";
+        3'b011: mn = "fnmadd.d  ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    default : return $sformatf(".long   0x%h", opcode);
+    endcase
+    return $sformatf("%s%s,%s,%s,%s", mn, abi_f_reg[opcode[11:7]], abi_f_reg[opcode[19:15]], abi_f_reg[opcode[24:20]], abi_f_reg[opcode[31:27]]);
+endfunction
+
+function string dasm32_op_fp( input[31:0] opcode);
+string mn;
+    casex(opcode[31:25])
+    7'b000000x: return dasm32_fadd(opcode);
+    7'b000010x: return dasm32_fsub(opcode);
+    7'b000100x: return dasm32_fmul(opcode);
+    7'b000110x: return dasm32_fdiv(opcode);
+    7'b010110x: return dasm32_fsqrt(opcode);
+    7'b001000x: return dasm32_fsgn(opcode);
+    7'b001010x: return dasm32_fmaxmin(opcode);
+    7'b110000x: return dasm32_fcvt_ftox(opcode);
+    7'b110100x: return dasm32_fcvt_xtof(opcode);
+    7'b010000x: return dasm32_fcvt_ftof(opcode);
+    7'b111000x: return dasm32_f_uni_type(opcode);
+    7'b111100x: return dasm32_fmv_xtof(opcode);
+    7'b101000x: return dasm32_fcmp(opcode);
+    endcase
+    return $sformatf(".long   0x%h", opcode);
+endfunction
+
+function string dasm32_f_uni_type(input[31:0] opcode);
+string mn;
+    case (opcode[25])
+        1'b0: 
+            case (opcode[14:12])
+            3'b000: mn = "fmv.x.w   ";
+            3'b001: mn = "fclass.s   ";
+            default: return $sformatf(".long   0x%h", opcode);
+            endcase
+        1'b1: 
+            case (opcode[14:12])
+            3'b000: mn = "fmv.x.d   ";
+            3'b001: mn = "fclass.d   ";
+            default: return $sformatf(".long   0x%h", opcode);
+            endcase
+    endcase
+    return $sformatf("%s%s,%s", mn, abi_reg[opcode[11:7]], abi_f_reg[opcode[19:15]]);
+endfunction
+
+function string dasm32_fmv_xtof(input[31:0] opcode);
+string mn;
+    case (opcode[25])
+        1'b0: mn = "fmv.w.x   ";
+        1'b1: mn = "fmv.d.x   ";
+        default: return $sformatf(".long   0x%h", opcode);
+    endcase
+    return $sformatf("%s%s,%s", mn, abi_f_reg[opcode[11:7]], abi_reg[opcode[19:15]]);
+endfunction
+
+function string dasm32_fcmp( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+    1'b0:
+        case (opcode[14:12])
+        3'b000 : mn = "fle.s   ";
+        3'b001 : mn = "flt.s   ";
+        3'b010 : mn = "feq.s   ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    1'b1:
+        case (opcode[14:12])
+        3'b000 : mn = "fle.d   ";
+        3'b001 : mn = "flt.d   ";
+        3'b010 : mn = "feq.d   ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    endcase
+    return $sformatf("%s%s,%s,%s", mn, abi_reg[opcode[11:7]], abi_f_reg[opcode[19:15]], abi_f_reg[opcode[24:20]]);
+endfunction
+
+function string dasm32_fcvt_ftox( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+    1'b0:
+        case (opcode[24:20])
+        5'b00000: mn = "fcvt.w.s   ";
+        5'b00001: mn = "fcvt.wu.s   ";
+        5'b00010: mn = "fcvt.l.s   ";
+        5'b00011: mn = "fcvt.lu.s   ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    1'b1:
+        case (opcode[24:20])
+        5'b00000: mn = "fcvt.w.d   ";
+        5'b00001: mn = "fcvt.wu.d   ";
+        5'b00010: mn = "fcvt.l.d   ";
+        5'b00011: mn = "fcvt.lu.d   ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    endcase
+    return $sformatf("%s%s,%s", mn, abi_reg[opcode[11:7]], abi_f_reg[opcode[19:15]]);
+endfunction
+
+function string dasm32_fcvt_xtof( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+    1'b0:
+        case (opcode[24:20])
+        5'b00000: mn = "fcvt.s.w   ";
+        5'b00001: mn = "fcvt.s.wu   ";
+        5'b00010: mn = "fcvt.s.l   ";
+        5'b00011: mn = "fcvt.s.lu   ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    1'b1:
+        case (opcode[24:20])
+        5'b00000: mn = "fcvt.d.w   ";
+        5'b00001: mn = "fcvt.d.wu   ";
+        5'b00010: mn = "fcvt.d.l   ";
+        5'b00011: mn = "fcvt.d.lu   ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    endcase
+    return $sformatf("%s%s,%s", mn, abi_f_reg[opcode[11:7]], abi_reg[opcode[19:15]]);
+endfunction
+
+function string dasm32_fcvt_ftof( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+    1'b0:
+        case (opcode[24:20])
+        5'b00001: mn = "fcvt.s.d   ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    1'b1:
+        case (opcode[24:20])
+        5'b00000: mn = "fcvt.d.s   ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    endcase
+    return $sformatf("%s%s,%s", mn, abi_f_reg[opcode[11:7]], abi_f_reg[opcode[19:15]]);
+endfunction
+
+function string dasm32_fcvt_s_w( input[31:0] opcode);
+string mn;
+    case (opcode[20])
+    1'b0 : mn = "fcvt.s.w   ";
+    1'b1 : mn = "fcvt.s.wu   ";
+    endcase
+    return $sformatf("%s%s,%s", mn, abi_f_reg[opcode[11:7]], abi_reg[opcode[19:15]]);
+endfunction
+
+function string dasm32_fmaxmin( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+    1'b0:
+        case (opcode[14:12])
+        3'b000 : mn = "fmin.s   ";
+        3'b001 : mn = "fmax.s   ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    1'b1:
+        case (opcode[14:12])
+        3'b000 : mn = "fmin.d   ";
+        3'b001 : mn = "fmax.d   ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    endcase
+    return $sformatf("%s%s,%s,%s", mn, abi_f_reg[opcode[11:7]], abi_f_reg[opcode[19:15]], abi_f_reg[opcode[24:20]]);
+endfunction
+
+function string dasm32_fsgn( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+    1'b0:
+        case (opcode[14:12])
+        3'b000 : mn = "fsgnj.s   ";
+        3'b001 : mn = "fsgnjn.s   ";
+        3'b010 : mn = "fsgnjx.s  ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    1'b1:
+        case (opcode[14:12])
+        3'b000 : mn = "fsgnj.d   ";
+        3'b001 : mn = "fsgnjn.d   ";
+        3'b010 : mn = "fsgnjx.d  ";
+        default : return $sformatf(".long   0x%h", opcode);
+        endcase
+    endcase
+    return $sformatf("%s%s,%s,%s", mn, abi_f_reg[opcode[11:7]], abi_f_reg[opcode[19:15]], abi_f_reg[opcode[24:20]]);
+endfunction
+
+function string dasm32_fadd( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+        1'b0: mn = "fadd.s   ";
+        1'b1: mn = "fadd.d   ";
+    endcase
+    return $sformatf("%s%s,%s,%s", mn, abi_f_reg[opcode[11:7]], abi_f_reg[opcode[19:15]], abi_f_reg[opcode[24:20]]);
+endfunction
+
+function string dasm32_fsub( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+        1'b0: mn = "fsub.s   ";
+        1'b1: mn = "fsub.d   ";
+    endcase
+    return $sformatf("%s%s,%s,%s", mn, abi_f_reg[opcode[11:7]], abi_f_reg[opcode[19:15]], abi_f_reg[opcode[24:20]]);
+endfunction
+
+function string dasm32_fmul( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+        1'b0: mn = "fmul.s   ";
+        1'b1: mn = "fmul.d   ";
+    endcase
+    return $sformatf("%s%s,%s,%s", mn, abi_f_reg[opcode[11:7]], abi_f_reg[opcode[19:15]], abi_f_reg[opcode[24:20]]);
+endfunction
+
+function string dasm32_fdiv( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+        1'b0: mn = "fdiv.s   ";
+        1'b1: mn = "fdiv.d   ";
+    endcase
+    return $sformatf("%s%s,%s,%s", mn, abi_f_reg[opcode[11:7]], abi_f_reg[opcode[19:15]], abi_f_reg[opcode[24:20]]);
+endfunction
+
+function string dasm32_fsqrt( input[31:0] opcode);
+string mn;
+    case (opcode[25])
+        1'b0: mn = "fsqrt.s   ";
+        1'b1: mn = "fsqrt.d   ";
+    endcase
+    return $sformatf("%s%s,%s", mn, abi_f_reg[opcode[11:7]], abi_f_reg[opcode[19:15]]);
 endfunction

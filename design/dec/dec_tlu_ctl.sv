@@ -290,7 +290,6 @@ module dec_tlu_ctl
    logic tlu_i0_kill_writeb_e4, tlu_i1_kill_writeb_e4;
    logic [1:0]  mstatus_ns, mstatus;
    logic [1:0]  mstatus_fs_ns, mstatus_fs;
-   logic mstatus_sd;
    logic mstatus_mie_ns;
    logic [62:0] mtvec_ns, mtvec;
    logic [15:2] dcsr_ns, dcsr;
@@ -1179,7 +1178,6 @@ module dec_tlu_ctl
 
    // gate MIE if we are single stepping and DCSR[STEPIE] is off
    assign mstatus_mie_ns = mstatus_ns[`MSTATUS_MIE] & (~dcsr_single_step_running_f | dcsr[`DCSR_STEPIE]);
-   assign mstatus_sd = (mstatus_fs == 2'b11);
    rvdff #(2)  mstatus_ff (.*, .clk(free_clk), .din(mstatus_ns[1:0]), .dout(mstatus[1:0]));
    rvdff #(2)  mstatus_fs_ff (.*, .clk(free_clk), .din(mstatus_fs_ns[1:0]), .dout(mstatus_fs[1:0]));
 
@@ -2752,7 +2750,7 @@ assign dec_csr_rddata_d[63:0] = ( ({64{csr_misa}}      & supported_extensions) |
                                   // FS可读可写，XS只读，SD只读。
                                   // 其中，SD = ((FS == 11) | (XS = 11))。
                                   // 当FS为OFF时，执行任何读/写fcsr和FGPRs的指令都会触发非法指令异常。
-                                  ({64{csr_mstatus}}   & {mstatus_sd, 46'b0, 2'b0, mstatus_fs, 2'b11, 3'b0, mstatus[1], 3'b0, mstatus[0], 3'b0}) |
+                                  ({64{csr_mstatus}}   & {1'b1, 46'b0, 2'b0, mstatus_fs, 2'b11, 3'b0, mstatus[1], 3'b0, mstatus[0], 3'b0}) |
                                   ({64{csr_mtvec}}     & {mtvec[62:1], 1'b0, mtvec[0]}) |
                                   ({64{csr_mip}}       & {33'b0, mip[5:3], 16'b0, mip[2], 3'b0, mip[1], 3'b0, mip[0], 3'b0}) |
                                   ({64{csr_mie}}       & {33'b0, mie[5:3], 16'b0, mie[2], 3'b0, mie[1], 3'b0, mie[0], 3'b0}) |

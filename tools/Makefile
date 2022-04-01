@@ -177,8 +177,6 @@ riviera-build: ${TBFILES} ${BUILD_DIR}/defines.h
 	touch riviera-build
 
 ##################### Simulation Runs #####################################
-# 学习shell、tcl和Makefile文件编写规则。
-# Makefile的组织结构要看，riscv-test的编译和运行过程要看，log文件对比要看，FS和SD域要加上去，rv64mi测试要跑过，需要一些whetstone的对比数据。
 
 verilator: program.hex verilator-build
 	./obj_dir/Vtb_top ${DEBUG_PLUS} ${RUN_PLUGS}

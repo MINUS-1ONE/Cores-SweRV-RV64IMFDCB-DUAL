@@ -81,7 +81,7 @@ void P3(double X, double Y, double *Z);
 #define USECS_PER_SEC (1000000)
 #define EE_TICKS_PER_SEC (CORE_FREQ_IN_MHZ*USECS_PER_SEC)
 
-#define ITERATIONS (10000)
+#define ITERATIONS (100)
 
 unsigned long get_cycles();
 float cycles_to_secs(unsigned long ticks);

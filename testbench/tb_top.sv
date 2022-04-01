@@ -313,6 +313,7 @@ module tb_top;
 `endif
     wire[63:0]                  WriteData;
     string                      abi_reg[32]; // ABI register names
+    string                      abi_f_reg[32];
 
 `define DEC         rvtop.swerv.dec
 `define TLU         `DEC.tlu
@@ -443,6 +444,39 @@ module tb_top;
         abi_reg[29] = "t4";
         abi_reg[30] = "t5";
         abi_reg[31] = "t6";
+        
+        abi_f_reg[0] = "f0";
+        abi_f_reg[1] = "f1";
+        abi_f_reg[2] = "f2";
+        abi_f_reg[3] = "f3";
+        abi_f_reg[4] = "f4";
+        abi_f_reg[5] = "f5";
+        abi_f_reg[6] = "f6";
+        abi_f_reg[7] = "f7";
+        abi_f_reg[8] = "f8";
+        abi_f_reg[9] = "f9";
+        abi_f_reg[10] = "f10";
+        abi_f_reg[11] = "f11";
+        abi_f_reg[12] = "f12";
+        abi_f_reg[13] = "f13";
+        abi_f_reg[14] = "f14";
+        abi_f_reg[15] = "f15";
+        abi_f_reg[16] = "f16";
+        abi_f_reg[17] = "f17";
+        abi_f_reg[18] = "f18";
+        abi_f_reg[19] = "f19";
+        abi_f_reg[20] = "f20";
+        abi_f_reg[21] = "f21";
+        abi_f_reg[22] = "f22";
+        abi_f_reg[23] = "f23";
+        abi_f_reg[24] = "f24";
+        abi_f_reg[25] = "f25";
+        abi_f_reg[26] = "f26";
+        abi_f_reg[27] = "f27";
+        abi_f_reg[28] = "f28";
+        abi_f_reg[29] = "f29";
+        abi_f_reg[30] = "f30";
+        abi_f_reg[31] = "f31";
     // tie offs
         jtag_id[31:28] = 4'b1;
         jtag_id[27:12] = '0;
