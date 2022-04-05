@@ -389,7 +389,7 @@ rv64i = {
       frd
       fflags
       fp64
-      long
+      islong
       sign
       fp_to_int
       int_to_fp
@@ -567,10 +567,10 @@ rv64i[fdiv_s]     =  { fpu fdiv presync postsync frs1 frs2 frd fflags }
 rv64i[fsqrt_s]    =  { fpu fsqrt presync postsync frs1 frd fflags }
 
 # RV64F
-rv64i[fcvt_l_s]   =  { fpu fcvt fp_to_int long sign frs1 rd fflags}
-rv64i[fcvt_lu_s]  =  { fpu fcvt fp_to_int long frs1 rd fflags }
-rv64i[fcvt_s_l]   =  { fpu fcvt int_to_fp long sign rs1 frd fflags }
-rv64i[fcvt_s_lu]  =  { fpu fcvt int_to_fp long rs1 frd fflags }
+rv64i[fcvt_l_s]   =  { fpu fcvt fp_to_int islong sign frs1 rd fflags}
+rv64i[fcvt_lu_s]  =  { fpu fcvt fp_to_int islong frs1 rd fflags }
+rv64i[fcvt_s_l]   =  { fpu fcvt int_to_fp islong sign rs1 frd fflags }
+rv64i[fcvt_s_lu]  =  { fpu fcvt int_to_fp islong rs1 frd fflags }
 
 # RV32D
 rv64i[fld]        =  { fpu fp64 fl lsu load dword rs1 frd }
@@ -602,12 +602,12 @@ rv64i[fdiv_d]     =  { fpu fp64 fdiv presync postsync frs1 frs2 frd fflags }
 rv64i[fsqrt_d]    =  { fpu fp64 fsqrt presync postsync frs1 frd fflags }
 
 # RV64D
-rv64i[fcvt_l_d]   =  { fpu fp64 fcvt fp_to_int long sign frs1 rd fflags }
-rv64i[fcvt_lu_d]  =  { fpu fp64 fcvt fp_to_int long frs1 rd fflags}
+rv64i[fcvt_l_d]   =  { fpu fp64 fcvt fp_to_int islong sign frs1 rd fflags }
+rv64i[fcvt_lu_d]  =  { fpu fp64 fcvt fp_to_int islong frs1 rd fflags}
 rv64i[fmv_x_d]    =  { fpu fp64 fmv fp_to_int frs1 rd}
 rv64i[fmv_d_x]    =  { fpu fp64 fmv int_to_fp rs1 frd}
-rv64i[fcvt_d_l]   =  { fpu fp64 fcvt int_to_fp long sign rs1 frd fflags}
-rv64i[fcvt_d_lu]  =  { fpu fp64 fcvt int_to_fp long rs1 frd fflags}
+rv64i[fcvt_d_l]   =  { fpu fp64 fcvt int_to_fp islong sign rs1 frd fflags}
+rv64i[fcvt_d_lu]  =  { fpu fp64 fcvt int_to_fp islong rs1 frd fflags}
 
 # RV64B
 rv64i[clz]       =  { alu  zbb   rs1     rd                       clz     }

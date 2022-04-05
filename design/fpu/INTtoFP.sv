@@ -6,7 +6,7 @@ module INTtoFP (
 	input logic [2:0] in_rm,    // rounding mode
 	
 	input logic fp64,
-    // {fcvt, fmv, sign, long}
+    // {fcvt, fmv, sign, islong}
 	input logic [3:0] ctrl_code,
 
     output logic [64:0] out_rec_fn_data,  // rec format output data
@@ -15,7 +15,7 @@ module INTtoFP (
 	logic fcvt;
 	logic fmv;
 	logic sign;
-	logic long;
+	logic islong;
 
 	logic [32:0] fmv_w_x_data;
 	logic [64:0] fmv_d_x_data;
@@ -32,7 +32,7 @@ module INTtoFP (
 	logic [64:0] fcvt_data;
 	logic [4:0]  fcvt_exc;
 
-	assign {fcvt, fmv, sign, long} = ctrl_code;
+	assign {fcvt, fmv, sign, islong} = ctrl_code;
 
 	// FMV.W.X
 	fNToRecFN#(.expWidth(8), .sigWidth(24)) fmv_w_x
@@ -94,10 +94,10 @@ module INTtoFP (
 		.exceptionFlags(fcvt_d_l_exc)
 	);
 
-	assign fcvt_data = fp64 ? (long ? fcvt_d_l_data : fcvt_d_w_data) : 
-							  (long ? {32'b0, fcvt_s_l_data} : {32'b0, fcvt_s_w_data});
-	assign fcvt_exc  = fp64 ? (long ? fcvt_d_l_exc : fcvt_d_w_exc) : 
-							  (long ? fcvt_s_l_exc : fcvt_s_w_exc);
+	assign fcvt_data = fp64 ? (islong ? fcvt_d_l_data : fcvt_d_w_data) : 
+							  (islong ? {32'b0, fcvt_s_l_data} : {32'b0, fcvt_s_w_data});
+	assign fcvt_exc  = fp64 ? (islong ? fcvt_d_l_exc : fcvt_d_w_exc) : 
+							  (islong ? fcvt_s_l_exc : fcvt_s_w_exc);
 
 	assign out_rec_fn_data = ({65{fcvt}} & fcvt_data) | ({65{fmv}} & fmv_data);
 	assign out_exc         = ({5{fcvt}} & fcvt_exc) | ({5{fmv}} & 5'b0);

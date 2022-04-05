@@ -370,7 +370,7 @@ typedef struct packed {
                         logic frd; // Need write back result to FGPRs
                         logic fflags; // Need write FFLAGS CSR
                         logic fp64;
-                        logic long;
+                        logic islong;
                         logic sign;
                         logic fp_to_int;
                         logic int_to_fp;
@@ -487,7 +487,7 @@ typedef struct packed {
                         logic fp_to_fp;
                         logic fma;
                         logic fp64;
-                        logic long;
+                        logic islong;
                         logic sign;
                         logic fmin;
                         logic fmax;

@@ -5,7 +5,7 @@ module FPtoINT (
     input logic [2:0] in_rm,    // rounding mode
 
     input logic fp64,
-    // {fs, fclass, feq, flt, fle, fmv, fcvt, sign, long}
+    // {fs, fclass, feq, flt, fle, fmv, fcvt, sign, islong}
     input logic [8:0] ctrl_code,
 
 	output logic lt,               // less than signal to FPtoFP
@@ -22,7 +22,7 @@ module FPtoINT (
     logic fmv;
     logic fcvt;
     logic sign;
-    logic long;
+    logic islong;
 
     logic frs1_sign;
 
@@ -56,7 +56,7 @@ module FPtoINT (
 
     logic nzero_lt_pzero;
     
-    assign {fs, fclass, feq, flt, fle, fmv, fcvt, sign, long} = ctrl_code;
+    assign {fs, fclass, feq, flt, fle, fmv, fcvt, sign, islong} = ctrl_code;
 
     assign frs1_sign = fp64 ? in_frs1_rec_fn[64] : in_frs1_rec_fn[32];
 
@@ -170,10 +170,10 @@ module FPtoINT (
     );
 
     // For XLEN> 32, FCVT.W[U].S sign-extends the 32-bit result to the destination register width.
-    assign fcvt_data = fp64 ? (long ? fcvt_l_d_data : {{32{fcvt_w_d_data[31]}}, fcvt_w_d_data}) :
-                              (long ? fcvt_l_s_data : {{32{fcvt_w_s_data[31]}}, fcvt_w_s_data});
-    assign fcvt_exc  = fp64 ? (long ? fcvt_l_d_exc : fcvt_w_d_exc) :
-                              (long ? fcvt_l_s_exc : fcvt_w_s_exc);
+    assign fcvt_data = fp64 ? (islong ? fcvt_l_d_data : {{32{fcvt_w_d_data[31]}}, fcvt_w_d_data}) :
+                              (islong ? fcvt_l_s_data : {{32{fcvt_w_s_data[31]}}, fcvt_w_s_data});
+    assign fcvt_exc  = fp64 ? (islong ? fcvt_l_d_exc : fcvt_w_d_exc) :
+                              (islong ? fcvt_l_s_exc : fcvt_w_s_exc);
     
     
     assign out_int_data = ({64{fs}} & fs_data)                   |

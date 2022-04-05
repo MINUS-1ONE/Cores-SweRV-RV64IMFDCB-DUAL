@@ -623,11 +623,11 @@ module fpu
                                   fpu_e1.fmv & fpu_e1.fp_to_int,
                                   fpu_e1.fcvt & fpu_e1.fp_to_int,
                                   fpu_e1.sign,
-                                  fpu_e1.long};
+                                  fpu_e1.islong};
     assign int_to_fp_ctrl_code = {fpu_e1.fcvt & fpu_e1.int_to_fp,
                                   fpu_e1.fmv & fpu_e1.int_to_fp,
                                   fpu_e1.sign,
-                                  fpu_e1.long};
+                                  fpu_e1.islong};
     assign fp_to_fp_ctrl_code = {fpu_e1.fmin,
                                  fpu_e1.fmax,
                                  fpu_e1.fsgnj,

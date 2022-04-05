@@ -979,7 +979,7 @@ module dec_decode_ctl
          i0_fdp.fp_to_fp  = i0_dp.fp_to_fp;
          i0_fdp.fma       = i0_dp.fma;
          i0_fdp.fp64      = i0_dp.fp64;
-         i0_fdp.long      = i0_dp.long;
+         i0_fdp.islong    = i0_dp.islong;
          i0_fdp.sign      = i0_dp.sign;
          i0_fdp.fmin      = i0_dp.fmin;
          i0_fdp.fmax      = i0_dp.fmax;
@@ -1019,7 +1019,7 @@ module dec_decode_ctl
          i1_fdp.fp_to_fp  = i1_dp.fp_to_fp;
          i1_fdp.fma       = i1_dp.fma;
          i1_fdp.fp64      = i1_dp.fp64;
-         i1_fdp.long      = i1_dp.long;
+         i1_fdp.islong      = i1_dp.islong;
          i1_fdp.sign      = i1_dp.sign;
          i1_fdp.fmin      = i1_dp.fmin;
          i1_fdp.fmax      = i1_dp.fmax;
@@ -3141,7 +3141,7 @@ end : cam_array
    assign fpu_d.fp_to_fp  = i0_dp.fpu ? i0_fdp.fp_to_fp  : i1_fdp.fp_to_fp;
    assign fpu_d.fma       = i0_dp.fpu ? i0_fdp.fma       : i1_fdp.fma;
    assign fpu_d.fp64      = i0_dp.fpu ? i0_fdp.fp64      : i1_fdp.fp64;
-   assign fpu_d.long      = i0_dp.fpu ? i0_fdp.long      : i1_fdp.long;
+   assign fpu_d.islong    = i0_dp.fpu ? i0_fdp.islong      : i1_fdp.islong;
    assign fpu_d.sign      = i0_dp.fpu ? i0_fdp.sign      : i1_fdp.sign;
    assign fpu_d.fmin      = i0_dp.fpu ? i0_fdp.fmin      : i1_fdp.fmin;
    assign fpu_d.fmax      = i0_dp.fpu ? i0_fdp.fmax      : i1_fdp.fmax;
@@ -3957,7 +3957,7 @@ module dec_dec_ctl
 
    assign out.fp64 = (i[12]&!i[6]&!i[4]&!i[3]&i[2]) | (i[25]&i[6]&!i[5]);
 
-   assign out.long = (i[30]&i[21]&i[6]&!i[5]&i[4]);
+   assign out.islong = (i[30]&i[21]&i[6]&!i[5]&i[4]);
 
    assign out.sign = (i[31]&!i[29]&!i[20]&i[6]&!i[5]&i[4]);
 
