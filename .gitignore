@@ -1,0 +1,14 @@
+*.*
+*
+/snapshots/*
+!/configs/*
+!/design/*
+!/docs/*
+!/testbench/*
+!/tools/*
+!cdecode.e
+!coredecode.e
+!LICENSE
+!README.md
+!release-notes.md
+!.gitignore

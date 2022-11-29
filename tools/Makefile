@@ -47,7 +47,7 @@ RIVIERA = riviera
 #GCC_PREFIX = $(GCC_PATH)/riscv64-unknown-elf
 
 #64bit riscv gcc 10.2.0 from Sifive
-GCC_PATH = /home/riscv/tools/riscv-tools/SIFive-riscv-tools/2020.12/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin
+GCC_PATH = /home/minus/riscv-tools/SIFive-riscv-tools/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin
 GCC_PREFIX = $(GCC_PATH)/riscv64-unknown-elf
 
 #32bit riscv gcc 9.2.0
