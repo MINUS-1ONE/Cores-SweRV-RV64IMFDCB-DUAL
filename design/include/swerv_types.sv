@@ -428,6 +428,9 @@ typedef struct packed {
                         logic zbs;
                         logic rs2neg;   //for rvb inst that need neg rs2 for example andn/orn/xnor
                         logic dotuw;    //for rvb inst that with .uw postfix for example sh1add.uw/slli.uw
+                        logic atomic;
+                        logic lr;
+                        logic sc;
                        } dec_pkt_t;
 
 
