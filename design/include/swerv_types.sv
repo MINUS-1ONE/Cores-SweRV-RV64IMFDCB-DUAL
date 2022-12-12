@@ -27,23 +27,26 @@ typedef struct packed {
                        } trace_pkt_t;
 
 
-typedef enum logic [3:0] {
-                          NULL      = 4'b0000,
-                          MUL       = 4'b0001,
-                          LOAD      = 4'b0010,
-                          STORE     = 4'b0011,
-                          ALU       = 4'b0100,
-                          CSRREAD   = 4'b0101,
-                          CSRWRITE  = 4'b0110,
-                          CSRRW     = 4'b0111,
-                          EBREAK    = 4'b1000,
-                          ECALL     = 4'b1001,
-                          FENCE     = 4'b1010,
-                          FENCEI    = 4'b1011,
-                          MRET      = 4'b1100,
-                          CONDBR    = 4'b1101,
-                          JAL       = 4'b1110,
-                          BITMANIPU = 4'b1111
+typedef enum logic [4:0] {
+                          NULL      = 5'b00000,
+                          MUL       = 5'b00001,
+                          LOAD      = 5'b00010,
+                          STORE     = 5'b00011,
+                          ALU       = 5'b00100,
+                          CSRREAD   = 5'b00101,
+                          CSRWRITE  = 5'b00110,
+                          CSRRW     = 5'b00111,
+                          EBREAK    = 5'b01000,
+                          ECALL     = 5'b01001,
+                          FENCE     = 5'b01010,
+                          FENCEI    = 5'b01011,
+                          MRET      = 5'b01100,
+                          CONDBR    = 5'b01101,
+                          JAL       = 5'b01110,
+                          BITMANIPU = 5'b01111,
+                          ATOMIC    = 5'b10000,
+                          LR        = 5'b10001,
+                          SC        = 5'b10010
                           } inst_t;
 
 // used to transfer icache data error hamming code info

@@ -1376,6 +1376,8 @@ end : cam_array
          if (i0_dp.pm_alu)               i0_itype = ALU;
          if (i0_dp.zba | i0_dp.zbb |
              i0_dp.zbc | i0_dp.zbs)      i0_itype = BITMANIPU;
+         if (i0_dp.lr)                   i0_itype = LR;
+         if (i0_dp.sc)                   i0_itype = SC;
          if ( csr_read & ~csr_write)     i0_itype = CSRREAD;
          if (~csr_read &  csr_write)     i0_itype = CSRWRITE;
          if ( csr_read &  csr_write)     i0_itype = CSRRW;
@@ -1397,6 +1399,8 @@ end : cam_array
              i1_dp.zbc | i1_dp.zbs)      i1_itype = BITMANIPU;
          if (i1_dp.condbr)               i1_itype = CONDBR;
          if (i1_dp.jal)                  i1_itype = JAL;
+         if (i1_dp.lr)                   i1_itype = LR;
+         if (i1_dp.sc)                   i1_itype = SC;
       end
 
 
@@ -1519,6 +1523,12 @@ end : cam_array
    assign mul_p.reverse = (i0_dp.mul) ? i0_dp.reverse :   i1_dp.reverse;
 
    assign lsu_p.valid = lsu_decode_d;
+
+   // for atomic instrution 
+   assign lsu_p.atomic = (i0_dp.lsu) ? i0_dp.atomic : i0_dp.atomic;
+   assign lsu_p.atomic_instr[4:0] = (i0_dp.atomic) ? i0[31:27] : (i1_dp.atomic) ? i1[31:27] : '0;
+   assign lsu_p.lr = (i0_dp.lsu) ? i0_dp.lr : i1_dp.lr;
+   assign lsu_p.sc = (i0_dp.lsu) ? i0_dp.sc : i1_dp.sc;
 
    assign lsu_p.load =   (i0_dp.lsu) ? i0_dp.load  :   i1_dp.load;
    assign lsu_p.store =  (i0_dp.lsu) ? i0_dp.store :   i1_dp.store;
