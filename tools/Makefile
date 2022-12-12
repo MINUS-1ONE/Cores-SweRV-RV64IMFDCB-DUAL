@@ -132,7 +132,7 @@ ${BUILD_DIR}/defines.h :
 
 verilator-build: ${TBFILES} ${BUILD_DIR}/defines.h test_tb_top.cpp
 	echo '`undef ASSERT_ON' >> ${BUILD_DIR}/common_defines.vh
-	$(VERILATOR) --cc -CFLAGS ${CFLAGS} $(defines) $(includes) \
+	$(VERILATOR) -Wno-WIDTH -Wno-CASEOVERLAP -Wno-CASEX --cc -CFLAGS ${CFLAGS} $(defines) $(includes) \
                 -Wno-UNOPTFLAT \
                 -I${RV64_ROOT}/testbench \
 				-f ${RV64_ROOT}/testbench/flist \
