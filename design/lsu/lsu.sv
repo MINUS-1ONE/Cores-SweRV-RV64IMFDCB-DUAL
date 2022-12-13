@@ -275,8 +275,16 @@ module lsu
    lsu_lsc_ctl lsu_lsc_ctl(.*);
 
    // block stores in decode  - for either bus or stbuf reasons
-   assign lsu_store_stall_any = lsu_stbuf_full_any | lsu_bus_buffer_full_any;
-   assign lsu_load_stall_any  = lsu_bus_buffer_full_any;
+   //                            and for sc/amo since stores does read modify write so they are similar to load
+   assign lsu_store_stall_any = (lsu_pkt_dc1.valid & (lsu_pkt_dc1.sc | (lsu_pkt_dc1.atomic & lsu_pkt_dc1.store))) |
+                                (lsu_pkt_dc2.valid & (lsu_pkt_dc2.sc | (lsu_pkt_dc2.atomic & lsu_pkt_dc2.store))) |
+                                (lsu_pkt_dc3.valid & (lsu_pkt_dc3.sc | (lsu_pkt_dc3.atomic & lsu_pkt_dc3.store))) |
+                                lsu_stbuf_full_any | lsu_bus_buffer_full_any;
+
+   assign lsu_load_stall_any  = (lsu_pkt_dc1.valid & (lsu_pkt_dc1.sc | (lsu_pkt_dc1.atomic & lsu_pkt_dc1.store))) |
+                                (lsu_pkt_dc2.valid & (lsu_pkt_dc2.sc | (lsu_pkt_dc2.atomic & lsu_pkt_dc2.store))) |
+                                (lsu_pkt_dc3.valid & (lsu_pkt_dc3.sc | (lsu_pkt_dc3.atomic & lsu_pkt_dc3.store))) |
+                                lsu_bus_buffer_full_any;
 
    // Ready to accept dma trxns
    // There can't be any inpipe forwarding from non-dma packet to dma packet since they can be flushed so we can't have ld/st in dc3-dc5 when dma is in dc2
@@ -291,12 +299,15 @@ module lsu
    assign flush_prior_dc5 = dec_tlu_i0_kill_writeb_wb & ~lsu_i0_valid_dc5;    // Flush is due to i0 instruction and ld/st is in i1
 
    // lsu idle
+   // lsu空闲，即无ld/st指令访存请求
+   // 仅当DC1-DC5均无ld/st指令，且store buffer与bus buffer都为空时有效
    assign lsu_idle_any = ~(lsu_pkt_dc1.valid | lsu_pkt_dc2.valid | lsu_pkt_dc3.valid | lsu_pkt_dc4.valid | lsu_pkt_dc5.valid) &
                          lsu_bus_buffer_empty_any & lsu_stbuf_empty_any;
 
    // lsu halt idle. This is used for entering the halt mode
    // Indicates non-idle if there is a instruction valid in dc1-dc5 or read/write buffers are non-empty since they can come with error
    // Need to make sure bus trxns are done and there are no non-dma writes in store buffer
+   // 在lsu_idle_any的基础上排除了DMA的访存操作
    assign lsu_halt_idle_any = ~((lsu_pkt_dc1.valid & ~lsu_pkt_dc1.dma) |
                                 (lsu_pkt_dc2.valid & ~lsu_pkt_dc2.dma) |
                                 (lsu_pkt_dc3.valid & ~lsu_pkt_dc3.dma) |
@@ -306,7 +317,13 @@ module lsu
 
    // Instantiate the store buffer
    //assign ldst_stbuf_reqvld_dc3  = store_stbuf_reqvld_dc3 | load_stbuf_reqvld_dc3;
-   assign store_stbuf_reqvld_dc3 = lsu_pkt_dc3.valid & lsu_pkt_dc3.store & (addr_in_dccm_dc3 | addr_in_pic_dc3) & (~flush_dc3 | lsu_pkt_dc3.dma) & ~lsu_freeze_dc3;
+   // 访问内部存储的st指令在DC3阶段暂存至store buffer
+   // (~flush_dc3 | lsu_pkt_dc3.dma)表示DMA访问DCCM不允许flush
+   // 由于原子指令 (lr/sc/amo) 在单线程核内不需要考虑写入 DCCM 的情况(单线程核的原子指令写入DCCM没有意义, 因为不会存在另一个线程破坏访问DCCM原子性的情况, 原子操作使用普通的store/load操作也可以完成), 
+   // 而单线程核的多核系统使用原子指令访问 DCCM 也没有意义, 因为多核中的每个核都有各自的DCCM, 多核的上锁也不可能通过写入DCCM来上锁.
+   // 所以若 SC 访问 DCCM/PIC, 不发送暂存至store buffer的请求, 不执行写操作, 写入寄存器rd的值为0, 表示SC执行失败.
+   //    若 LR 访问 DCCM/PIC, 执行load操作, 但不写入 reservation.
+   assign store_stbuf_reqvld_dc3 = lsu_pkt_dc3.valid & (lsu_pkt_dc3.store & ~lsu_pkt_dc3.sc) & (addr_in_dccm_dc3 | addr_in_pic_dc3) & (~flush_dc3 | lsu_pkt_dc3.dma) & ~lsu_freeze_dc3;
    assign load_stbuf_reqvld_dc3  = lsu_pkt_dc3.valid & lsu_pkt_dc3.load  & (addr_in_dccm_dc3 | addr_in_pic_dc3) & lsu_single_ecc_error_dc3 & (~flush_dc3 | lsu_pkt_dc3.dma) & ~lsu_freeze_dc3;
 
    // These go to store buffer to detect full

@@ -279,6 +279,10 @@ typedef struct packed {
                        } alu_pkt_t;
 
 typedef struct packed {
+                       logic atomic;
+                       logic lr;
+                       logic sc;
+                       logic [4:0] atomic_instr; // this will be decoded to get which of the amo instruction lsu is doing
                        logic by;
                        logic half;
                        logic word;

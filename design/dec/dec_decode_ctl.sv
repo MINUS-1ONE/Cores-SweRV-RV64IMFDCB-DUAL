@@ -1524,6 +1524,10 @@ end : cam_array
 
    assign lsu_p.valid = lsu_decode_d;
 
+   // i0_dp.atomic 信号在该模块中主要参与两个部分:
+   //    1. atomic 信号驱动 LSU package(lsu_p), 之后 lsu_p 在 LSU 中继续在各级流水中传递, 作用于 LSU 的各个子模块.
+   //    2. 用于判断 i0/i1 通道是否应该 stall, stall 会导致 i0 指令失效, 取指令暂停.
+
    // for atomic instrution 
    assign lsu_p.atomic = (i0_dp.lsu) ? i0_dp.atomic : i0_dp.atomic;
    assign lsu_p.atomic_instr[4:0] = (i0_dp.atomic) ? i0[31:27] : (i1_dp.atomic) ? i1[31:27] : '0;
@@ -1793,7 +1797,7 @@ end : cam_array
                        dec_tlu_debug_stall |
                        postsync_stall |
                        presync_stall  |
-                       ((i0_dp.fence | debug_fence) & ~lsu_idle) |
+                       ((i0_dp.fence | debug_fence | i0_dp.atomic) & ~lsu_idle) |
                        i0_nonblock_load_stall |
                        i0_load_block_d |
                        i0_mul_block_d |
@@ -1811,6 +1815,7 @@ end : cam_array
               (((|dec_i0_trigger_match_d[3:0]) | ((i0_dp.condbr | i0_dp.jal) & i0_secondary_d)) & i1_dp.load ) | // if branch or branch error then don't allow i1 load
                        i0_presync | i0_postsync |
                        i1_dp.presync | i1_dp.postsync |
+                       (i1_dp.atomic & ~lsu_idle) |
                        i1_icaf_d |        // instruction access fault is i0 only
                        dec_i1_perr_d |    // instruction parity error is i0 only
                        dec_i1_sbecc_d |
