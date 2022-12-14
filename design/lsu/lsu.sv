@@ -274,6 +274,10 @@ module lsu
 
    lsu_lsc_ctl lsu_lsc_ctl(.*);
 
+   // 完成了decode阶段在lsu.sv负责的两项和 atomic 相关的工作:
+   // 1. 使能 lsu_store_stall_any/lsu_load_stall_any, 阻塞 i0/i1 通道的 ldst 指令发射.
+   // 2. property assert, 确保在有效的atomic指令进入 lsu_p 时 lsu 是空闲的. 
+
    // block stores in decode  - for either bus or stbuf reasons
    //                            and for sc/amo since stores does read modify write so they are similar to load
    assign lsu_store_stall_any = (lsu_pkt_dc1.valid & (lsu_pkt_dc1.sc | (lsu_pkt_dc1.atomic & lsu_pkt_dc1.store))) |
@@ -332,6 +336,7 @@ module lsu
    assign dccm_ldst_dc3 = lsu_pkt_dc3.valid & (lsu_pkt_dc3.load | lsu_pkt_dc3.store) & (addr_in_dccm_dc3 | addr_in_pic_dc3);
 
    // Disable Forwarding for now
+   // EH2 中 lsu_pkt_dc1.atomic 还参与 lsu_cmpen_dc2 的驱动, 但是 EH2 中的 lsu_cmpen_dc2 -> cmpen_hi_dc2/cmpen_lo_dc2 之后没有被使用, 因此这里不考虑加上 atomic, 
    assign lsu_cmpen_dc2 = lsu_pkt_dc2.valid & (lsu_pkt_dc2.load | lsu_pkt_dc2.store) & (addr_in_dccm_dc2 | addr_in_pic_dc2);
 
    // Bus signals
@@ -408,6 +413,21 @@ module lsu
    endproperty
    assert_exception_no_lsu_flush: assert property (exception_no_lsu_flush) else
       $display("No flush within 2 cycles of exception");
+
+  // Atomic needs to preserve memory ordering(aq/rl attributes are assumed) so lsu_idle needs to be high when atomics are dispatched to lsu
+  // 这段定义了一个属性(property), 用来指定硬件应有的属性, 并将这个属性通过一个名为 assert_atomic_notidle 的断言(assert)来检测: assert property (atomic_notidle) else ...
+  //  该 assert property 检查当有效的原子指令进入 decode 阶段时, LSU 是否为 idle.
+  //  代码的`@(posedge clk)`部分指定此属性定义的行为应该在时钟信号的上升沿上检查. 代码中的`disable iff (~rst_l)`部分指定如果reset信号(rst_l)有效(低电平), 则禁用该属性(即不检查).
+  //  `(lsu_p.valid & lsu_p.atomic)`, 指示当lsu_p包含有效的原子指令时, 应该检查该属性.
+  //     注: lsu_p 是decode阶段的package, 详见 lsu_lsc_ctl, 所以检查的是decode流水级有效的原子指令
+  //  最后 `|-> lsu_halt_idle_any` 部分表示该属性定义的行为: lsu_halt_idle_any 信号为高, 表示 LSU 空闲.
+  //  
+  // 该 property 是由 dec_decode_ctl 模块的 i0_block_d 信号保证的, 当解码原子指令时, 会检测 lsu 是否空闲, 如果不空闲则阻塞 i0和i1, 且 lsu_p.valid 置为0.
+  property atomic_notidle;
+     @(posedge clk) disable iff (~rst_l) (lsu_p.valid & lsu_p.atomic) |-> lsu_halt_idle_any;
+  endproperty
+  assert_atomic_notidle: assert property (atomic_notidle) else
+     $display("LSU not idle but Atomic instruction (AMO/LR/SC) in decode");
 `endif
 
 endmodule // lsu
