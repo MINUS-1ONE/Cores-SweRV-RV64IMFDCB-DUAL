@@ -170,7 +170,9 @@ module lsu_addrcheck
                                   (start_addr_in_pic_dc1  & end_addr_in_dccm_dc1)                                     |
                                   // 由于PIC也改为64b，因此要求访问PIC由word对齐变为double word对齐
                                   ((addr_in_pic_dc1 & ((start_addr_dc1[2:0] != 3'b0) | ~lsu_pkt_dc1.dword))) |
-                                  (~start_addr_in_dccm_region_dc1 & ~non_dccm_access_ok)) & lsu_pkt_dc1.valid & ~lsu_pkt_dc1.dma;
+                                  (~start_addr_in_dccm_region_dc1 & ~non_dccm_access_ok)) & lsu_pkt_dc1.valid & ~lsu_pkt_dc1.dma | 
+                                  (lsu_pkt_dc1.atomic & (start_addr_dc1[1:0] != 2'b0)) |
+                                  (lsu_pkt_dc1.valid & lsu_pkt_dc1.atomic & ~addr_in_dccm_dc1 & ~addr_external_dc1);
    end else begin
       assign access_fault_dc1  = (//(start_addr_in_dccm_region_dc1 & ~start_addr_in_dccm_dc1) |
                                   //(end_addr_in_dccm_region_dc1 & ~end_addr_in_dccm_dc1)     |
@@ -178,7 +180,9 @@ module lsu_addrcheck
                                   //(end_addr_in_pic_region_dc1 & ~end_addr_in_pic_dc1)       |
                                   // 由于PIC也改为64b，因此要求访问PIC由word对齐变为double word对齐
                                   ((addr_in_pic_dc1 & ((start_addr_dc1[2:0] != 3'b0) | ~lsu_pkt_dc1.dword))) |
-                                  (~start_addr_in_pic_region_dc1 & ~start_addr_in_dccm_region_dc1 & ~non_dccm_access_ok)) & lsu_pkt_dc1.valid & ~lsu_pkt_dc1.dma;
+                                  (~start_addr_in_pic_region_dc1 & ~start_addr_in_dccm_region_dc1 & ~non_dccm_access_ok)) & lsu_pkt_dc1.valid & ~lsu_pkt_dc1.dma |
+                                  (lsu_pkt_dc1.atomic & (start_addr_dc1[1:0] != 2'b0)) |
+                                  (lsu_pkt_dc1.valid & lsu_pkt_dc1.atomic & ~addr_in_dccm_dc1 & ~addr_external_dc1);
    end
 
    // Misaligned happens due to 2 reasons
@@ -186,7 +190,7 @@ module lsu_addrcheck
    // 2. sideeffects access which are not aligned
    // 还是将存储按高4b划分
    assign misaligned_fault_dc1 = ((start_addr_dc1[63:60] != end_addr_dc1[63:60]) |
-                                  (is_sideeffects_dc1 & ~is_aligned_dc1)) & addr_external_dc1 & lsu_pkt_dc1.valid & ~lsu_pkt_dc1.dma;
+                                  (is_sideeffects_dc1 & ~is_aligned_dc1)) & addr_external_dc1 & lsu_pkt_dc1.valid & ~lsu_pkt_dc1.dma & ~lsu_pkt_dc1.atomic;
 
    rvdff_fpga #(.WIDTH(1)) is_sideeffects_dc2ff (.din(is_sideeffects_dc1), .dout(is_sideeffects_dc2), .clk(lsu_freeze_c2_dc2_clk), .clken(lsu_freeze_c2_dc2_clken), .rawclk(clk), .*);
    rvdff_fpga #(.WIDTH(1)) is_sideeffects_dc3ff (.din(is_sideeffects_dc2), .dout(is_sideeffects_dc3), .clk(lsu_freeze_c2_dc3_clk), .clken(lsu_freeze_c2_dc3_clken), .rawclk(clk), .*);
