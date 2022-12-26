@@ -1797,7 +1797,7 @@ end : cam_array
                        dec_tlu_debug_stall |
                        postsync_stall |
                        presync_stall  |
-                       ((i0_dp.fence | debug_fence | i0_dp.atomic) & ~lsu_idle) |
+                       ((i0_dp.fence | debug_fence | i0_dp.atomic) & ~lsu_idle) | // 利用这一点保证了 atomic 发射时 store/bus buffer 都为空且pipe中无lsu指令 (除dma外)
                        i0_nonblock_load_stall |
                        i0_load_block_d |
                        i0_mul_block_d |

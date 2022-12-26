@@ -137,10 +137,10 @@ module lsu_clkdomain
    assign lsu_c2_dc5_clken = lsu_c1_dc5_clken | lsu_c1_dc5_clken_q | clk_override;
 
    assign lsu_store_c1_dc1_clken = ((lsu_c1_dc1_clken & (lsu_p.store | dma_mem_write | lsu_p.atomic)) | clk_override) & ~lsu_freeze_dc3;
-   assign lsu_store_c1_dc2_clken = ((lsu_c1_dc2_clken & (lsu_pkt_dc1.store | lsu_p.atomic)) | clk_override) & ~lsu_freeze_dc3;
-   assign lsu_store_c1_dc3_clken = ((lsu_c1_dc3_clken & (lsu_pkt_dc2.store | lsu_p.atomic)) | clk_override) & ~lsu_freeze_dc3;
-   assign lsu_store_c1_dc4_clken = (lsu_c1_dc4_clken & lsu_pkt_dc3.store) | clk_override;
-   assign lsu_store_c1_dc5_clken = (lsu_c1_dc5_clken & lsu_pkt_dc4.store) | clk_override;
+   assign lsu_store_c1_dc2_clken = ((lsu_c1_dc2_clken & (lsu_pkt_dc1.store | lsu_pkt_dc1.atomic)) | clk_override) & ~lsu_freeze_dc3;
+   assign lsu_store_c1_dc3_clken = ((lsu_c1_dc3_clken & (lsu_pkt_dc2.store | lsu_pkt_dc2.atomic)) | clk_override) & ~lsu_freeze_dc3;
+   assign lsu_store_c1_dc4_clken = (lsu_c1_dc4_clken & (lsu_pkt_dc3.store | lsu_pkt_dc3.atomic)) | clk_override;
+   assign lsu_store_c1_dc5_clken = (lsu_c1_dc5_clken & (lsu_pkt_dc4.store | lsu_pkt_dc4.atomic)) | clk_override;
 
    assign lsu_freeze_c1_dc1_clken = (lsu_p.valid | dma_dccm_req | clk_override) & ~lsu_freeze_dc3;
    assign lsu_freeze_c1_dc2_clken = (lsu_pkt_dc1.valid | clk_override) & ~lsu_freeze_dc3;
